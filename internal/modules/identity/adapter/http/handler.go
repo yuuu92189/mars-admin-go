@@ -56,6 +56,7 @@ func (h *Handler) Routes() chi.Router {
 		protected.Post("/mfa/setup", h.setupMFA)
 		protected.Post("/mfa/enable", h.enableMFA)
 		protected.Post("/mfa/disable", h.disableMFA)
+		protected.Post("/social-identities/unbind", h.unbindSocialIdentity)
 		protected.Get("/sessions", h.sessions)
 		protected.Delete("/sessions/{id}", h.revokeSession)
 	})
@@ -121,7 +122,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
-	input.IPAddress = clientIP(r, h.config.Auth.TrustedProxyHeaders)
+	input.IPAddress = httpserver.ClientIP(r, h.config.Auth.TrustedProxyCIDRs)
 	input.UserAgent = r.UserAgent()
 	if input.ClientType == "" {
 		input.ClientType = clientTypeFromPath(r.URL.Path)
@@ -169,7 +170,7 @@ func (h *Handler) loginSocial(w http.ResponseWriter, r *http.Request) {
 	result, err := h.identity.LoginSocial(
 		r.Context(), normalizeSocialProvider(chi.URLParam(r, "provider")),
 		firstNonEmpty(input.AuthCode, input.Code), firstNonEmpty(input.ClientType, "app"),
-		input.DeviceName, clientIP(r, h.config.Auth.TrustedProxyHeaders), r.UserAgent(),
+		input.DeviceName, httpserver.ClientIP(r, h.config.Auth.TrustedProxyCIDRs), r.UserAgent(),
 	)
 	if err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
@@ -177,6 +178,22 @@ func (h *Handler) loginSocial(w http.ResponseWriter, r *http.Request) {
 	}
 	h.setSessionCookies(w, result)
 	httpserver.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h *Handler) unbindSocialIdentity(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Provider string `json:"provider"`
+		Subject  string `json:"subject"`
+	}
+	if !httpserver.DecodeJSON(w, r, &input) {
+		return
+	}
+	actor, _ := requestctx.ActorFrom(r.Context())
+	if err := h.identity.UnbindSocialIdentity(r.Context(), actor, input.Provider, input.Subject); err != nil {
+		httpserver.WriteError(w, r, bootstrapLogger(), err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) loginSMS(w http.ResponseWriter, r *http.Request) {
@@ -196,7 +213,7 @@ func (h *Handler) loginSMS(w http.ResponseWriter, r *http.Request) {
 	}
 	result, err := h.identity.LoginSMS(
 		r.Context(), input.Phone, code, firstNonEmpty(input.ClientType, clientTypeFromPath(r.URL.Path)),
-		input.DeviceName, clientIP(r, h.config.Auth.TrustedProxyHeaders), r.UserAgent(),
+		input.DeviceName, httpserver.ClientIP(r, h.config.Auth.TrustedProxyCIDRs), r.UserAgent(),
 	)
 	if err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
@@ -208,12 +225,16 @@ func (h *Handler) loginSMS(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) sendSMS(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Phone string `json:"phone"`
+		Phone      string `json:"phone"`
+		DeviceName string `json:"deviceName"`
 	}
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
-	if err := h.identity.SendLoginCode(r.Context(), input.Phone); err != nil {
+	if err := h.identity.SendLoginCode(
+		r.Context(), input.Phone, httpserver.ClientIP(r, h.config.Auth.TrustedProxyCIDRs),
+		input.DeviceName, r.UserAgent(),
+	); err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
 	}
@@ -347,7 +368,7 @@ func (h *Handler) legacyUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	if version == 0 {
 		version = current.Version
 	}
-	updated, err := h.identity.UpdateUser(r.Context(), actor.UserID, identitydomain.UpdateUserInput{
+	updated, err := h.identity.UpdateUser(r.Context(), actor, actor.UserID, identitydomain.UpdateUserInput{
 		DisplayName: nickname, Email: email, Phone: phone,
 		AvatarURL: firstNonEmpty(input.Avatar, input.AvatarURL, current.AvatarURL),
 		UserType:  current.UserType,
@@ -449,7 +470,8 @@ func (h *Handler) revokeSession(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
 	}
-	if err := h.identity.RevokeSession(r.Context(), id); err != nil {
+	actor, _ := requestctx.ActorFrom(r.Context())
+	if err := h.identity.RevokeOwnedSession(r.Context(), actor, id); err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
 	}
@@ -481,7 +503,8 @@ func (h *Handler) getUser(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
 	}
-	user, err := h.identity.Profile(r.Context(), id)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	user, err := h.identity.GetUser(r.Context(), actor, id)
 	if err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
@@ -494,7 +517,8 @@ func (h *Handler) createUser(w http.ResponseWriter, r *http.Request) {
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
-	user, err := h.identity.CreateUser(r.Context(), input)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	user, err := h.identity.CreateUserAsActor(r.Context(), actor, input)
 	if err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
@@ -512,7 +536,8 @@ func (h *Handler) updateUser(w http.ResponseWriter, r *http.Request) {
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
-	user, err := h.identity.UpdateUser(r.Context(), id, input)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	user, err := h.identity.UpdateUser(r.Context(), actor, id, input)
 	if err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
@@ -526,7 +551,8 @@ func (h *Handler) deleteUser(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
 	}
-	if err := h.identity.DeleteUser(r.Context(), id); err != nil {
+	actor, _ := requestctx.ActorFrom(r.Context())
+	if err := h.identity.DeleteUser(r.Context(), actor, id); err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
 	}
@@ -539,7 +565,8 @@ func (h *Handler) resetPassword(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
 	}
-	password, err := h.identity.ResetPassword(r.Context(), id, "")
+	actor, _ := requestctx.ActorFrom(r.Context())
+	password, err := h.identity.ResetPassword(r.Context(), actor, id, "")
 	if err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
@@ -553,13 +580,10 @@ func (h *Handler) revokeUserSessions(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
 	}
-	sessions, err := h.identity.ListSessions(r.Context(), id)
-	if err != nil {
+	actor, _ := requestctx.ActorFrom(r.Context())
+	if err := h.identity.RevokeUserSessions(r.Context(), actor, id); err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
-	}
-	for _, session := range sessions {
-		_ = h.identity.RevokeSession(r.Context(), session.ID)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -698,7 +722,8 @@ func (h *Handler) legacyGetUser(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
 	}
-	user, err := h.identity.Profile(r.Context(), id)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	user, err := h.identity.GetUser(r.Context(), actor, id)
 	if err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
@@ -729,7 +754,8 @@ func (h *Handler) legacyCreateUser(w http.ResponseWriter, r *http.Request) {
 	if payload.UserType == "" {
 		payload.UserType = "admin"
 	}
-	user, err := h.identity.CreateUser(r.Context(), identitydomain.CreateUserInput{
+	actor, _ := requestctx.ActorFrom(r.Context())
+	user, err := h.identity.CreateUserAsActor(r.Context(), actor, identitydomain.CreateUserInput{
 		Username: payload.Username, Password: payload.Password,
 		DisplayName: payload.Nickname, Email: payload.Email, Phone: payload.Phone,
 		AvatarURL: firstNonEmpty(payload.Avatar, payload.AvatarURL, input.AvatarURL),
@@ -764,7 +790,8 @@ func (h *Handler) legacyUpdateUser(w http.ResponseWriter, r *http.Request) {
 	if version == 0 {
 		version = input.Version
 	}
-	user, err := h.identity.UpdateUser(r.Context(), input.User.ID, identitydomain.UpdateUserInput{
+	actor, _ := requestctx.ActorFrom(r.Context())
+	user, err := h.identity.UpdateUser(r.Context(), actor, input.User.ID, identitydomain.UpdateUserInput{
 		DisplayName: payload.Nickname, Email: payload.Email, Phone: payload.Phone,
 		AvatarURL: firstNonEmpty(payload.Avatar, payload.AvatarURL, input.AvatarURL),
 		UserType:  payload.UserType, Status: legacyStatusNameFromAny(payload.Status),
@@ -784,7 +811,8 @@ func (h *Handler) legacyDeleteUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, id := range ids {
-		if err := h.identity.DeleteUser(r.Context(), id); err != nil {
+		actor, _ := requestctx.ActorFrom(r.Context())
+		if err := h.identity.DeleteUser(r.Context(), actor, id); err != nil {
 			httpserver.WriteError(w, r, bootstrapLogger(), err)
 			return
 		}
@@ -810,12 +838,13 @@ func (h *Handler) legacySetUserStatus(w http.ResponseWriter, r *http.Request, st
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
 	}
-	user, err := h.identity.Profile(r.Context(), id)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	user, err := h.identity.GetUser(r.Context(), actor, id)
 	if err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
 		return
 	}
-	user, err = h.identity.UpdateUser(r.Context(), id, identitydomain.UpdateUserInput{
+	user, err = h.identity.UpdateUser(r.Context(), actor, id, identitydomain.UpdateUserInput{
 		DisplayName: user.DisplayName, Email: user.Email, Phone: user.Phone,
 		AvatarURL: user.AvatarURL,
 		UserType:  user.UserType, Status: status, Gender: user.Gender, Version: user.Version,
@@ -955,25 +984,21 @@ func (h *Handler) setSessionCookies(w http.ResponseWriter, result identitydomain
 }
 
 func (h *Handler) clearSessionCookies(w http.ResponseWriter) {
-	for _, name := range []string{"mars_session", "mars_refresh", "mars_csrf"} {
-		http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", MaxAge: -1, HttpOnly: name != "mars_csrf", SameSite: http.SameSiteLaxMode}) // #nosec G124 -- deletion mirrors the original cookie scope.
+	cookies := []struct {
+		name     string
+		path     string
+		httpOnly bool
+	}{
+		{name: "mars_session", path: "/", httpOnly: true},
+		{name: "mars_refresh", path: "/api/v1/auth/refresh", httpOnly: true},
+		{name: "mars_csrf", path: "/", httpOnly: false},
 	}
-}
-
-func clientIP(r *http.Request, trustProxy bool) string {
-	if trustProxy {
-		if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
-			if index := strings.IndexByte(forwarded, ','); index > 0 {
-				return strings.TrimSpace(forwarded[:index])
-			}
-			return strings.TrimSpace(forwarded)
-		}
+	for _, cookie := range cookies {
+		http.SetCookie(w, &http.Cookie{ // #nosec G124 -- deletion mirrors the original cookie scope.
+			Name: cookie.name, Value: "", Path: cookie.path, MaxAge: -1,
+			HttpOnly: cookie.httpOnly, Secure: h.config.Auth.CookieSecure, SameSite: http.SameSiteLaxMode,
+		})
 	}
-	host := r.RemoteAddr
-	if index := strings.LastIndex(host, ":"); index > 0 {
-		host = host[:index]
-	}
-	return host
 }
 
 func clientTypeFromPath(path string) string {

@@ -38,6 +38,70 @@ func (q *Queries) ClearFailedLogin(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const countDepartmentsWithinScope = `-- name: CountDepartmentsWithinScope :one
+SELECT count(DISTINCT department.id)::bigint
+FROM organization_departments department
+WHERE department.deleted_at IS NULL
+  AND department.id = ANY($3::uuid[])
+  AND (
+    $2::text = 'all'
+    OR (
+      $2::text = 'department'
+      AND EXISTS (
+        SELECT 1
+        FROM organization_memberships mine
+        WHERE mine.user_id = $1 AND mine.department_id = department.id
+      )
+    )
+    OR (
+      $2::text = 'department_tree'
+      AND EXISTS (
+        SELECT 1
+        FROM organization_memberships mine
+        JOIN organization_departments my_dept ON my_dept.id = mine.department_id
+        WHERE mine.user_id = $1 AND department.path <@ my_dept.path
+      )
+    )
+    OR (
+      $2::text = 'custom'
+      AND EXISTS (
+        SELECT 1
+        FROM access_user_roles role
+        JOIN access_role_departments allowed ON allowed.role_id = role.role_id
+        WHERE role.user_id = $1 AND allowed.department_id = department.id
+      )
+    )
+  )
+`
+
+type CountDepartmentsWithinScopeParams struct {
+	UserID  pgtype.UUID   `json:"user_id"`
+	Column2 string        `json:"column_2"`
+	Column3 []pgtype.UUID `json:"column_3"`
+}
+
+func (q *Queries) CountDepartmentsWithinScope(ctx context.Context, arg CountDepartmentsWithinScopeParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countDepartmentsWithinScope, arg.UserID, arg.Column2, arg.Column3)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const countPrivilegedRoles = `-- name: CountPrivilegedRoles :one
+SELECT count(*)::bigint
+FROM access_roles
+WHERE id = ANY($1::uuid[])
+  AND is_super_admin = true
+  AND deleted_at IS NULL
+`
+
+func (q *Queries) CountPrivilegedRoles(ctx context.Context, dollar_1 []pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countPrivilegedRoles, dollar_1)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countUsers = `-- name: CountUsers :one
 SELECT count(*)
 FROM identity_users u
@@ -127,13 +191,37 @@ func (q *Queries) CreateSocialIdentity(ctx context.Context, arg CreateSocialIden
 	return err
 }
 
+const createSocialIdentityStrict = `-- name: CreateSocialIdentityStrict :exec
+INSERT INTO identity_social_identities (id, user_id, provider, subject, metadata)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type CreateSocialIdentityStrictParams struct {
+	ID       pgtype.UUID `json:"id"`
+	UserID   pgtype.UUID `json:"user_id"`
+	Provider string      `json:"provider"`
+	Subject  string      `json:"subject"`
+	Metadata []byte      `json:"metadata"`
+}
+
+func (q *Queries) CreateSocialIdentityStrict(ctx context.Context, arg CreateSocialIdentityStrictParams) error {
+	_, err := q.db.Exec(ctx, createSocialIdentityStrict,
+		arg.ID,
+		arg.UserID,
+		arg.Provider,
+		arg.Subject,
+		arg.Metadata,
+	)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO identity_users (
     id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 )
-RETURNING id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender, failed_login_count, locked_until, mfa_secret_encrypted, last_login_at, version, created_at, updated_at, deleted_at, mfa_enabled_at
+RETURNING id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender, failed_login_count, locked_until, mfa_secret_encrypted, last_login_at, version, created_at, updated_at, deleted_at, mfa_enabled_at, password_login_enabled
 `
 
 type CreateUserParams struct {
@@ -183,6 +271,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Identit
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.MfaEnabledAt,
+		&i.PasswordLoginEnabled,
 	)
 	return i, err
 }
@@ -199,6 +288,17 @@ func (q *Queries) DisableMFA(ctx context.Context, id pgtype.UUID) (int64, error)
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const disablePasswordLogin = `-- name: DisablePasswordLogin :exec
+UPDATE identity_users
+SET password_login_enabled = false, updated_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) DisablePasswordLogin(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, disablePasswordLogin, id)
+	return err
 }
 
 const enableMFA = `-- name: EnableMFA :execrows
@@ -234,7 +334,7 @@ func (q *Queries) GetMFASecret(ctx context.Context, id pgtype.UUID) (GetMFASecre
 }
 
 const getSocialUser = `-- name: GetSocialUser :one
-SELECT u.id, u.username, u.password_hash, u.display_name, u.email, u.phone, u.avatar_url, u.user_type, u.status, u.gender, u.failed_login_count, u.locked_until, u.mfa_secret_encrypted, u.last_login_at, u.version, u.created_at, u.updated_at, u.deleted_at, u.mfa_enabled_at
+SELECT u.id, u.username, u.password_hash, u.display_name, u.email, u.phone, u.avatar_url, u.user_type, u.status, u.gender, u.failed_login_count, u.locked_until, u.mfa_secret_encrypted, u.last_login_at, u.version, u.created_at, u.updated_at, u.deleted_at, u.mfa_enabled_at, u.password_login_enabled
 FROM identity_social_identities social
 JOIN identity_users u ON u.id = social.user_id
 WHERE social.provider = $1 AND social.subject = $2 AND u.deleted_at IS NULL
@@ -268,12 +368,13 @@ func (q *Queries) GetSocialUser(ctx context.Context, arg GetSocialUserParams) (I
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.MfaEnabledAt,
+		&i.PasswordLoginEnabled,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender, failed_login_count, locked_until, mfa_secret_encrypted, last_login_at, version, created_at, updated_at, deleted_at, mfa_enabled_at
+SELECT id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender, failed_login_count, locked_until, mfa_secret_encrypted, last_login_at, version, created_at, updated_at, deleted_at, mfa_enabled_at, password_login_enabled
 FROM identity_users
 WHERE id = $1 AND deleted_at IS NULL
 `
@@ -301,12 +402,89 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (IdentityUser
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.MfaEnabledAt,
+		&i.PasswordLoginEnabled,
+	)
+	return i, err
+}
+
+const getUserByIDInDataScope = `-- name: GetUserByIDInDataScope :one
+SELECT u.id, u.username, u.password_hash, u.display_name, u.email, u.phone, u.avatar_url, u.user_type, u.status, u.gender, u.failed_login_count, u.locked_until, u.mfa_secret_encrypted, u.last_login_at, u.version, u.created_at, u.updated_at, u.deleted_at, u.mfa_enabled_at, u.password_login_enabled
+FROM identity_users u
+WHERE u.id = $1
+  AND u.deleted_at IS NULL
+  AND (
+    $3::text = 'all'
+    OR ($3::text = 'self' AND u.id = $2)
+    OR (
+      $3::text = 'department'
+      AND EXISTS (
+        SELECT 1
+        FROM organization_memberships mine
+        JOIN organization_memberships target ON target.department_id = mine.department_id
+        WHERE mine.user_id = $2 AND target.user_id = u.id
+      )
+    )
+    OR (
+      $3::text = 'department_tree'
+      AND EXISTS (
+        SELECT 1
+        FROM organization_memberships mine
+        JOIN organization_departments my_dept ON my_dept.id = mine.department_id
+        JOIN organization_memberships target ON target.user_id = u.id
+        JOIN organization_departments target_dept ON target_dept.id = target.department_id
+        WHERE mine.user_id = $2
+          AND target_dept.path <@ my_dept.path
+      )
+    )
+    OR (
+      $3::text = 'custom'
+      AND EXISTS (
+        SELECT 1
+        FROM access_user_roles aur
+        JOIN access_role_departments ard ON ard.role_id = aur.role_id
+        JOIN organization_memberships target ON target.department_id = ard.department_id
+        WHERE aur.user_id = $2 AND target.user_id = u.id
+      )
+    )
+  )
+`
+
+type GetUserByIDInDataScopeParams struct {
+	ID      pgtype.UUID `json:"id"`
+	ID_2    pgtype.UUID `json:"id_2"`
+	Column3 string      `json:"column_3"`
+}
+
+func (q *Queries) GetUserByIDInDataScope(ctx context.Context, arg GetUserByIDInDataScopeParams) (IdentityUser, error) {
+	row := q.db.QueryRow(ctx, getUserByIDInDataScope, arg.ID, arg.ID_2, arg.Column3)
+	var i IdentityUser
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.DisplayName,
+		&i.Email,
+		&i.Phone,
+		&i.AvatarUrl,
+		&i.UserType,
+		&i.Status,
+		&i.Gender,
+		&i.FailedLoginCount,
+		&i.LockedUntil,
+		&i.MfaSecretEncrypted,
+		&i.LastLoginAt,
+		&i.Version,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.MfaEnabledAt,
+		&i.PasswordLoginEnabled,
 	)
 	return i, err
 }
 
 const getUserByPhone = `-- name: GetUserByPhone :one
-SELECT id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender, failed_login_count, locked_until, mfa_secret_encrypted, last_login_at, version, created_at, updated_at, deleted_at, mfa_enabled_at
+SELECT id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender, failed_login_count, locked_until, mfa_secret_encrypted, last_login_at, version, created_at, updated_at, deleted_at, mfa_enabled_at, password_login_enabled
 FROM identity_users
 WHERE phone = $1 AND deleted_at IS NULL
 `
@@ -334,12 +512,13 @@ func (q *Queries) GetUserByPhone(ctx context.Context, phone pgtype.Text) (Identi
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.MfaEnabledAt,
+		&i.PasswordLoginEnabled,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender, failed_login_count, locked_until, mfa_secret_encrypted, last_login_at, version, created_at, updated_at, deleted_at, mfa_enabled_at
+SELECT id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender, failed_login_count, locked_until, mfa_secret_encrypted, last_login_at, version, created_at, updated_at, deleted_at, mfa_enabled_at, password_login_enabled
 FROM identity_users
 WHERE username = $1 AND deleted_at IS NULL
 `
@@ -367,6 +546,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (Ident
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.MfaEnabledAt,
+		&i.PasswordLoginEnabled,
 	)
 	return i, err
 }
@@ -406,7 +586,7 @@ func (q *Queries) ListUserRoleCodes(ctx context.Context, userID pgtype.UUID) ([]
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT u.id, u.username, u.password_hash, u.display_name, u.email, u.phone, u.avatar_url, u.user_type, u.status, u.gender, u.failed_login_count, u.locked_until, u.mfa_secret_encrypted, u.last_login_at, u.version, u.created_at, u.updated_at, u.deleted_at, u.mfa_enabled_at
+SELECT u.id, u.username, u.password_hash, u.display_name, u.email, u.phone, u.avatar_url, u.user_type, u.status, u.gender, u.failed_login_count, u.locked_until, u.mfa_secret_encrypted, u.last_login_at, u.version, u.created_at, u.updated_at, u.deleted_at, u.mfa_enabled_at, u.password_login_enabled
 FROM identity_users u
 WHERE u.deleted_at IS NULL
   AND ($1::text = '' OR u.username ILIKE '%' || $1 || '%' OR u.display_name ILIKE '%' || $1 || '%')
@@ -504,6 +684,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]Identit
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.MfaEnabledAt,
+			&i.PasswordLoginEnabled,
 		); err != nil {
 			return nil, err
 		}
@@ -521,7 +702,7 @@ SET failed_login_count = failed_login_count + 1,
     locked_until = CASE WHEN failed_login_count + 1 >= $2 THEN $3 ELSE locked_until END,
     updated_at = now()
 WHERE id = $1
-RETURNING id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender, failed_login_count, locked_until, mfa_secret_encrypted, last_login_at, version, created_at, updated_at, deleted_at, mfa_enabled_at
+RETURNING id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender, failed_login_count, locked_until, mfa_secret_encrypted, last_login_at, version, created_at, updated_at, deleted_at, mfa_enabled_at, password_login_enabled
 `
 
 type RecordFailedLoginParams struct {
@@ -553,6 +734,7 @@ func (q *Queries) RecordFailedLogin(ctx context.Context, arg RecordFailedLoginPa
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.MfaEnabledAt,
+		&i.PasswordLoginEnabled,
 	)
 	return i, err
 }
@@ -611,7 +793,7 @@ SET display_name = $2,
     version = version + 1,
     updated_at = now()
 WHERE id = $1 AND deleted_at IS NULL AND version = $9
-RETURNING id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender, failed_login_count, locked_until, mfa_secret_encrypted, last_login_at, version, created_at, updated_at, deleted_at, mfa_enabled_at
+RETURNING id, username, password_hash, display_name, email, phone, avatar_url, user_type, status, gender, failed_login_count, locked_until, mfa_secret_encrypted, last_login_at, version, created_at, updated_at, deleted_at, mfa_enabled_at, password_login_enabled
 `
 
 type UpdateUserParams struct {
@@ -659,13 +841,14 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (Identit
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.MfaEnabledAt,
+		&i.PasswordLoginEnabled,
 	)
 	return i, err
 }
 
 const updateUserPassword = `-- name: UpdateUserPassword :execrows
 UPDATE identity_users
-SET password_hash = $2, updated_at = now(), version = version + 1
+SET password_hash = $2, password_login_enabled = true, updated_at = now(), version = version + 1
 WHERE id = $1 AND deleted_at IS NULL
 `
 

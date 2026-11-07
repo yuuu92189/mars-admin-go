@@ -172,6 +172,31 @@ func (r *Repository) My(ctx context.Context, userID uuid.UUID, page, pageSize in
 	return notices, nil
 }
 
+func (r *Repository) GetMy(ctx context.Context, noticeID, userID uuid.UUID) (domain.Notice, error) {
+	row, err := sqlc.New(r.pool).GetMyNotice(ctx, sqlc.GetMyNoticeParams{
+		ID: pgUUID(noticeID), UserID: pgUUID(userID),
+	})
+	if err != nil {
+		return domain.Notice{}, err
+	}
+	notice := domain.Notice{
+		ID: uuid.UUID(row.ID.Bytes), Title: row.Title, Content: row.Content, NoticeType: row.NoticeType,
+		TargetType: row.TargetType, Status: row.Status, CreatedAt: row.CreatedAt.Time.UTC(),
+		UpdatedAt: row.UpdatedAt.Time.UTC(),
+	}
+	_ = json.Unmarshal(row.Channels, &notice.Channels)
+	_ = json.Unmarshal(row.TargetIds, &notice.TargetIDs)
+	if row.PublishedAt.Valid {
+		value := row.PublishedAt.Time.UTC()
+		notice.PublishedAt = &value
+	}
+	if row.ReadAt.Valid {
+		value := row.ReadAt.Time.UTC()
+		notice.ReadAt = &value
+	}
+	return notice, nil
+}
+
 func (r *Repository) MarkRead(ctx context.Context, noticeID, userID uuid.UUID) error {
 	affected, err := sqlc.New(r.pool).MarkNoticeRead(ctx, sqlc.MarkNoticeReadParams{
 		NoticeID: pgUUID(noticeID), UserID: pgUUID(userID),

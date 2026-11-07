@@ -16,15 +16,23 @@ SELECT count(*) FROM storage_files
 WHERE deleted_at IS NULL
   AND ($1::uuid IS NULL OR group_id = $1)
   AND ($2::text = '' OR original_name ILIKE '%' || $2 || '%')
+  AND ($3::boolean OR owner_user_id = $4)
 `
 
 type CountFilesParams struct {
-	Column1 pgtype.UUID `json:"column_1"`
-	Column2 string      `json:"column_2"`
+	Column1     pgtype.UUID `json:"column_1"`
+	Column2     string      `json:"column_2"`
+	Column3     bool        `json:"column_3"`
+	OwnerUserID pgtype.UUID `json:"owner_user_id"`
 }
 
 func (q *Queries) CountFiles(ctx context.Context, arg CountFilesParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countFiles, arg.Column1, arg.Column2)
+	row := q.db.QueryRow(ctx, countFiles,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.OwnerUserID,
+	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -115,21 +123,26 @@ SELECT id, group_id, owner_user_id, original_name, storage_key, storage_provider
 WHERE deleted_at IS NULL
   AND ($1::uuid IS NULL OR group_id = $1)
   AND ($2::text = '' OR original_name ILIKE '%' || $2 || '%')
+  AND ($3::boolean OR owner_user_id = $4)
 ORDER BY created_at DESC
-LIMIT $3 OFFSET $4
+LIMIT $5 OFFSET $6
 `
 
 type ListFilesParams struct {
-	Column1 pgtype.UUID `json:"column_1"`
-	Column2 string      `json:"column_2"`
-	Limit   int32       `json:"limit"`
-	Offset  int32       `json:"offset"`
+	Column1     pgtype.UUID `json:"column_1"`
+	Column2     string      `json:"column_2"`
+	Column3     bool        `json:"column_3"`
+	OwnerUserID pgtype.UUID `json:"owner_user_id"`
+	Limit       int32       `json:"limit"`
+	Offset      int32       `json:"offset"`
 }
 
 func (q *Queries) ListFiles(ctx context.Context, arg ListFilesParams) ([]StorageFile, error) {
 	rows, err := q.db.Query(ctx, listFiles,
 		arg.Column1,
 		arg.Column2,
+		arg.Column3,
+		arg.OwnerUserID,
 		arg.Limit,
 		arg.Offset,
 	)

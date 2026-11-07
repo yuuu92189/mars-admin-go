@@ -66,12 +66,13 @@ func (h *Handler) LegacyGroupRoutes() chi.Router {
 }
 
 func (h *Handler) legacyFileGroups(w http.ResponseWriter, r *http.Request) {
-	groups, err := h.service.FileGroups(r.Context())
+	actor, _ := requestctx.ActorFrom(r.Context())
+	groups, err := h.service.FileGroups(r.Context(), actor)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	_, total, err := h.service.List(r.Context(), nil, "", 1, 1)
+	_, total, err := h.service.List(r.Context(), actor, nil, "", 1, 1)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -174,7 +175,8 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	groupID, _ := uuid.Parse(r.URL.Query().Get("groupId"))
-	items, total, err := h.service.List(r.Context(), optionalUUID(groupID), r.URL.Query().Get("keyword"), page, pageSize)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	items, total, err := h.service.List(r.Context(), actor, optionalUUID(groupID), r.URL.Query().Get("keyword"), page, pageSize)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -213,7 +215,8 @@ func (h *Handler) legacyList(w http.ResponseWriter, r *http.Request) {
 	if query == "" {
 		query = r.URL.Query().Get("keyword")
 	}
-	items, total, err := h.service.List(r.Context(), optionalUUID(groupID), query, page, pageSize)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	items, total, err := h.service.List(r.Context(), actor, optionalUUID(groupID), query, page, pageSize)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -234,7 +237,8 @@ func (h *Handler) legacyGet(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	file, err := h.service.Get(r.Context(), id)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	file, err := h.service.Get(r.Context(), actor, id)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -296,7 +300,8 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	file, err := h.service.Get(r.Context(), id)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	file, err := h.service.Get(r.Context(), actor, id)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -314,7 +319,8 @@ func (h *Handler) serveFile(w http.ResponseWriter, r *http.Request, preview bool
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	file, reader, _, err := h.service.Open(r.Context(), id)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	file, reader, _, err := h.service.Open(r.Context(), actor, id)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -338,7 +344,8 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	if err := h.service.Delete(r.Context(), id); err != nil {
+	actor, _ := requestctx.ActorFrom(r.Context())
+	if err := h.service.Delete(r.Context(), actor, id); err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}

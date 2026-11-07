@@ -16,6 +16,7 @@ import (
 
 	"mars-admin-go/internal/modules/storage/domain"
 	"mars-admin-go/internal/platform/apperror"
+	"mars-admin-go/internal/platform/requestctx"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -109,16 +110,22 @@ func (s *Service) Upload(ctx context.Context, input domain.Upload) (domain.File,
 	return created, nil
 }
 
-func (s *Service) Get(ctx context.Context, id uuid.UUID) (domain.File, error) {
+func (s *Service) Get(ctx context.Context, actor requestctx.Actor, id uuid.UUID) (domain.File, error) {
 	file, err := s.repo.Get(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.File{}, apperror.NotFound("File")
 	}
-	return file, err
+	if err != nil {
+		return domain.File{}, err
+	}
+	if !actor.IsSuperAdmin && (file.OwnerUserID == nil || *file.OwnerUserID != actor.UserID) {
+		return domain.File{}, apperror.NotFound("File")
+	}
+	return file, nil
 }
 
-func (s *Service) Open(ctx context.Context, id uuid.UUID) (domain.File, io.ReadCloser, domain.ObjectInfo, error) {
-	file, err := s.Get(ctx, id)
+func (s *Service) Open(ctx context.Context, actor requestctx.Actor, id uuid.UUID) (domain.File, io.ReadCloser, domain.ObjectInfo, error) {
+	file, err := s.Get(ctx, actor, id)
 	if err != nil {
 		return domain.File{}, nil, domain.ObjectInfo{}, err
 	}
@@ -129,18 +136,24 @@ func (s *Service) Open(ctx context.Context, id uuid.UUID) (domain.File, io.ReadC
 	return file, reader, info, nil
 }
 
-func (s *Service) List(ctx context.Context, groupID *uuid.UUID, query string, page, pageSize int) ([]domain.File, int64, error) {
+func (s *Service) List(ctx context.Context, actor requestctx.Actor, groupID *uuid.UUID, query string, page, pageSize int) ([]domain.File, int64, error) {
+	if actor.UserID == uuid.Nil {
+		return nil, 0, apperror.Unauthorized("Authentication is required.")
+	}
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return s.repo.List(ctx, groupID, strings.TrimSpace(query), page, pageSize)
+	return s.repo.List(ctx, actor.UserID, actor.IsSuperAdmin, groupID, strings.TrimSpace(query), page, pageSize)
 }
 
-func (s *Service) FileGroups(ctx context.Context) ([]domain.FileGroup, error) {
-	return s.repo.FileGroups(ctx)
+func (s *Service) FileGroups(ctx context.Context, actor requestctx.Actor) ([]domain.FileGroup, error) {
+	if actor.UserID == uuid.Nil {
+		return nil, apperror.Unauthorized("Authentication is required.")
+	}
+	return s.repo.FileGroups(ctx, actor.UserID, actor.IsSuperAdmin)
 }
 
 func (s *Service) FileGroup(ctx context.Context, id uuid.UUID) (domain.FileGroup, error) {
@@ -167,8 +180,8 @@ func (s *Service) DeleteFileGroup(ctx context.Context, id uuid.UUID) error {
 	return s.repo.DeleteFileGroup(ctx, id)
 }
 
-func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
-	file, err := s.Get(ctx, id)
+func (s *Service) Delete(ctx context.Context, actor requestctx.Actor, id uuid.UUID) error {
+	file, err := s.Get(ctx, actor, id)
 	if err != nil {
 		return err
 	}

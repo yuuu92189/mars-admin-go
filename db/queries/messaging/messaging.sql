@@ -194,6 +194,12 @@ WHERE r.user_id = $1 AND n.status = 'published'
 ORDER BY n.published_at DESC
 LIMIT $2 OFFSET $3;
 
+-- name: GetMyNotice :one
+SELECT n.*, r.read_at
+FROM notification_notices n
+JOIN notification_recipients r ON r.notice_id = n.id
+WHERE n.id = $1 AND r.user_id = $2 AND n.status = 'published';
+
 -- name: ListNoticeRecipientContacts :many
 SELECT u.id, u.username, u.display_name, u.phone, u.email
 FROM notification_recipients recipient

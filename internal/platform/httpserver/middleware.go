@@ -71,9 +71,10 @@ func NewHTTPMetrics(registry prometheus.Registerer) *HTTPMetrics {
 
 func RequestIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID := strings.TrimSpace(r.Header.Get("X-Request-ID"))
-		if requestID == "" || len(requestID) > 80 {
-			requestID = NewRequestID()
+		requestID := NewRequestID()
+		externalRequestID := strings.TrimSpace(r.Header.Get("X-Request-ID"))
+		if !validExternalRequestID(externalRequestID) {
+			externalRequestID = ""
 		}
 		traceID := ""
 		if span := trace.SpanContextFromContext(r.Context()); span.IsValid() {
@@ -81,6 +82,9 @@ func RequestIDMiddleware(next http.Handler) http.Handler {
 		}
 		ctx := ContextWithRequestMetadata(r.Context(), requestID, traceID)
 		w.Header().Set("X-Request-ID", requestID)
+		if externalRequestID != "" {
+			w.Header().Set("X-External-Request-ID", externalRequestID)
+		}
 		if traceID != "" {
 			w.Header().Set("X-Trace-ID", traceID)
 		}
@@ -88,32 +92,61 @@ func RequestIDMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func validExternalRequestID(value string) bool {
+	if value == "" || len(value) > 80 {
+		return false
+	}
+	for _, char := range value {
+		switch {
+		case char >= 'a' && char <= 'z':
+		case char >= 'A' && char <= 'Z':
+		case char >= '0' && char <= '9':
+		case char == '-', char == '_', char == '.', char == ':':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 func Recover(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			recorder := newStatusRecorder(w)
 			defer func() {
 				if recovered := recover(); recovered != nil {
 					logger.ErrorContext(r.Context(), "panic serving request", "panic", recovered, "stack", string(debug.Stack()))
-					WriteProblem(w, r, NewProblem(http.StatusInternalServerError, "panic", "An internal error occurred."))
+					if recorder.wroteHeader {
+						return
+					}
+					WriteProblem(recorder, r, NewProblem(http.StatusInternalServerError, "panic", "An internal error occurred."))
 				}
 			}()
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(recorder, r)
 		})
 	}
 }
 
-func SecurityHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'")
-		if r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
-			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		}
-		next.ServeHTTP(w, r)
-	})
+func SecurityHeaders(trustedProxyCIDRs []string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("X-Frame-Options", "DENY")
+			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+			w.Header().Set("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'")
+			forwardedHTTPS := false
+			if remote, ok := parseRequestIP(r.RemoteAddr); ok &&
+				addressInCIDRs(remote, trustedProxyCIDRs) &&
+				strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
+				forwardedHTTPS = true
+			}
+			if r.TLS != nil || forwardedHTTPS {
+				w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func CORS(origins []string) func(http.Handler) http.Handler {
@@ -126,10 +159,8 @@ func CORS(origins []string) func(http.Handler) http.Handler {
 			origin := r.Header.Get("Origin")
 			if origin != "" {
 				if _, ok := allowed[origin]; !ok {
-					if r.Method == http.MethodOptions {
-						WriteProblem(w, r, NewProblem(http.StatusForbidden, "origin_not_allowed", "The request origin is not allowed."))
-						return
-					}
+					WriteProblem(w, r, NewProblem(http.StatusForbidden, "origin_not_allowed", "The request origin is not allowed."))
+					return
 				} else {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 					w.Header().Set("Vary", "Origin")
@@ -151,7 +182,7 @@ func CORS(origins []string) func(http.Handler) http.Handler {
 func CSRF(headerName, cookieName string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !strings.HasPrefix(r.URL.Path, "/api/v1/") {
+			if !strings.HasPrefix(r.URL.Path, "/api/") {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -159,8 +190,7 @@ func CSRF(headerName, cookieName string) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			sessionCookie, err := r.Cookie("mars_session")
-			if err != nil || sessionCookie.Value == "" {
+			if !cookiePresent(r, "mars_session") && !cookiePresent(r, "mars_refresh") {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -181,6 +211,10 @@ func CSRF(headerName, cookieName string) func(http.Handler) http.Handler {
 func Timeout(timeout time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.EqualFold(r.Header.Get("Upgrade"), "websocket") {
+				next.ServeHTTP(w, r)
+				return
+			}
 			ctx, cancel := context.WithTimeout(r.Context(), timeout)
 			defer cancel()
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -192,7 +226,7 @@ func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			recorder := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+			recorder := newStatusRecorder(w)
 			next.ServeHTTP(recorder, r)
 			requestID, traceID := requestMetadata(r.Context())
 			logger.InfoContext(r.Context(), "http request",
@@ -211,7 +245,7 @@ func Metrics(metrics *HTTPMetrics) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			recorder := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+			recorder := newStatusRecorder(w)
 			metrics.inflight.WithLabelValues(r.Method).Inc()
 			defer func() {
 				metrics.inflight.WithLabelValues(r.Method).Dec()
@@ -370,17 +404,19 @@ func RequireAnyPermission(permissions ...string) func(http.Handler) http.Handler
 }
 
 func accessToken(r *http.Request) (string, bool) {
-	if cookie, err := r.Cookie("mars_session"); err == nil && cookie.Value != "" {
-		return cookie.Value, true
-	}
 	raw := strings.TrimSpace(r.Header.Get("Authorization"))
-	if raw == "" {
-		return "", false
-	}
 	if parts := strings.Fields(raw); len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
 		return parts[1], false
 	}
+	if cookie, err := r.Cookie("mars_session"); err == nil && cookie.Value != "" {
+		return cookie.Value, true
+	}
 	return raw, false
+}
+
+func cookiePresent(r *http.Request, name string) bool {
+	cookie, err := r.Cookie(name)
+	return err == nil && cookie.Value != ""
 }
 
 func routePattern(r *http.Request) string {
@@ -404,14 +440,30 @@ func routePattern(r *http.Request) string {
 
 type statusRecorder struct {
 	http.ResponseWriter
-	status int
+	status      int
+	wroteHeader bool
 }
 
 func (s *statusRecorder) WriteHeader(status int) {
+	if s.wroteHeader {
+		return
+	}
+	s.wroteHeader = true
 	s.status = status
 	s.ResponseWriter.WriteHeader(status)
 }
 
+func (s *statusRecorder) Write(payload []byte) (int, error) {
+	if !s.wroteHeader {
+		s.WriteHeader(http.StatusOK)
+	}
+	return s.ResponseWriter.Write(payload)
+}
+
 func (s *statusRecorder) Unwrap() http.ResponseWriter {
 	return s.ResponseWriter
+}
+
+func newStatusRecorder(writer http.ResponseWriter) *statusRecorder {
+	return &statusRecorder{ResponseWriter: writer, status: http.StatusOK}
 }

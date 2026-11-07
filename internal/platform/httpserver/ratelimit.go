@@ -3,7 +3,10 @@ package httpserver
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
+	"net/netip"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -21,17 +24,27 @@ func NewRateLimit(client *redis.Client, prefix string, limit int64, window time.
 }
 
 func (l *RateLimit) Allow(ctx context.Context, key string) (bool, error) {
+	return l.AllowPolicy(ctx, key, l.limit, l.window)
+}
+
+func (l *RateLimit) AllowPolicy(ctx context.Context, key string, limit int64, window time.Duration) (bool, error) {
 	if l.client == nil {
 		return true, nil
+	}
+	if limit <= 0 {
+		limit = l.limit
+	}
+	if window <= 0 {
+		window = l.window
 	}
 	redisKey := fmt.Sprintf("%s:%s", l.prefix, key)
 	pipe := l.client.TxPipeline()
 	count := pipe.Incr(ctx, redisKey)
-	pipe.Expire(ctx, redisKey, l.window)
+	pipe.Expire(ctx, redisKey, window)
 	if _, err := pipe.Exec(ctx); err != nil {
 		return false, fmt.Errorf("rate limit Redis transaction: %w", err)
 	}
-	return count.Val() <= l.limit, nil
+	return count.Val() <= limit, nil
 }
 
 func (l *RateLimit) Middleware(key func(*http.Request) string) func(http.Handler) http.Handler {
@@ -52,22 +65,58 @@ func (l *RateLimit) Middleware(key func(*http.Request) string) func(http.Handler
 	}
 }
 
-func ClientIP(r *http.Request, trustProxy bool) string {
-	if trustProxy {
-		if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
-			for i := 0; i < len(forwarded); i++ {
-				if forwarded[i] == ',' {
-					return forwarded[:i]
-				}
-			}
-			return forwarded
+func ClientIP(r *http.Request, trustedProxyCIDRs []string) string {
+	remote, ok := parseRequestIP(r.RemoteAddr)
+	if !ok {
+		return ""
+	}
+	if len(trustedProxyCIDRs) == 0 || !addressInCIDRs(remote, trustedProxyCIDRs) {
+		return remote.String()
+	}
+	forwardedValues := r.Header.Values("X-Forwarded-For")
+	if len(forwardedValues) == 0 {
+		return remote.String()
+	}
+	parts := strings.Split(strings.Join(forwardedValues, ","), ",")
+	forwarded := make([]netip.Addr, 0, len(parts))
+	for _, part := range parts {
+		addr, parseErr := netip.ParseAddr(strings.TrimSpace(part))
+		if parseErr != nil {
+			return remote.String()
+		}
+		forwarded = append(forwarded, addr.Unmap())
+	}
+	current := remote
+	for index := len(forwarded) - 1; index >= 0; index-- {
+		if !addressInCIDRs(current, trustedProxyCIDRs) {
+			break
+		}
+		current = forwarded[index]
+	}
+	return current.String()
+}
+
+func parseRequestIP(remoteAddr string) (netip.Addr, bool) {
+	host, _, err := net.SplitHostPort(strings.TrimSpace(remoteAddr))
+	if err != nil {
+		host = strings.Trim(strings.TrimSpace(remoteAddr), "[]")
+	}
+	addr, err := netip.ParseAddr(host)
+	if err != nil {
+		return netip.Addr{}, false
+	}
+	return addr.Unmap(), true
+}
+
+func addressInCIDRs(addr netip.Addr, cidrs []string) bool {
+	for _, rawCIDR := range cidrs {
+		prefix, err := netip.ParsePrefix(strings.TrimSpace(rawCIDR))
+		if err != nil {
+			continue
+		}
+		if prefix.Contains(addr) {
+			return true
 		}
 	}
-	host := r.RemoteAddr
-	for i := len(host) - 1; i >= 0; i-- {
-		if host[i] == ':' {
-			return host[:i]
-		}
-	}
-	return host
+	return false
 }

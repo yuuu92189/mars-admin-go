@@ -10,6 +10,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AccessCacheEpoch struct {
+	Singleton bool               `json:"singleton"`
+	Version   int64              `json:"version"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type AccessMenu struct {
 	ID             pgtype.UUID        `json:"id"`
 	ParentID       pgtype.UUID        `json:"parent_id"`
@@ -145,30 +151,41 @@ type IdentityCaptchaChallenge struct {
 }
 
 type IdentityOneTimeCode struct {
+	ID          pgtype.UUID        `json:"id"`
+	Purpose     string             `json:"purpose"`
+	Subject     string             `json:"subject"`
+	CodeHash    []byte             `json:"code_hash"`
+	ExpiresAt   pgtype.Timestamptz `json:"expires_at"`
+	ConsumedAt  pgtype.Timestamptz `json:"consumed_at"`
+	Attempts    int32              `json:"attempts"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	MaxAttempts int32              `json:"max_attempts"`
+}
+
+type IdentityRefreshTokenHistory struct {
 	ID         pgtype.UUID        `json:"id"`
-	Purpose    string             `json:"purpose"`
-	Subject    string             `json:"subject"`
-	CodeHash   []byte             `json:"code_hash"`
-	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
-	ConsumedAt pgtype.Timestamptz `json:"consumed_at"`
-	Attempts   int32              `json:"attempts"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	SessionID  pgtype.UUID        `json:"session_id"`
+	TokenHash  []byte             `json:"token_hash"`
+	Generation int64              `json:"generation"`
+	UsedAt     pgtype.Timestamptz `json:"used_at"`
 }
 
 type IdentitySession struct {
-	ID               pgtype.UUID        `json:"id"`
-	UserID           pgtype.UUID        `json:"user_id"`
-	ClientType       string             `json:"client_type"`
-	TokenHash        []byte             `json:"token_hash"`
-	RefreshTokenHash []byte             `json:"refresh_token_hash"`
-	DeviceName       string             `json:"device_name"`
-	IpAddress        *netip.Addr        `json:"ip_address"`
-	UserAgent        string             `json:"user_agent"`
-	ExpiresAt        pgtype.Timestamptz `json:"expires_at"`
-	RefreshExpiresAt pgtype.Timestamptz `json:"refresh_expires_at"`
-	LastSeenAt       pgtype.Timestamptz `json:"last_seen_at"`
-	RevokedAt        pgtype.Timestamptz `json:"revoked_at"`
-	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	ClientType        string             `json:"client_type"`
+	TokenHash         []byte             `json:"token_hash"`
+	RefreshTokenHash  []byte             `json:"refresh_token_hash"`
+	DeviceName        string             `json:"device_name"`
+	IpAddress         *netip.Addr        `json:"ip_address"`
+	UserAgent         string             `json:"user_agent"`
+	ExpiresAt         pgtype.Timestamptz `json:"expires_at"`
+	RefreshExpiresAt  pgtype.Timestamptz `json:"refresh_expires_at"`
+	LastSeenAt        pgtype.Timestamptz `json:"last_seen_at"`
+	RevokedAt         pgtype.Timestamptz `json:"revoked_at"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	RefreshFamilyID   pgtype.UUID        `json:"refresh_family_id"`
+	RefreshGeneration int64              `json:"refresh_generation"`
 }
 
 type IdentitySocialIdentity struct {
@@ -181,25 +198,26 @@ type IdentitySocialIdentity struct {
 }
 
 type IdentityUser struct {
-	ID                 pgtype.UUID        `json:"id"`
-	Username           string             `json:"username"`
-	PasswordHash       string             `json:"password_hash"`
-	DisplayName        string             `json:"display_name"`
-	Email              pgtype.Text        `json:"email"`
-	Phone              pgtype.Text        `json:"phone"`
-	AvatarUrl          string             `json:"avatar_url"`
-	UserType           string             `json:"user_type"`
-	Status             string             `json:"status"`
-	Gender             int16              `json:"gender"`
-	FailedLoginCount   int32              `json:"failed_login_count"`
-	LockedUntil        pgtype.Timestamptz `json:"locked_until"`
-	MfaSecretEncrypted []byte             `json:"mfa_secret_encrypted"`
-	LastLoginAt        pgtype.Timestamptz `json:"last_login_at"`
-	Version            int64              `json:"version"`
-	CreatedAt          pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
-	MfaEnabledAt       pgtype.Timestamptz `json:"mfa_enabled_at"`
+	ID                   pgtype.UUID        `json:"id"`
+	Username             string             `json:"username"`
+	PasswordHash         string             `json:"password_hash"`
+	DisplayName          string             `json:"display_name"`
+	Email                pgtype.Text        `json:"email"`
+	Phone                pgtype.Text        `json:"phone"`
+	AvatarUrl            string             `json:"avatar_url"`
+	UserType             string             `json:"user_type"`
+	Status               string             `json:"status"`
+	Gender               int16              `json:"gender"`
+	FailedLoginCount     int32              `json:"failed_login_count"`
+	LockedUntil          pgtype.Timestamptz `json:"locked_until"`
+	MfaSecretEncrypted   []byte             `json:"mfa_secret_encrypted"`
+	LastLoginAt          pgtype.Timestamptz `json:"last_login_at"`
+	Version              int64              `json:"version"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt            pgtype.Timestamptz `json:"deleted_at"`
+	MfaEnabledAt         pgtype.Timestamptz `json:"mfa_enabled_at"`
+	PasswordLoginEnabled bool               `json:"password_login_enabled"`
 }
 
 type LegacyIDMap struct {

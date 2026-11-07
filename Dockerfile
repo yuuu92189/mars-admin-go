@@ -27,6 +27,7 @@ COPY --from=builder /out/migrate /usr/local/bin/migrate
 COPY --from=builder /out/legacy-import /usr/local/bin/legacy-import
 COPY --from=builder /src/api/openapi/v1/openapi.yaml /app/openapi.yaml
 COPY --from=builder --chown=65532:65532 /out/uploads /app/uploads
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 USER 65532:65532
 EXPOSE 8080

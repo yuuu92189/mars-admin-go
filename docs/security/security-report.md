@@ -37,4 +37,5 @@ The legacy `mars.sql` contains real-looking SMTP, SMS, cloud storage, payment an
 3. Leave `BOOTSTRAP_ADMIN_PASSWORD` empty after initial provisioning.
 4. Replace console SMS; production never enables the console provider automatically.
 5. Rotate and re-enter all provider credentials through encrypted settings or environment secrets.
-6. Restrict `/metrics`, `/docs` and tracing exporters to trusted operational networks.
+6. Set `AUTH_TRUSTED_PROXY_CIDRS` to the exact Ingress/Load Balancer CIDRs; leave it empty for direct public access.
+7. Restrict `/metrics`, `/docs` and tracing exporters to trusted operational networks. `/metrics` additionally requires `audit:read`.

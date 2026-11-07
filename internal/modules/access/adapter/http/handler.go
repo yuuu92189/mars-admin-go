@@ -163,7 +163,8 @@ func (h *Handler) legacyCreateRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(input.MenuIDs) > 0 {
-		if err := h.service.SetRoleMenus(r.Context(), role.ID, input.MenuIDs); err != nil {
+		actor, _ := requestctx.ActorFrom(r.Context())
+		if err := h.service.SetRoleMenus(r.Context(), actor, role.ID, input.MenuIDs); err != nil {
 			httpserver.WriteError(w, r, h.logger, err)
 			return
 		}
@@ -185,7 +186,8 @@ func (h *Handler) legacyUpdateRole(w http.ResponseWriter, r *http.Request) {
 	if legacyAccessStatus(input.Role.Status) == 0 {
 		status = "disabled"
 	}
-	role, err := h.service.UpdateRole(r.Context(), id, domain.UpdateRoleInput{
+	actor, _ := requestctx.ActorFrom(r.Context())
+	role, err := h.service.UpdateRole(r.Context(), actor, id, domain.UpdateRoleInput{
 		Name: input.Role.Name, Description: firstAccessString(input.Role.Description, input.Role.Remark),
 		DataScope: legacyDataScope(input.Role.DataScope), Status: status,
 	})
@@ -194,7 +196,7 @@ func (h *Handler) legacyUpdateRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if input.MenuIDs != nil {
-		if err := h.service.SetRoleMenus(r.Context(), role.ID, input.MenuIDs); err != nil {
+		if err := h.service.SetRoleMenus(r.Context(), actor, role.ID, input.MenuIDs); err != nil {
 			httpserver.WriteError(w, r, h.logger, err)
 			return
 		}
@@ -507,7 +509,8 @@ func (h *Handler) updateRole(w http.ResponseWriter, r *http.Request) {
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
-	role, err := h.service.UpdateRole(r.Context(), id, input)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	role, err := h.service.UpdateRole(r.Context(), actor, id, input)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -521,7 +524,8 @@ func (h *Handler) deleteRole(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	if err := h.service.DeleteRole(r.Context(), id); err != nil {
+	actor, _ := requestctx.ActorFrom(r.Context())
+	if err := h.service.DeleteRole(r.Context(), actor, id); err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
@@ -573,7 +577,8 @@ func (h *Handler) setRoleMenus(w http.ResponseWriter, r *http.Request) {
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
-	if err := h.service.SetRoleMenus(r.Context(), roleID, input.MenuIDs); err != nil {
+	actor, _ := requestctx.ActorFrom(r.Context())
+	if err := h.service.SetRoleMenus(r.Context(), actor, roleID, input.MenuIDs); err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
@@ -592,7 +597,8 @@ func (h *Handler) setRolePermissions(w http.ResponseWriter, r *http.Request) {
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
-	if err := h.service.SetRolePermissions(r.Context(), roleID, input.Codes); err != nil {
+	actor, _ := requestctx.ActorFrom(r.Context())
+	if err := h.service.SetRolePermissions(r.Context(), actor, roleID, input.Codes); err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}

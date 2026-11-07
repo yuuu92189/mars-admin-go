@@ -10,6 +10,7 @@ import (
 	messagingdomain "mars-admin-go/internal/modules/messaging/domain"
 	notificationdomain "mars-admin-go/internal/modules/notification/domain"
 	"mars-admin-go/internal/platform/apperror"
+	"mars-admin-go/internal/platform/requestctx"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -58,6 +59,17 @@ func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (s *Service) Get(ctx context.Context, id uuid.UUID) (notificationdomain.Notice, error) {
 	notice, err := s.repo.Get(ctx, id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return notificationdomain.Notice{}, apperror.NotFound("Notice")
+	}
+	return notice, err
+}
+
+func (s *Service) GetForActor(ctx context.Context, actor requestctx.Actor, id uuid.UUID) (notificationdomain.Notice, error) {
+	if actor.IsSuperAdmin || actor.HasPermission("notice:manage") {
+		return s.Get(ctx, id)
+	}
+	notice, err := s.repo.GetMy(ctx, id, actor.UserID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return notificationdomain.Notice{}, apperror.NotFound("Notice")
 	}

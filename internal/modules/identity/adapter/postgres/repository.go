@@ -51,9 +51,35 @@ func (r *Repository) FindUserByID(ctx context.Context, id uuid.UUID) (domain.Use
 	}
 	user := mapUser(row)
 	org := organizationQueries{pool: r.pool}
+	user.RoleIDs, _ = r.userRoleIDs(ctx, id)
 	user.DepartmentIDs, _ = org.userDepartmentIDs(ctx, id)
 	user.PositionIDs, _ = org.userPositionIDs(ctx, id)
 	return user, nil
+}
+
+func (r *Repository) FindUserByIDInDataScope(ctx context.Context, targetID, actorID uuid.UUID, dataScope string) (domain.User, error) {
+	row, err := identitysqlc.New(r.pool).GetUserByIDInDataScope(ctx, identitysqlc.GetUserByIDInDataScopeParams{
+		ID: pgUUID(targetID), ID_2: pgUUID(actorID), Column3: dataScope,
+	})
+	if err != nil {
+		return domain.User{}, err
+	}
+	user := mapUser(row)
+	org := organizationQueries{pool: r.pool}
+	user.RoleIDs, _ = r.userRoleIDs(ctx, targetID)
+	user.DepartmentIDs, _ = org.userDepartmentIDs(ctx, targetID)
+	user.PositionIDs, _ = org.userPositionIDs(ctx, targetID)
+	return user, nil
+}
+
+func (r *Repository) CountDepartmentsWithinScope(ctx context.Context, actorID uuid.UUID, dataScope string, departmentIDs []uuid.UUID) (int64, error) {
+	return identitysqlc.New(r.pool).CountDepartmentsWithinScope(ctx, identitysqlc.CountDepartmentsWithinScopeParams{
+		UserID: pgUUID(actorID), Column2: dataScope, Column3: pgUUIDs(departmentIDs),
+	})
+}
+
+func (r *Repository) CountPrivilegedRoles(ctx context.Context, roleIDs []uuid.UUID) (int64, error) {
+	return identitysqlc.New(r.pool).CountPrivilegedRoles(ctx, pgUUIDs(roleIDs))
 }
 
 func (r *Repository) ListUsers(ctx context.Context, filter domain.UserFilter) ([]domain.User, int64, error) {
@@ -135,7 +161,8 @@ func (r *Repository) UpdateUser(ctx context.Context, id uuid.UUID, input domain.
 		return domain.User{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	row, err := identitysqlc.New(tx).UpdateUser(ctx, identitysqlc.UpdateUserParams{
+	q := identitysqlc.New(tx)
+	row, err := q.UpdateUser(ctx, identitysqlc.UpdateUserParams{
 		ID:          pgUUID(id),
 		DisplayName: input.DisplayName,
 		Email:       pgText(input.Email),
@@ -152,6 +179,23 @@ func (r *Repository) UpdateUser(ctx context.Context, id uuid.UUID, input domain.
 	if err := assignOrganization(ctx, tx, id, input.DepartmentIDs, input.PrimaryDepartmentID, input.PositionIDs); err != nil {
 		return domain.User{}, err
 	}
+	if input.RoleIDs != nil {
+		if err := q.SetUserRoles(ctx, pgUUID(id)); err != nil {
+			return domain.User{}, err
+		}
+		for _, roleID := range input.RoleIDs {
+			if err := q.AddUserRole(ctx, identitysqlc.AddUserRoleParams{
+				UserID: pgUUID(id), RoleID: pgUUID(roleID),
+			}); err != nil {
+				return domain.User{}, err
+			}
+		}
+	}
+	if row.Status != "active" {
+		if _, err := q.RevokeUserSessions(ctx, pgUUID(id)); err != nil {
+			return domain.User{}, err
+		}
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return domain.User{}, err
 	}
@@ -159,14 +203,23 @@ func (r *Repository) UpdateUser(ctx context.Context, id uuid.UUID, input domain.
 }
 
 func (r *Repository) SoftDeleteUser(ctx context.Context, id uuid.UUID) error {
-	affected, err := identitysqlc.New(r.pool).SoftDeleteUser(ctx, pgUUID(id))
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	q := identitysqlc.New(tx)
+	affected, err := q.SoftDeleteUser(ctx, pgUUID(id))
 	if err != nil {
 		return err
 	}
 	if affected == 0 {
 		return pgx.ErrNoRows
 	}
-	return nil
+	if _, err := q.RevokeUserSessions(ctx, pgUUID(id)); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *Repository) UpdatePassword(ctx context.Context, id uuid.UUID, hash string) error {
@@ -178,6 +231,27 @@ func (r *Repository) UpdatePassword(ctx context.Context, id uuid.UUID, hash stri
 		return pgx.ErrNoRows
 	}
 	return nil
+}
+
+func (r *Repository) ChangePasswordAndRevokeSessions(ctx context.Context, id uuid.UUID, hash string) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	q := identitysqlc.New(tx)
+	affected, err := q.UpdateUserPassword(ctx, identitysqlc.UpdateUserPasswordParams{ID: pgUUID(id), PasswordHash: hash})
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return pgx.ErrNoRows
+	}
+	if _, err := q.RevokeUserSessions(ctx, pgUUID(id)); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *Repository) RecordFailedLogin(ctx context.Context, id uuid.UUID, maxAttempts int32, lockUntil time.Time) error {
@@ -194,17 +268,23 @@ func (r *Repository) ClearFailedLogin(ctx context.Context, id uuid.UUID) error {
 }
 
 func (r *Repository) CreateSession(ctx context.Context, session domain.Session) error {
+	familyID := session.RefreshFamilyID
+	if familyID == uuid.Nil {
+		familyID = session.ID
+	}
 	_, err := identitysqlc.New(r.pool).CreateSession(ctx, identitysqlc.CreateSessionParams{
-		ID:               pgUUID(session.ID),
-		UserID:           pgUUID(session.UserID),
-		ClientType:       session.ClientType,
-		TokenHash:        session.TokenHash,
-		RefreshTokenHash: session.RefreshTokenHash,
-		DeviceName:       session.DeviceName,
-		IpAddress:        parseAddr(session.IPAddress),
-		UserAgent:        session.UserAgent,
-		ExpiresAt:        pgTimestamp(session.ExpiresAt),
-		RefreshExpiresAt: pgTimestamp(session.RefreshExpiresAt),
+		ID:                pgUUID(session.ID),
+		UserID:            pgUUID(session.UserID),
+		RefreshFamilyID:   pgUUID(familyID),
+		RefreshGeneration: session.RefreshGeneration,
+		ClientType:        session.ClientType,
+		TokenHash:         session.TokenHash,
+		RefreshTokenHash:  session.RefreshTokenHash,
+		DeviceName:        session.DeviceName,
+		IpAddress:         parseAddr(session.IPAddress),
+		UserAgent:         session.UserAgent,
+		ExpiresAt:         pgTimestamp(session.ExpiresAt),
+		RefreshExpiresAt:  pgTimestamp(session.RefreshExpiresAt),
 	})
 	return err
 }
@@ -225,15 +305,29 @@ func (r *Repository) GetSessionByRefreshHash(ctx context.Context, hash []byte) (
 	return mapSession(row), nil
 }
 
-func (r *Repository) RotateSession(ctx context.Context, session domain.Session) error {
+func (r *Repository) RotateSession(ctx context.Context, oldRefreshHash []byte, session domain.Session) error {
 	_, err := identitysqlc.New(r.pool).RotateSessionTokens(ctx, identitysqlc.RotateSessionTokensParams{
-		ID:               pgUUID(session.ID),
-		TokenHash:        session.TokenHash,
-		RefreshTokenHash: session.RefreshTokenHash,
-		ExpiresAt:        pgTimestamp(session.ExpiresAt),
-		RefreshExpiresAt: pgTimestamp(session.RefreshExpiresAt),
+		ID:                 pgUUID(session.ID),
+		RefreshTokenHash:   oldRefreshHash,
+		TokenHash:          session.TokenHash,
+		RefreshTokenHash_2: session.RefreshTokenHash,
+		ExpiresAt:          pgTimestamp(session.ExpiresAt),
+		RefreshExpiresAt:   pgTimestamp(session.RefreshExpiresAt),
+		ID_2:               pgUUID(mustID()),
 	})
 	return err
+}
+
+func (r *Repository) FindRefreshHistorySession(ctx context.Context, oldRefreshHash []byte) (uuid.UUID, error) {
+	sessionID, err := identitysqlc.New(r.pool).FindRefreshHistorySession(ctx, oldRefreshHash)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return uuid.UUID(sessionID.Bytes), nil
+}
+
+func (r *Repository) RevokeRefreshReplay(ctx context.Context, oldRefreshHash []byte) (bool, error) {
+	return identitysqlc.New(r.pool).RevokeRefreshReplay(ctx, oldRefreshHash)
 }
 
 func (r *Repository) TouchSession(ctx context.Context, id uuid.UUID) error {
@@ -243,6 +337,19 @@ func (r *Repository) TouchSession(ctx context.Context, id uuid.UUID) error {
 func (r *Repository) RevokeSession(ctx context.Context, id uuid.UUID) error {
 	_, err := identitysqlc.New(r.pool).RevokeSession(ctx, pgUUID(id))
 	return err
+}
+
+func (r *Repository) RevokeOwnedSession(ctx context.Context, id, userID uuid.UUID) error {
+	affected, err := identitysqlc.New(r.pool).RevokeOwnedSession(ctx, identitysqlc.RevokeOwnedSessionParams{
+		ID: pgUUID(id), UserID: pgUUID(userID),
+	})
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
 }
 
 func (r *Repository) RevokeUserSessions(ctx context.Context, userID uuid.UUID) error {
@@ -266,7 +373,7 @@ func (r *Repository) ListActiveSessions(ctx context.Context) ([]domain.Session, 
 	rows, err := r.pool.Query(ctx, `
 		SELECT id, user_id, client_type, device_name, ip_address, user_agent,
 		       expires_at, refresh_expires_at, last_seen_at, created_at,
-		       revoked_at, token_hash, refresh_token_hash
+		       revoked_at, token_hash, refresh_token_hash, refresh_family_id, refresh_generation
 		FROM identity_sessions
 		WHERE revoked_at IS NULL AND expires_at > now()
 		ORDER BY last_seen_at DESC
@@ -281,7 +388,7 @@ func (r *Repository) ListActiveSessions(ctx context.Context) ([]domain.Session, 
 		if err := rows.Scan(
 			&row.ID, &row.UserID, &row.ClientType, &row.DeviceName, &row.IpAddress, &row.UserAgent,
 			&row.ExpiresAt, &row.RefreshExpiresAt, &row.LastSeenAt, &row.CreatedAt,
-			&row.RevokedAt, &row.TokenHash, &row.RefreshTokenHash,
+			&row.RevokedAt, &row.TokenHash, &row.RefreshTokenHash, &row.RefreshFamilyID, &row.RefreshGeneration,
 		); err != nil {
 			return nil, err
 		}
@@ -323,6 +430,12 @@ func (r *Repository) GetAccess(ctx context.Context, userID uuid.UUID) (domain.Ac
 	return access, nil
 }
 
+func (r *Repository) AccessCacheEpoch(ctx context.Context) (int64, error) {
+	var version int64
+	err := r.pool.QueryRow(ctx, `SELECT version FROM access_cache_epoch WHERE singleton = true`).Scan(&version)
+	return version, err
+}
+
 func (r *Repository) SetUserRoles(ctx context.Context, userID uuid.UUID, roleIDs []uuid.UUID) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -361,15 +474,20 @@ func (r *Repository) RecordLoginEvent(ctx context.Context, event domain.LoginEve
 func (r *Repository) InsertOneTimeCode(ctx context.Context, purpose, subject string, codeHash []byte, expiresAt time.Time) error {
 	return identitysqlc.New(r.pool).InsertOneTimeCode(ctx, identitysqlc.InsertOneTimeCodeParams{
 		ID: pgUUID(mustID()), Purpose: purpose, Subject: subject,
-		CodeHash: codeHash, ExpiresAt: pgTimestamp(expiresAt),
+		CodeHash: codeHash, ExpiresAt: pgTimestamp(expiresAt), MaxAttempts: 5,
 	})
 }
 
-func (r *Repository) ConsumeOneTimeCode(ctx context.Context, purpose, subject string, codeHash []byte) error {
-	_, err := identitysqlc.New(r.pool).ConsumeOneTimeCode(ctx, identitysqlc.ConsumeOneTimeCodeParams{
+func (r *Repository) AttemptOneTimeCode(ctx context.Context, purpose, subject string, codeHash []byte) (domain.OneTimeCodeAttempt, error) {
+	row, err := identitysqlc.New(r.pool).AttemptOneTimeCode(ctx, identitysqlc.AttemptOneTimeCodeParams{
 		Purpose: purpose, Subject: subject, CodeHash: codeHash,
 	})
-	return err
+	if err != nil {
+		return domain.OneTimeCodeAttempt{}, err
+	}
+	return domain.OneTimeCodeAttempt{
+		Valid: row.Valid, Attempts: row.Attempts, Consumed: row.Consumed,
+	}, nil
 }
 
 func (r *Repository) InsertCaptcha(ctx context.Context, id uuid.UUID, kind string, answerHash []byte, targetX, tolerance int32, expiresAt time.Time) error {
@@ -433,6 +551,51 @@ func (r *Repository) FindSocialUser(ctx context.Context, provider, subject strin
 	return mapUser(row), nil
 }
 
+func (r *Repository) CreateSocialUser(ctx context.Context, user domain.User, provider, subject string, metadata map[string]any) (domain.User, error) {
+	encoded, err := json.Marshal(metadata)
+	if err != nil {
+		return domain.User{}, err
+	}
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return domain.User{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	q := identitysqlc.New(tx)
+	row, err := q.CreateUser(ctx, identitysqlc.CreateUserParams{
+		ID:           pgUUID(user.ID),
+		Username:     user.Username,
+		PasswordHash: user.PasswordHash,
+		DisplayName:  user.DisplayName,
+		Email:        pgText(user.Email),
+		Phone:        pgText(user.Phone),
+		AvatarUrl:    user.AvatarURL,
+		UserType:     user.UserType,
+		Status:       user.Status,
+		Gender:       user.Gender,
+	})
+	if err != nil {
+		return domain.User{}, mapPGError(err, "social identity")
+	}
+	if err := q.CreateSocialIdentityStrict(ctx, identitysqlc.CreateSocialIdentityStrictParams{
+		ID:       pgUUID(mustID()),
+		UserID:   pgUUID(user.ID),
+		Provider: provider,
+		Subject:  subject,
+		Metadata: encoded,
+	}); err != nil {
+		return domain.User{}, mapPGError(err, "social identity")
+	}
+	if err := q.DisablePasswordLogin(ctx, pgUUID(user.ID)); err != nil {
+		return domain.User{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return domain.User{}, err
+	}
+	return mapUser(row), nil
+}
+
 func (r *Repository) LinkSocialIdentity(ctx context.Context, userID uuid.UUID, provider, subject string, metadata map[string]any) error {
 	encoded, err := json.Marshal(metadata)
 	if err != nil {
@@ -441,6 +604,44 @@ func (r *Repository) LinkSocialIdentity(ctx context.Context, userID uuid.UUID, p
 	return identitysqlc.New(r.pool).CreateSocialIdentity(ctx, identitysqlc.CreateSocialIdentityParams{
 		ID: pgUUID(mustID()), UserID: pgUUID(userID), Provider: provider, Subject: subject, Metadata: encoded,
 	})
+}
+
+func (r *Repository) UnlinkSocialIdentity(ctx context.Context, userID uuid.UUID, provider, subject string) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var passwordLoginEnabled bool
+	err = tx.QueryRow(ctx, `
+		SELECT password_login_enabled
+		FROM identity_users
+		WHERE id = $1 AND deleted_at IS NULL
+		FOR UPDATE`, userID).Scan(&passwordLoginEnabled)
+	if err != nil {
+		return err
+	}
+	var identityCount int
+	if err := tx.QueryRow(ctx, `
+		SELECT count(*)
+		FROM identity_social_identities
+		WHERE user_id = $1`, userID).Scan(&identityCount); err != nil {
+		return err
+	}
+	result, err := tx.Exec(ctx, `
+		DELETE FROM identity_social_identities
+		WHERE user_id = $1 AND provider = $2 AND subject = $3`, userID, provider, subject)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	if !passwordLoginEnabled && identityCount <= 1 {
+		return apperror.Conflict("The last authentication method cannot be removed.")
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *Repository) FindRoleByCode(ctx context.Context, code string) (uuid.UUID, error) {
@@ -502,6 +703,15 @@ func (q organizationQueries) userPositionIDs(ctx context.Context, userID uuid.UU
 	return scanUUIDs(rows)
 }
 
+func (r *Repository) userRoleIDs(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := r.pool.Query(ctx, `SELECT role_id FROM access_user_roles WHERE user_id = $1 ORDER BY role_id`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanUUIDs(rows)
+}
+
 func assignOrganization(ctx context.Context, tx pgx.Tx, userID uuid.UUID, departmentIDs []uuid.UUID, primary *uuid.UUID, positionIDs []uuid.UUID) error {
 	if departmentIDs != nil {
 		if _, err := tx.Exec(ctx, `DELETE FROM organization_memberships WHERE user_id = $1`, userID); err != nil {
@@ -533,45 +743,56 @@ func assignOrganization(ctx context.Context, tx pgx.Tx, userID uuid.UUID, depart
 
 func mapUser(row identitysqlc.IdentityUser) domain.User {
 	return domain.User{
-		ID:           uuid.UUID(row.ID.Bytes),
-		Username:     row.Username,
-		DisplayName:  row.DisplayName,
-		Email:        textValue(row.Email),
-		Phone:        textValue(row.Phone),
-		AvatarURL:    row.AvatarUrl,
-		UserType:     row.UserType,
-		Status:       row.Status,
-		Gender:       row.Gender,
-		LastLoginAt:  timePtr(row.LastLoginAt),
-		CreatedAt:    timeValue(row.CreatedAt),
-		UpdatedAt:    timeValue(row.UpdatedAt),
-		Version:      row.Version,
-		MFAEnabled:   row.MfaEnabledAt.Valid,
-		PasswordHash: row.PasswordHash,
-		FailedLogin:  row.FailedLoginCount,
-		LockedUntil:  timePtr(row.LockedUntil),
+		ID:                   uuid.UUID(row.ID.Bytes),
+		Username:             row.Username,
+		DisplayName:          row.DisplayName,
+		Email:                textValue(row.Email),
+		Phone:                textValue(row.Phone),
+		AvatarURL:            row.AvatarUrl,
+		UserType:             row.UserType,
+		Status:               row.Status,
+		Gender:               row.Gender,
+		LastLoginAt:          timePtr(row.LastLoginAt),
+		CreatedAt:            timeValue(row.CreatedAt),
+		UpdatedAt:            timeValue(row.UpdatedAt),
+		Version:              row.Version,
+		MFAEnabled:           row.MfaEnabledAt.Valid,
+		PasswordHash:         row.PasswordHash,
+		PasswordLoginEnabled: row.PasswordLoginEnabled,
+		FailedLogin:          row.FailedLoginCount,
+		LockedUntil:          timePtr(row.LockedUntil),
 	}
 }
 
 func mapSession(row identitysqlc.IdentitySession) domain.Session {
 	return domain.Session{
-		ID:               uuid.UUID(row.ID.Bytes),
-		UserID:           uuid.UUID(row.UserID.Bytes),
-		ClientType:       row.ClientType,
-		DeviceName:       row.DeviceName,
-		IPAddress:        addrString(row.IpAddress),
-		UserAgent:        row.UserAgent,
-		ExpiresAt:        timeValue(row.ExpiresAt),
-		RefreshExpiresAt: timeValue(row.RefreshExpiresAt),
-		LastSeenAt:       timeValue(row.LastSeenAt),
-		CreatedAt:        timeValue(row.CreatedAt),
-		TokenHash:        row.TokenHash,
-		RefreshTokenHash: row.RefreshTokenHash,
+		ID:                uuid.UUID(row.ID.Bytes),
+		UserID:            uuid.UUID(row.UserID.Bytes),
+		RefreshFamilyID:   uuid.UUID(row.RefreshFamilyID.Bytes),
+		RefreshGeneration: row.RefreshGeneration,
+		ClientType:        row.ClientType,
+		DeviceName:        row.DeviceName,
+		IPAddress:         addrString(row.IpAddress),
+		UserAgent:         row.UserAgent,
+		ExpiresAt:         timeValue(row.ExpiresAt),
+		RefreshExpiresAt:  timeValue(row.RefreshExpiresAt),
+		LastSeenAt:        timeValue(row.LastSeenAt),
+		CreatedAt:         timeValue(row.CreatedAt),
+		TokenHash:         row.TokenHash,
+		RefreshTokenHash:  row.RefreshTokenHash,
 	}
 }
 
 func pgUUID(id uuid.UUID) pgtype.UUID {
 	return pgtype.UUID{Bytes: [16]byte(id), Valid: id != uuid.Nil}
+}
+
+func pgUUIDs(ids []uuid.UUID) []pgtype.UUID {
+	values := make([]pgtype.UUID, 0, len(ids))
+	for _, id := range ids {
+		values = append(values, pgUUID(id))
+	}
+	return values
 }
 
 func pgText(value string) pgtype.Text {

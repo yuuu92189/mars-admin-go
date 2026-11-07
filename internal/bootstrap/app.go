@@ -78,6 +78,7 @@ type App struct {
 	Router       http.Handler
 	telemetry    *telemetry.Provider
 	Integrations *integrations.Registry
+	hub          *realtime.Hub
 }
 
 func New(ctx context.Context, cfg config.Config) (*App, error) {
@@ -174,7 +175,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		return hub.Publish(ctx, recipients, event)
 	})
 	messagingService := messagingapp.New(messagingRepo, publisher)
-	hub = realtime.New(logger, identityService, messagingService, redisClient, registry)
+	hub = realtime.New(logger, identityService, messagingService, redisClient, registry, cfg.App.CORSOrigins...)
 	if err := hub.Start(ctx); err != nil {
 		_ = redisClient.Close()
 		return cleanupOnError(err)
@@ -229,7 +230,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	router.Use(httpserver.Recover(logger))
 	router.Use(httpserver.OptionalAuthenticate(identityService.Authenticate))
 	router.Use(audithttp.AuditWrites(auditService))
-	router.Use(httpserver.SecurityHeaders)
+	router.Use(httpserver.SecurityHeaders(cfg.Auth.TrustedProxyCIDRs))
 	router.Use(httpserver.CORS(cfg.App.CORSOrigins))
 	router.Use(httpserver.CSRF("X-CSRF-Token", "mars_csrf"))
 	router.Use(httpserver.Timeout(45 * time.Second))
@@ -252,7 +253,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		}
 		httpserver.WriteJSON(w, http.StatusOK, map[string]string{"status": "ready"})
 	})
-	router.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
+	router.With(httpserver.RequirePermission("audit:read")).Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 	router.Get("/openapi.yaml", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/yaml; charset=utf-8")
 		_, _ = w.Write(api.OpenAPISpec)
@@ -308,6 +309,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	return &App{
 		Config: cfg, Logger: logger, Pool: pool, Redis: redisClient,
 		Router: router, telemetry: telemetryProvider, Integrations: providerRegistry,
+		hub: hub,
 	}, nil
 }
 
@@ -328,6 +330,9 @@ func (a wechatMiniAdapter) Exchange(ctx context.Context, code string) (identityd
 
 func (a *App) Close(ctx context.Context) error {
 	var errs []error
+	if a.hub != nil {
+		errs = append(errs, a.hub.Close(ctx))
+	}
 	if a.telemetry != nil {
 		errs = append(errs, a.telemetry.Shutdown(ctx))
 	}

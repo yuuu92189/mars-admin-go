@@ -619,6 +619,24 @@ paths:
       operationId: socialLogin
       security: []
       responses: { "200": { description: Authenticated } }
+  /api/v1/auth/social-identities/unbind:
+    post:
+      tags: [Auth]
+      operationId: unbindSocialIdentity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, subject]
+              properties:
+                provider: { type: string, maxLength: 40 }
+                subject: { type: string, maxLength: 255 }
+      responses:
+        "204": { description: Social identity unbound }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
   /api/v1/auth/register:
     post:
       tags: [Auth]

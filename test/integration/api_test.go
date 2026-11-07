@@ -109,6 +109,11 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	require.Equal(t, http.StatusOK, ready.StatusCode)
 	_ = ready.Body.Close()
 
+	metricsResponse, err := http.Get(server.URL + "/metrics")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusUnauthorized, metricsResponse.StatusCode)
+	_ = metricsResponse.Body.Close()
+
 	body, _ := json.Marshal(map[string]any{
 		"username": "admin", "password": "integration-password-123", "clientType": "admin",
 	})
@@ -122,6 +127,10 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&login))
 	_ = response.Body.Close()
 	require.NotEmpty(t, login.Token)
+
+	response = authenticatedRequest(t, http.MethodGet, server.URL+"/metrics", login.Token, nil)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	_ = response.Body.Close()
 
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws/message?token=" + login.Token
 	connection, _, err := websocket.Dial(ctx, wsURL, nil)
@@ -159,6 +168,17 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	response, err = http.Post(server.URL+"/api/v1/auth/refresh", "application/json", bytes.NewReader(refreshBody))
 	require.NoError(t, err)
 	require.Equal(t, http.StatusUnauthorized, response.StatusCode)
+	_ = response.Body.Close()
+
+	// Replaying a rotated refresh token revokes the family. Re-authenticate for
+	// the remaining compatibility checks.
+	body, _ = json.Marshal(map[string]any{
+		"username": "admin", "password": "integration-password-123", "clientType": "admin",
+	})
+	response, err = http.Post(server.URL+"/api/v1/auth/login", "application/json", bytes.NewReader(body))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&login))
 	_ = response.Body.Close()
 
 	createBody, _ := json.Marshal(map[string]any{

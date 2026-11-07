@@ -3,14 +3,17 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	sqlc "mars-admin-go/internal/modules/workflow/adapter/postgres/sqlc"
 	"mars-admin-go/internal/modules/workflow/domain"
+	"mars-admin-go/internal/platform/apperror"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -95,6 +98,10 @@ func (r *Repository) Start(ctx context.Context, definition domain.Definition, ac
 		InitiatorID: pgUUID(actorID), CurrentNodeCode: pgText(currentCode), Variables: variables,
 	})
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return domain.Instance{}, domain.Task{}, apperror.Conflict("A workflow instance already exists for this businessId.")
+		}
 		return domain.Instance{}, domain.Task{}, err
 	}
 	if node.Type == "end" {

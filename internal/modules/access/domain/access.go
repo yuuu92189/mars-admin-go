@@ -73,6 +73,7 @@ type MenuInput struct {
 type Repository interface {
 	Menus(ctx context.Context, userID uuid.UUID, superAdmin bool) ([]Menu, error)
 	Roles(ctx context.Context, query string, page, pageSize int) ([]Role, int64, error)
+	Role(ctx context.Context, id uuid.UUID) (Role, error)
 	CreateRole(ctx context.Context, input CreateRoleInput) (Role, error)
 	UpdateRole(ctx context.Context, id uuid.UUID, input UpdateRoleInput) (Role, error)
 	DeleteRole(ctx context.Context, id uuid.UUID) error

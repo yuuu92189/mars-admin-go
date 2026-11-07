@@ -33,3 +33,33 @@ func TestValidateRejectsInsecureSameSiteNone(t *testing.T) {
 		t.Fatal("expected SameSite=None without Secure to fail")
 	}
 }
+
+func TestValidateRejectsInvalidTrustedProxyCIDR(t *testing.T) {
+	cfg := Config{
+		App:      AppConfig{Env: "development", Port: 8080},
+		Database: DatabaseConfig{URL: "postgres://localhost/db", MaxConnections: 2},
+		Auth: AuthConfig{
+			SessionTTL: time.Minute, RefreshTTL: time.Hour, CookieSameSite: "lax",
+			TrustedProxyCIDRs: []string{"10.0.0.1"},
+		},
+		Storage: StorageConfig{Provider: "local", MaxUploadBytes: 1},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected bare trusted proxy address to be rejected")
+	}
+}
+
+func TestValidateRequiresSecureCookiesInProduction(t *testing.T) {
+	cfg := Config{
+		App:      AppConfig{Env: "production", Port: 8080},
+		Database: DatabaseConfig{URL: "postgres://localhost/db", MaxConnections: 2},
+		Auth: AuthConfig{
+			SessionTTL: time.Minute, RefreshTTL: time.Hour,
+			CookieSameSite: "lax", CookieSecure: false,
+		},
+		Storage: StorageConfig{Provider: "local", MaxUploadBytes: 1},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected insecure production cookies to fail")
+	}
+}

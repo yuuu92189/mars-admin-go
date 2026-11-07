@@ -48,16 +48,18 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (domain.File, error)
 	return mapFile(row), nil
 }
 
-func (r *Repository) List(ctx context.Context, groupID *uuid.UUID, query string, page, pageSize int) ([]domain.File, int64, error) {
+func (r *Repository) List(ctx context.Context, ownerID uuid.UUID, allOwners bool, groupID *uuid.UUID, query string, page, pageSize int) ([]domain.File, int64, error) {
 	q := sqlc.New(r.pool)
 	rows, err := q.ListFiles(ctx, sqlc.ListFilesParams{
-		Column1: optionalUUID(groupID), Column2: query,
+		Column1: optionalUUID(groupID), Column2: query, Column3: allOwners, OwnerUserID: pgUUID(ownerID),
 		Limit: int32(pageSize), Offset: int32((page - 1) * pageSize), // #nosec G115 -- application layer caps page size at 100.
 	})
 	if err != nil {
 		return nil, 0, err
 	}
-	total, err := q.CountFiles(ctx, sqlc.CountFilesParams{Column1: optionalUUID(groupID), Column2: query})
+	total, err := q.CountFiles(ctx, sqlc.CountFilesParams{
+		Column1: optionalUUID(groupID), Column2: query, Column3: allOwners, OwnerUserID: pgUUID(ownerID),
+	})
 	if err != nil {
 		return nil, 0, err
 	}
@@ -73,13 +75,14 @@ func (r *Repository) SoftDelete(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-func (r *Repository) FileGroups(ctx context.Context) ([]domain.FileGroup, error) {
+func (r *Repository) FileGroups(ctx context.Context, ownerID uuid.UUID, allOwners bool) ([]domain.FileGroup, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT g.id, g.name, g.sort_order, count(f.id), g.created_at
 		FROM storage_file_groups g
 		LEFT JOIN storage_files f ON f.group_id = g.id AND f.deleted_at IS NULL
+		    AND ($2::boolean OR f.owner_user_id = $1)
 		GROUP BY g.id, g.name, g.sort_order, g.created_at
-		ORDER BY g.sort_order, g.created_at`)
+		ORDER BY g.sort_order, g.created_at`, ownerID, allOwners)
 	if err != nil {
 		return nil, err
 	}

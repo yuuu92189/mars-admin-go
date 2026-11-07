@@ -46,7 +46,7 @@ func (h *Handler) LegacyRoutes() chi.Router {
 	router.With(httpserver.RequirePermission("notice:read")).Get("/unread-count", h.legacyUnread)
 	router.With(httpserver.RequirePermission("notice:read")).Get("/channels", h.legacyChannels)
 	router.With(httpserver.RequirePermission("notice:read")).Post("/read-all", h.legacyReadAll)
-	router.With(httpserver.RequirePermission("notice:read")).Get("/{id}/send-logs", h.legacySendLogs)
+	router.With(httpserver.RequirePermission("notice:manage")).Get("/{id}/send-logs", h.legacySendLogs)
 	router.With(httpserver.RequirePermission("notice:manage")).Post("/{id}/retry", h.legacyRetry)
 	router.With(httpserver.RequirePermission("notice:read")).Get("/{id}", h.legacyGet)
 	router.With(httpserver.RequirePermission("notice:manage")).Post("/", h.legacyCreate)
@@ -73,8 +73,18 @@ func (h *Handler) legacyList(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	status := legacyNoticeStatus(r.URL.Query().Get("status"))
-	items, total, err := h.service.List(r.Context(), status, page, pageSize)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	var (
+		items []domain.Notice
+		total int64
+	)
+	if canManageNotices(actor) {
+		status := legacyNoticeStatus(r.URL.Query().Get("status"))
+		items, total, err = h.service.List(r.Context(), status, page, pageSize)
+	} else {
+		items, err = h.service.My(r.Context(), actor.UserID, page, pageSize)
+		total = int64(len(items))
+	}
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -117,7 +127,8 @@ func (h *Handler) legacyGet(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	item, err := h.service.Get(r.Context(), id)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	item, err := h.service.GetForActor(r.Context(), actor, id)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -245,6 +256,10 @@ func legacyNoticeStatus(value string) string {
 	}
 }
 
+func canManageNotices(actor requestctx.Actor) bool {
+	return actor.IsSuperAdmin || actor.HasPermission("notice:manage")
+}
+
 func legacyNoticeStatusCode(value string) int {
 	switch value {
 	case "published":
@@ -314,7 +329,17 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	items, total, err := h.service.List(r.Context(), r.URL.Query().Get("status"), page, pageSize)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	var (
+		items []domain.Notice
+		total int64
+	)
+	if canManageNotices(actor) {
+		items, total, err = h.service.List(r.Context(), r.URL.Query().Get("status"), page, pageSize)
+	} else {
+		items, err = h.service.My(r.Context(), actor.UserID, page, pageSize)
+		total = int64(len(items))
+	}
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -343,7 +368,8 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	item, err := h.service.Get(r.Context(), id)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	item, err := h.service.GetForActor(r.Context(), actor, id)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return

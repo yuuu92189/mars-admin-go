@@ -2,12 +2,15 @@ package application
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"mars-admin-go/internal/modules/access/domain"
 	"mars-admin-go/internal/platform/apperror"
+	"mars-admin-go/internal/platform/requestctx"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type Service struct {
@@ -54,7 +57,10 @@ func (s *Service) CreateRole(ctx context.Context, input domain.CreateRoleInput) 
 	return role, err
 }
 
-func (s *Service) UpdateRole(ctx context.Context, id uuid.UUID, input domain.UpdateRoleInput) (domain.Role, error) {
+func (s *Service) UpdateRole(ctx context.Context, actor requestctx.Actor, id uuid.UUID, input domain.UpdateRoleInput) (domain.Role, error) {
+	if err := s.authorizeRoleMutation(ctx, actor, id); err != nil {
+		return domain.Role{}, err
+	}
 	input.Name = strings.TrimSpace(input.Name)
 	if input.Name == "" {
 		return domain.Role{}, apperror.Validation("name", "Role name is required.")
@@ -70,7 +76,10 @@ func (s *Service) UpdateRole(ctx context.Context, id uuid.UUID, input domain.Upd
 	return role, err
 }
 
-func (s *Service) DeleteRole(ctx context.Context, id uuid.UUID) error {
+func (s *Service) DeleteRole(ctx context.Context, actor requestctx.Actor, id uuid.UUID) error {
+	if err := s.authorizeRoleMutation(ctx, actor, id); err != nil {
+		return err
+	}
 	err := s.repo.DeleteRole(ctx, id)
 	s.invalidateAccess(ctx)
 	return err
@@ -80,7 +89,10 @@ func (s *Service) Permissions(ctx context.Context) ([]domain.Permission, error) 
 	return s.repo.Permissions(ctx)
 }
 
-func (s *Service) SetRolePermissions(ctx context.Context, roleID uuid.UUID, codes []string) error {
+func (s *Service) SetRolePermissions(ctx context.Context, actor requestctx.Actor, roleID uuid.UUID, codes []string) error {
+	if err := s.authorizeRoleMutation(ctx, actor, roleID); err != nil {
+		return err
+	}
 	for i, code := range codes {
 		codes[i] = strings.TrimSpace(code)
 		if codes[i] == "" {
@@ -92,7 +104,10 @@ func (s *Service) SetRolePermissions(ctx context.Context, roleID uuid.UUID, code
 	return err
 }
 
-func (s *Service) SetRoleMenus(ctx context.Context, roleID uuid.UUID, menuIDs []uuid.UUID) error {
+func (s *Service) SetRoleMenus(ctx context.Context, actor requestctx.Actor, roleID uuid.UUID, menuIDs []uuid.UUID) error {
+	if err := s.authorizeRoleMutation(ctx, actor, roleID); err != nil {
+		return err
+	}
 	err := s.repo.SetRoleMenus(ctx, roleID, menuIDs)
 	s.invalidateAccess(ctx)
 	return err
@@ -133,6 +148,23 @@ func (s *Service) invalidateAccess(ctx context.Context) {
 	if s.cache != nil {
 		_ = s.cache.DeletePrefix(ctx, "access:")
 	}
+}
+
+func (s *Service) authorizeRoleMutation(ctx context.Context, actor requestctx.Actor, roleID uuid.UUID) error {
+	if actor.IsSuperAdmin {
+		return nil
+	}
+	role, err := s.repo.Role(ctx, roleID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return apperror.NotFound("Role")
+	}
+	if err != nil {
+		return err
+	}
+	if role.IsSuperAdmin {
+		return apperror.Forbidden("Only a super administrator can modify the super administrator role.")
+	}
+	return nil
 }
 
 func validateMenu(input *domain.MenuInput) error {

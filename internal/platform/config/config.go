@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/netip"
 	"net/url"
 	"os"
 	"strconv"
@@ -47,15 +48,15 @@ type RedisConfig struct {
 }
 
 type AuthConfig struct {
-	SessionTTL          time.Duration
-	RefreshTTL          time.Duration
-	CookieSecure        bool
-	CookieSameSite      string
-	LoginMaxAttempts    int32
-	LoginLockDuration   time.Duration
-	CaptchaEnabled      bool
-	SensitiveDataKey    string
-	TrustedProxyHeaders bool
+	SessionTTL        time.Duration
+	RefreshTTL        time.Duration
+	CookieSecure      bool
+	CookieSameSite    string
+	LoginMaxAttempts  int32
+	LoginLockDuration time.Duration
+	CaptchaEnabled    bool
+	SensitiveDataKey  string
+	TrustedProxyCIDRs []string
 }
 
 type StorageConfig struct {
@@ -169,15 +170,15 @@ func Load() (Config, error) {
 		PoolSize: envInt("REDIS_POOL_SIZE", 10),
 	}
 	cfg.Auth = AuthConfig{
-		SessionTTL:          envDuration("AUTH_SESSION_TTL", 30*time.Minute),
-		RefreshTTL:          envDuration("AUTH_REFRESH_TTL", 30*24*time.Hour),
-		CookieSecure:        envBool("AUTH_COOKIE_SECURE", false),
-		CookieSameSite:      strings.ToLower(env("AUTH_COOKIE_SAME_SITE", "lax")),
-		LoginMaxAttempts:    envInt32("AUTH_LOGIN_MAX_ATTEMPTS", 5),
-		LoginLockDuration:   envDuration("AUTH_LOGIN_LOCK_DURATION", 30*time.Minute),
-		CaptchaEnabled:      envBool("AUTH_CAPTCHA_ENABLED", false),
-		SensitiveDataKey:    os.Getenv("SETTINGS_ENCRYPTION_KEY"),
-		TrustedProxyHeaders: envBool("AUTH_TRUST_PROXY_HEADERS", false),
+		SessionTTL:        envDuration("AUTH_SESSION_TTL", 30*time.Minute),
+		RefreshTTL:        envDuration("AUTH_REFRESH_TTL", 30*24*time.Hour),
+		CookieSecure:      envBool("AUTH_COOKIE_SECURE", false),
+		CookieSameSite:    strings.ToLower(env("AUTH_COOKIE_SAME_SITE", "lax")),
+		LoginMaxAttempts:  envInt32("AUTH_LOGIN_MAX_ATTEMPTS", 5),
+		LoginLockDuration: envDuration("AUTH_LOGIN_LOCK_DURATION", 30*time.Minute),
+		CaptchaEnabled:    envBool("AUTH_CAPTCHA_ENABLED", false),
+		SensitiveDataKey:  os.Getenv("SETTINGS_ENCRYPTION_KEY"),
+		TrustedProxyCIDRs: splitCSV(os.Getenv("AUTH_TRUSTED_PROXY_CIDRS")),
 	}
 	cfg.Storage = StorageConfig{
 		Provider:       strings.ToLower(env("STORAGE_PROVIDER", "local")),
@@ -266,6 +267,9 @@ func (c Config) Validate() error {
 		if c.Storage.Provider == "console" {
 			return errors.New("console providers are not allowed in production")
 		}
+		if !c.Auth.CookieSecure {
+			return errors.New("AUTH_COOKIE_SECURE must be true in production")
+		}
 		if c.Bootstrap.AdminPassword != "" && len(c.Bootstrap.AdminPassword) < 16 {
 			return errors.New("production bootstrap password must be at least 16 characters")
 		}
@@ -280,6 +284,11 @@ func (c Config) Validate() error {
 	}
 	if c.Auth.CookieSameSite == "none" && !c.Auth.CookieSecure {
 		return errors.New("SameSite=None requires AUTH_COOKIE_SECURE=true")
+	}
+	for _, rawCIDR := range c.Auth.TrustedProxyCIDRs {
+		if _, err := netip.ParsePrefix(strings.TrimSpace(rawCIDR)); err != nil {
+			return fmt.Errorf("AUTH_TRUSTED_PROXY_CIDRS contains an invalid CIDR %q", rawCIDR)
+		}
 	}
 	if c.Storage.MaxUploadBytes < 1 {
 		return errors.New("STORAGE_MAX_UPLOAD_BYTES must be positive")

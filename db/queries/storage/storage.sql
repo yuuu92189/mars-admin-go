@@ -13,14 +13,16 @@ SELECT * FROM storage_files
 WHERE deleted_at IS NULL
   AND ($1::uuid IS NULL OR group_id = $1)
   AND ($2::text = '' OR original_name ILIKE '%' || $2 || '%')
+  AND ($3::boolean OR owner_user_id = $4)
 ORDER BY created_at DESC
-LIMIT $3 OFFSET $4;
+LIMIT $5 OFFSET $6;
 
 -- name: CountFiles :one
 SELECT count(*) FROM storage_files
 WHERE deleted_at IS NULL
   AND ($1::uuid IS NULL OR group_id = $1)
-  AND ($2::text = '' OR original_name ILIKE '%' || $2 || '%');
+  AND ($2::text = '' OR original_name ILIKE '%' || $2 || '%')
+  AND ($3::boolean OR owner_user_id = $4);
 
 -- name: SoftDeleteFile :execrows
 UPDATE storage_files SET status = 'deleted', deleted_at = now(), updated_at = now()

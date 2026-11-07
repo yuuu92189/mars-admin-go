@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"strconv"
 	"strings"
@@ -49,6 +50,10 @@ type CodeSender interface {
 	SendCode(ctx context.Context, phone, code string) error
 }
 
+type policyRateLimiter interface {
+	AllowPolicy(ctx context.Context, key string, limit int64, window time.Duration) (bool, error)
+}
+
 func New(repo domain.Repository, rateLimiter domain.RateLimiter, opts Options) *Service {
 	if opts.Now == nil {
 		opts.Now = func() time.Time { return time.Now().UTC() }
@@ -84,14 +89,19 @@ func New(repo domain.Repository, rateLimiter domain.RateLimiter, opts Options) *
 func (s *Service) accessFor(ctx context.Context, userID uuid.UUID) (domain.Access, error) {
 	key := "access:" + userID.String()
 	type cachedAccess struct {
+		Epoch        int64    `json:"epoch"`
 		Roles        []string `json:"roles"`
 		Permissions  []string `json:"permissions"`
 		IsSuperAdmin bool     `json:"isSuperAdmin"`
 		DataScope    string   `json:"dataScope"`
 	}
+	epoch, err := s.repo.AccessCacheEpoch(ctx)
+	if err != nil {
+		return domain.Access{}, err
+	}
 	var cached cachedAccess
 	if s.accessCache != nil {
-		if hit, _ := s.accessCache.Get(ctx, key, &cached); hit {
+		if hit, cacheErr := s.accessCache.Get(ctx, key, &cached); cacheErr == nil && hit && cached.Epoch == epoch {
 			return domain.Access{
 				Roles: cached.Roles, Permissions: cached.Permissions,
 				IsSuperAdmin: cached.IsSuperAdmin, DataScope: cached.DataScope,
@@ -104,6 +114,7 @@ func (s *Service) accessFor(ctx context.Context, userID uuid.UUID) (domain.Acces
 	}
 	if s.accessCache != nil {
 		_ = s.accessCache.Set(ctx, key, cachedAccess{
+			Epoch: epoch,
 			Roles: access.Roles, Permissions: access.Permissions,
 			IsSuperAdmin: access.IsSuperAdmin, DataScope: access.DataScope,
 		})
@@ -137,22 +148,30 @@ func (s *Service) LoginSocial(ctx context.Context, providerName, code, clientTyp
 		if displayName == "" {
 			displayName = "Social User"
 		}
-		suffix := strings.ReplaceAll(mustUUIDv7().String(), "-", "")[:12]
-		created, createErr := s.CreateUser(ctx, domain.CreateUserInput{
-			Username: "social_" + suffix, Password: randomPassword,
-			DisplayName: displayName, Email: socialIdentity.Email, Phone: socialIdentity.Phone,
-			UserType: "app", Status: "active",
-		})
-		if createErr != nil {
-			return domain.LoginResult{}, createErr
+		passwordHash, hashErr := security.HashPassword(randomPassword)
+		if hashErr != nil {
+			return domain.LoginResult{}, hashErr
 		}
-		user = created
-		if linkErr := s.repo.LinkSocialIdentity(ctx, user.ID, socialIdentity.Provider, socialIdentity.Subject, socialIdentity.Raw); linkErr != nil {
-			if existing, findErr := s.repo.FindSocialUser(ctx, socialIdentity.Provider, socialIdentity.Subject); findErr == nil {
-				user = existing
-			} else {
-				return domain.LoginResult{}, linkErr
+		suffix := strings.ReplaceAll(mustUUIDv7().String(), "-", "")[:12]
+		created, createErr := s.repo.CreateSocialUser(ctx, domain.User{
+			ID:           mustUUIDv7(),
+			Username:     "social_" + suffix,
+			DisplayName:  displayName,
+			Email:        strings.TrimSpace(socialIdentity.Email),
+			Phone:        strings.TrimSpace(socialIdentity.Phone),
+			AvatarURL:    strings.TrimSpace(socialIdentity.Avatar),
+			UserType:     "app",
+			Status:       "active",
+			PasswordHash: passwordHash,
+		}, socialIdentity.Provider, socialIdentity.Subject, socialIdentity.Raw)
+		if createErr != nil {
+			existing, findErr := s.repo.FindSocialUser(ctx, socialIdentity.Provider, socialIdentity.Subject)
+			if findErr != nil {
+				return domain.LoginResult{}, createErr
 			}
+			user = existing
+		} else {
+			user = created
 		}
 	} else if err != nil {
 		return domain.LoginResult{}, err
@@ -176,7 +195,25 @@ func (s *Service) LoginSocial(ctx context.Context, providerName, code, clientTyp
 	return result, nil
 }
 
-func (s *Service) SendLoginCode(ctx context.Context, phone string) error {
+func (s *Service) UnbindSocialIdentity(ctx context.Context, actor requestctx.Actor, provider, subject string) error {
+	if actor.UserID == uuid.Nil {
+		return apperror.Unauthorized("Authentication is required.")
+	}
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	subject = strings.TrimSpace(subject)
+	if provider == "" || len(provider) > 40 || subject == "" || len(subject) > 255 {
+		return apperror.Validation("socialIdentity", "A valid social provider and subject are required.")
+	}
+	if err := s.repo.UnlinkSocialIdentity(ctx, actor.UserID, provider, subject); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apperror.NotFound("Social identity")
+		}
+		return err
+	}
+	return nil
+}
+
+func (s *Service) SendLoginCode(ctx context.Context, phone, ip, deviceName, userAgent string) error {
 	phone = strings.TrimSpace(phone)
 	if len(phone) < 8 || len(phone) > 32 {
 		return apperror.Validation("phone", "A valid phone number is required.")
@@ -184,14 +221,19 @@ func (s *Service) SendLoginCode(ctx context.Context, phone string) error {
 	if s.codeSender == nil {
 		return apperror.New(apperror.KindNotConfigured, "sms_not_configured", "SMS login is not configured.")
 	}
-	if s.rateLimiter != nil {
-		allowed, err := s.rateLimiter.Allow(ctx, "sms:"+phone)
-		if err != nil {
-			return apperror.Wrap(apperror.KindUnavailable, "rate_limiter_unavailable", "SMS verification is temporarily unavailable.", err)
-		}
-		if !allowed {
-			return apperror.New(apperror.KindRateLimited, "sms_rate_limited", "A verification code was sent recently. Try again later.")
-		}
+	device := rateKeyPart(deviceName + "|" + userAgent)
+	ipKey := rateKeyPart(ip)
+	policies := []struct {
+		key    string
+		limit  int64
+		window time.Duration
+	}{
+		{key: "sms:send:phone:" + rateKeyPart(phone), limit: 1, window: time.Minute},
+		{key: "sms:send:ip:" + ipKey, limit: 5, window: 10 * time.Minute},
+		{key: "sms:send:device:" + device, limit: 3, window: 10 * time.Minute},
+	}
+	if err := s.enforceRateLimits(ctx, policies); err != nil {
+		return err
 	}
 	code, err := security.GenerateNumericCode(6)
 	if err != nil {
@@ -230,24 +272,41 @@ func (s *Service) IssueCaptcha(ctx context.Context, kind string) (domain.Captcha
 }
 
 func (s *Service) LoginSMS(ctx context.Context, phone, code, clientType, deviceName, ip, userAgent string) (domain.LoginResult, error) {
+	phone = strings.TrimSpace(phone)
+	code = strings.TrimSpace(code)
 	if phone == "" || code == "" {
 		return domain.LoginResult{}, apperror.Validation("code", "Phone and verification code are required.")
 	}
-	if err := s.repo.ConsumeOneTimeCode(ctx, "login_sms", phone, security.HashToken(code)); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.LoginResult{}, apperror.Unauthorized("The verification code is invalid or expired.")
-		}
+	device := rateKeyPart(deviceName + "|" + userAgent)
+	ipKey := rateKeyPart(ip)
+	policies := []struct {
+		key    string
+		limit  int64
+		window time.Duration
+	}{
+		{key: "sms:verify:phone:" + rateKeyPart(phone), limit: 10, window: 10 * time.Minute},
+		{key: "sms:verify:ip:" + ipKey, limit: 20, window: 10 * time.Minute},
+		{key: "sms:verify:device:" + device, limit: 20, window: 10 * time.Minute},
+	}
+	if err := s.enforceRateLimits(ctx, policies); err != nil {
 		return domain.LoginResult{}, err
+	}
+	attempt, err := s.repo.AttemptOneTimeCode(ctx, "login_sms", phone, security.HashToken(code))
+	if err != nil {
+		return domain.LoginResult{}, err
+	}
+	if !attempt.Valid {
+		return domain.LoginResult{}, apperror.Unauthorized("The phone number or verification code is invalid or expired.")
 	}
 	user, err := s.repo.FindUserByPhone(ctx, phone)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.LoginResult{}, apperror.NotFound("User")
+			return domain.LoginResult{}, apperror.Unauthorized("The phone number or verification code is invalid or expired.")
 		}
 		return domain.LoginResult{}, err
 	}
 	if user.Status != "active" {
-		return domain.LoginResult{}, apperror.Forbidden("This account is not active.")
+		return domain.LoginResult{}, apperror.Unauthorized("The phone number or verification code is invalid or expired.")
 	}
 	access, err := s.accessFor(ctx, user.ID)
 	if err != nil {
@@ -286,6 +345,10 @@ func (s *Service) Login(ctx context.Context, input domain.LoginInput) (domain.Lo
 			return domain.LoginResult{}, apperror.New(apperror.KindRateLimited, "login_rate_limited", "Too many login attempts. Try again later.")
 		}
 	}
+	if err := s.enforceLoginSourceRateLimits(ctx, input); err != nil {
+		s.recordEvent(ctx, nil, input.Username, input.ClientType, "failure", "source rate limited", input)
+		return domain.LoginResult{}, err
+	}
 	if s.captchaEnabled {
 		if input.CaptchaID == "" || input.CaptchaCode == "" {
 			return domain.LoginResult{}, apperror.Validation("code", "A captcha is required.")
@@ -318,6 +381,10 @@ func (s *Service) Login(ctx context.Context, input domain.LoginInput) (domain.Lo
 	if user.Status != "active" {
 		s.recordEvent(ctx, &user.ID, input.Username, input.ClientType, "failure", "status "+user.Status, input)
 		return domain.LoginResult{}, apperror.Unauthorized("This account is not active.")
+	}
+	if !user.PasswordLoginEnabled {
+		s.recordEvent(ctx, &user.ID, input.Username, input.ClientType, "failure", "password login disabled", input)
+		return domain.LoginResult{}, apperror.Unauthorized("Username or password is incorrect.")
 	}
 	if user.LockedUntil != nil && user.LockedUntil.After(now) {
 		s.recordEvent(ctx, &user.ID, input.Username, input.ClientType, "failure", "account locked", input)
@@ -398,19 +465,22 @@ func (s *Service) issueSession(ctx context.Context, user domain.User, access dom
 		refreshTTL = 7 * 24 * time.Hour
 	}
 	session := domain.Session{
-		ID:               mustUUIDv7(),
-		UserID:           user.ID,
-		ClientType:       input.ClientType,
-		DeviceName:       strings.TrimSpace(input.DeviceName),
-		IPAddress:        input.IPAddress,
-		UserAgent:        input.UserAgent,
-		ExpiresAt:        now.Add(s.sessionTTL),
-		RefreshExpiresAt: now.Add(refreshTTL),
-		LastSeenAt:       now,
-		CreatedAt:        now,
-		TokenHash:        security.HashToken(rawToken),
-		RefreshTokenHash: security.HashToken(rawRefresh),
+		ID:                mustUUIDv7(),
+		UserID:            user.ID,
+		RefreshFamilyID:   uuid.Nil,
+		RefreshGeneration: 0,
+		ClientType:        input.ClientType,
+		DeviceName:        strings.TrimSpace(input.DeviceName),
+		IPAddress:         input.IPAddress,
+		UserAgent:         input.UserAgent,
+		ExpiresAt:         now.Add(s.sessionTTL),
+		RefreshExpiresAt:  now.Add(refreshTTL),
+		LastSeenAt:        now,
+		CreatedAt:         now,
+		TokenHash:         security.HashToken(rawToken),
+		RefreshTokenHash:  security.HashToken(rawRefresh),
 	}
+	session.RefreshFamilyID = session.ID
 	if err := s.repo.CreateSession(ctx, session); err != nil {
 		return domain.LoginResult{}, err
 	}
@@ -458,18 +528,22 @@ func (s *Service) Authenticate(ctx context.Context, token string) (requestctx.Ac
 
 func (s *Service) Refresh(ctx context.Context, refreshToken string) (domain.LoginResult, error) {
 	if strings.TrimSpace(refreshToken) == "" {
-		return domain.LoginResult{}, apperror.Unauthorized("Refresh token is required.")
+		return domain.LoginResult{}, apperror.Unauthorized("The refresh token is invalid or expired.")
 	}
-	session, err := s.repo.GetSessionByRefreshHash(ctx, security.HashToken(refreshToken))
+	oldRefreshHash := security.HashToken(strings.TrimSpace(refreshToken))
+	session, err := s.repo.GetSessionByRefreshHash(ctx, oldRefreshHash)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+			if _, replayErr := s.repo.RevokeRefreshReplay(ctx, oldRefreshHash); replayErr != nil {
+				return domain.LoginResult{}, replayErr
+			}
 			return domain.LoginResult{}, apperror.Unauthorized("The refresh token is invalid or expired.")
 		}
 		return domain.LoginResult{}, err
 	}
 	user, err := s.repo.FindUserByID(ctx, session.UserID)
 	if err != nil || user.Status != "active" {
-		return domain.LoginResult{}, apperror.Unauthorized("The refresh token cannot be used.")
+		return domain.LoginResult{}, apperror.Unauthorized("The refresh token is invalid or expired.")
 	}
 	access, err := s.accessFor(ctx, session.UserID)
 	if err != nil {
@@ -492,9 +566,12 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (domain.Logi
 	session.RefreshTokenHash = security.HashToken(rawRefresh)
 	session.ExpiresAt = now.Add(s.sessionTTL)
 	session.RefreshExpiresAt = now.Add(s.refreshTTL)
-	if err := s.repo.RotateSession(ctx, session); err != nil {
+	if err := s.repo.RotateSession(ctx, oldRefreshHash, session); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.LoginResult{}, apperror.Unauthorized("The refresh token has already been used.")
+			if _, replayErr := s.repo.RevokeRefreshReplay(ctx, oldRefreshHash); replayErr != nil {
+				return domain.LoginResult{}, replayErr
+			}
+			return domain.LoginResult{}, apperror.Unauthorized("The refresh token is invalid or expired.")
 		}
 		return domain.LoginResult{}, err
 	}
@@ -523,6 +600,19 @@ func (s *Service) ListActiveSessions(ctx context.Context) ([]domain.Session, err
 
 func (s *Service) RevokeSession(ctx context.Context, sessionID uuid.UUID) error {
 	return s.repo.RevokeSession(ctx, sessionID)
+}
+
+func (s *Service) RevokeOwnedSession(ctx context.Context, actor requestctx.Actor, sessionID uuid.UUID) error {
+	if actor.UserID == uuid.Nil {
+		return apperror.Unauthorized("Authentication is required.")
+	}
+	if err := s.repo.RevokeOwnedSession(ctx, sessionID, actor.UserID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apperror.NotFound("Session")
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *Service) Profile(ctx context.Context, userID uuid.UUID) (domain.User, error) {
@@ -590,6 +680,25 @@ func (s *Service) ListUsers(ctx context.Context, actor requestctx.Actor, filter 
 	return s.repo.ListUsers(ctx, filter)
 }
 
+func (s *Service) GetUser(ctx context.Context, actor requestctx.Actor, id uuid.UUID) (domain.User, error) {
+	user, _, err := s.authorizeTargetUser(ctx, actor, id, false)
+	return user, err
+}
+
+func (s *Service) CreateUserAsActor(ctx context.Context, actor requestctx.Actor, input domain.CreateUserInput) (domain.User, error) {
+	access, err := s.actorAccess(ctx, actor)
+	if err != nil {
+		return domain.User{}, err
+	}
+	if err := s.validateRoleAssignment(ctx, access, input.RoleIDs); err != nil {
+		return domain.User{}, err
+	}
+	if err := s.validateDepartmentScope(ctx, actor.UserID, access, input.DepartmentIDs); err != nil {
+		return domain.User{}, err
+	}
+	return s.CreateUser(ctx, input)
+}
+
 func (s *Service) CreateUser(ctx context.Context, input domain.CreateUserInput) (domain.User, error) {
 	input.Username = strings.TrimSpace(input.Username)
 	input.DisplayName = strings.TrimSpace(input.DisplayName)
@@ -631,7 +740,17 @@ func (s *Service) CreateUser(ctx context.Context, input domain.CreateUserInput) 
 	return s.repo.CreateUser(ctx, user, input.RoleIDs, input.DepartmentIDs, input.PositionIDs, input.PrimaryDepartmentID)
 }
 
-func (s *Service) UpdateUser(ctx context.Context, id uuid.UUID, input domain.UpdateUserInput) (domain.User, error) {
+func (s *Service) UpdateUser(ctx context.Context, actor requestctx.Actor, id uuid.UUID, input domain.UpdateUserInput) (domain.User, error) {
+	_, access, err := s.authorizeTargetUser(ctx, actor, id, true)
+	if err != nil {
+		return domain.User{}, err
+	}
+	if err := s.validateRoleAssignment(ctx, access, input.RoleIDs); err != nil {
+		return domain.User{}, err
+	}
+	if err := s.validateDepartmentScope(ctx, actor.UserID, access, input.DepartmentIDs); err != nil {
+		return domain.User{}, err
+	}
 	input.DisplayName = strings.TrimSpace(input.DisplayName)
 	if input.DisplayName == "" {
 		return domain.User{}, apperror.Validation("displayName", "Display name is required.")
@@ -652,16 +771,14 @@ func (s *Service) UpdateUser(ctx context.Context, id uuid.UUID, input domain.Upd
 		}
 		return domain.User{}, err
 	}
-	if input.RoleIDs != nil {
-		if err := s.repo.SetUserRoles(ctx, id, input.RoleIDs); err != nil {
-			return domain.User{}, err
-		}
-		s.invalidateUserAccess(ctx, id)
-	}
+	s.invalidateUserAccess(ctx, id)
 	return user, nil
 }
 
-func (s *Service) DeleteUser(ctx context.Context, id uuid.UUID) error {
+func (s *Service) DeleteUser(ctx context.Context, actor requestctx.Actor, id uuid.UUID) error {
+	if _, _, err := s.authorizeTargetUser(ctx, actor, id, true); err != nil {
+		return err
+	}
 	if err := s.repo.SoftDeleteUser(ctx, id); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return apperror.NotFound("User")
@@ -669,7 +786,7 @@ func (s *Service) DeleteUser(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	s.invalidateUserAccess(ctx, id)
-	return s.repo.RevokeUserSessions(ctx, id)
+	return nil
 }
 
 func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {
@@ -685,13 +802,13 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	if err != nil {
 		return apperror.Validation("newPassword", err.Error())
 	}
-	if err := s.repo.UpdatePassword(ctx, userID, hash); err != nil {
-		return err
-	}
-	return s.repo.RevokeUserSessions(ctx, userID)
+	return s.repo.ChangePasswordAndRevokeSessions(ctx, userID, hash)
 }
 
-func (s *Service) ResetPassword(ctx context.Context, userID uuid.UUID, newPassword string) (string, error) {
+func (s *Service) ResetPassword(ctx context.Context, actor requestctx.Actor, userID uuid.UUID, newPassword string) (string, error) {
+	if _, _, err := s.authorizeTargetUser(ctx, actor, userID, true); err != nil {
+		return "", err
+	}
 	if newPassword == "" {
 		generated, err := security.GenerateToken(12)
 		if err != nil {
@@ -703,13 +820,17 @@ func (s *Service) ResetPassword(ctx context.Context, userID uuid.UUID, newPasswo
 	if err != nil {
 		return "", apperror.Validation("password", err.Error())
 	}
-	if err := s.repo.UpdatePassword(ctx, userID, hash); err != nil {
-		return "", err
-	}
-	if err := s.repo.RevokeUserSessions(ctx, userID); err != nil {
+	if err := s.repo.ChangePasswordAndRevokeSessions(ctx, userID, hash); err != nil {
 		return "", err
 	}
 	return newPassword, nil
+}
+
+func (s *Service) RevokeUserSessions(ctx context.Context, actor requestctx.Actor, userID uuid.UUID) error {
+	if _, _, err := s.authorizeTargetUser(ctx, actor, userID, true); err != nil {
+		return err
+	}
+	return s.repo.RevokeUserSessions(ctx, userID)
 }
 
 func (s *Service) Register(ctx context.Context, input domain.RegisterInput) (domain.User, error) {
@@ -837,6 +958,183 @@ func (s *Service) invalidateUserAccess(ctx context.Context, userID uuid.UUID) {
 	if s.accessCache != nil {
 		_ = s.accessCache.DeletePrefix(ctx, "access:"+userID.String())
 	}
+}
+
+func (s *Service) actorAccess(ctx context.Context, actor requestctx.Actor) (domain.Access, error) {
+	if actor.UserID == uuid.Nil {
+		return domain.Access{}, apperror.Unauthorized("Authentication is required.")
+	}
+	access, err := s.accessFor(ctx, actor.UserID)
+	if err != nil {
+		return domain.Access{}, err
+	}
+	if access.IsSuperAdmin {
+		access.DataScope = "all"
+	}
+	if access.DataScope == "" {
+		access.DataScope = "self"
+	}
+	return access, nil
+}
+
+func (s *Service) authorizeTargetUser(ctx context.Context, actor requestctx.Actor, targetID uuid.UUID, denySuperAdminMutation bool) (domain.User, domain.Access, error) {
+	actorAccess, err := s.actorAccess(ctx, actor)
+	if err != nil {
+		return domain.User{}, domain.Access{}, err
+	}
+	if actorAccess.IsSuperAdmin {
+		target, err := s.repo.FindUserByID(ctx, targetID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return domain.User{}, domain.Access{}, apperror.NotFound("User")
+			}
+			return domain.User{}, domain.Access{}, err
+		}
+		return target, actorAccess, nil
+	}
+	scoped, err := s.repo.FindUserByIDInDataScope(ctx, targetID, actor.UserID, actorAccess.DataScope)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.User{}, domain.Access{}, apperror.Forbidden("The target user is outside your data scope.")
+		}
+		return domain.User{}, domain.Access{}, err
+	}
+	if denySuperAdminMutation {
+		targetAccess, accessErr := s.accessFor(ctx, targetID)
+		if accessErr != nil {
+			return domain.User{}, domain.Access{}, accessErr
+		}
+		if targetAccess.IsSuperAdmin {
+			return domain.User{}, domain.Access{}, apperror.Forbidden("A regular administrator cannot modify a super administrator.")
+		}
+	}
+	return scoped, actorAccess, nil
+}
+
+func (s *Service) validateRoleAssignment(ctx context.Context, access domain.Access, roleIDs []uuid.UUID) error {
+	if roleIDs == nil {
+		return nil
+	}
+	for _, roleID := range roleIDs {
+		if roleID == uuid.Nil {
+			return apperror.Validation("roleIds", "Role identifiers must be valid UUIDs.")
+		}
+	}
+	if access.IsSuperAdmin {
+		return nil
+	}
+	privileged, err := s.repo.CountPrivilegedRoles(ctx, roleIDs)
+	if err != nil {
+		return err
+	}
+	if privileged > 0 {
+		return apperror.Forbidden("Only a super administrator can assign super administrator roles.")
+	}
+	return nil
+}
+
+func (s *Service) validateDepartmentScope(ctx context.Context, actorID uuid.UUID, access domain.Access, departmentIDs []uuid.UUID) error {
+	if departmentIDs == nil || access.IsSuperAdmin {
+		return nil
+	}
+	unique := make(map[uuid.UUID]struct{}, len(departmentIDs))
+	for _, departmentID := range departmentIDs {
+		if departmentID == uuid.Nil {
+			return apperror.Validation("departmentIds", "Department identifiers must be valid UUIDs.")
+		}
+		unique[departmentID] = struct{}{}
+	}
+	if len(unique) == 0 {
+		return nil
+	}
+	if access.DataScope == "self" {
+		return apperror.Forbidden("A self-scoped user cannot assign departments.")
+	}
+	allowed, err := s.repo.CountDepartmentsWithinScope(ctx, actorID, access.DataScope, mapKeys(unique))
+	if err != nil {
+		return err
+	}
+	if allowed != int64(len(unique)) {
+		return apperror.Forbidden("One or more departments are outside your data scope.")
+	}
+	return nil
+}
+
+func mapKeys(values map[uuid.UUID]struct{}) []uuid.UUID {
+	keys := make([]uuid.UUID, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	return keys
+}
+
+func (s *Service) enforceRateLimits(ctx context.Context, policies []struct {
+	key    string
+	limit  int64
+	window time.Duration
+}) error {
+	if s.rateLimiter == nil {
+		return nil
+	}
+	allowed := true
+	for _, policy := range policies {
+		var (
+			ok  bool
+			err error
+		)
+		if limiter, implementsPolicy := s.rateLimiter.(policyRateLimiter); implementsPolicy {
+			ok, err = limiter.AllowPolicy(ctx, policy.key, policy.limit, policy.window)
+		} else {
+			ok, err = s.rateLimiter.Allow(ctx, policy.key)
+		}
+		if err != nil {
+			return apperror.Wrap(apperror.KindUnavailable, "rate_limiter_unavailable", "SMS verification is temporarily unavailable.", err)
+		}
+		allowed = allowed && ok
+	}
+	if !allowed {
+		return apperror.New(apperror.KindRateLimited, "sms_rate_limited", "Too many SMS requests or verification attempts. Try again later.")
+	}
+	return nil
+}
+
+func (s *Service) enforceLoginSourceRateLimits(ctx context.Context, input domain.LoginInput) error {
+	if s.rateLimiter == nil {
+		return nil
+	}
+	device := rateKeyPart(input.DeviceName + "|" + input.UserAgent)
+	policies := []struct {
+		key    string
+		limit  int64
+		window time.Duration
+	}{
+		{key: "login:ip:" + rateKeyPart(input.IPAddress), limit: 30, window: 5 * time.Minute},
+		{key: "login:device:" + device, limit: 20, window: 5 * time.Minute},
+	}
+	allowed := true
+	for _, policy := range policies {
+		var (
+			ok  bool
+			err error
+		)
+		if limiter, implementsPolicy := s.rateLimiter.(policyRateLimiter); implementsPolicy {
+			ok, err = limiter.AllowPolicy(ctx, policy.key, policy.limit, policy.window)
+		} else {
+			ok, err = s.rateLimiter.Allow(ctx, policy.key)
+		}
+		if err != nil {
+			return apperror.Wrap(apperror.KindUnavailable, "rate_limiter_unavailable", "Login is temporarily unavailable.", err)
+		}
+		allowed = allowed && ok
+	}
+	if !allowed {
+		return apperror.New(apperror.KindRateLimited, "login_rate_limited", "Too many login attempts. Try again later.")
+	}
+	return nil
+}
+
+func rateKeyPart(value string) string {
+	return base64.RawURLEncoding.EncodeToString(security.HashToken(strings.TrimSpace(value)))
 }
 
 func validUserStatus(value string) bool {

@@ -260,6 +260,57 @@ func (q *Queries) GetMessage(ctx context.Context, id pgtype.UUID) (MessagingMess
 	return i, err
 }
 
+const getMyNotice = `-- name: GetMyNotice :one
+SELECT n.id, n.title, n.content, n.notice_type, n.channels, n.target_type, n.target_ids, n.status, n.created_by, n.created_at, n.updated_at, n.published_at, n.withdrawn_at, r.read_at
+FROM notification_notices n
+JOIN notification_recipients r ON r.notice_id = n.id
+WHERE n.id = $1 AND r.user_id = $2 AND n.status = 'published'
+`
+
+type GetMyNoticeParams struct {
+	ID     pgtype.UUID `json:"id"`
+	UserID pgtype.UUID `json:"user_id"`
+}
+
+type GetMyNoticeRow struct {
+	ID          pgtype.UUID        `json:"id"`
+	Title       string             `json:"title"`
+	Content     string             `json:"content"`
+	NoticeType  int16              `json:"notice_type"`
+	Channels    []byte             `json:"channels"`
+	TargetType  string             `json:"target_type"`
+	TargetIds   []byte             `json:"target_ids"`
+	Status      string             `json:"status"`
+	CreatedBy   pgtype.UUID        `json:"created_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	PublishedAt pgtype.Timestamptz `json:"published_at"`
+	WithdrawnAt pgtype.Timestamptz `json:"withdrawn_at"`
+	ReadAt      pgtype.Timestamptz `json:"read_at"`
+}
+
+func (q *Queries) GetMyNotice(ctx context.Context, arg GetMyNoticeParams) (GetMyNoticeRow, error) {
+	row := q.db.QueryRow(ctx, getMyNotice, arg.ID, arg.UserID)
+	var i GetMyNoticeRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Content,
+		&i.NoticeType,
+		&i.Channels,
+		&i.TargetType,
+		&i.TargetIds,
+		&i.Status,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PublishedAt,
+		&i.WithdrawnAt,
+		&i.ReadAt,
+	)
+	return i, err
+}
+
 const getNotice = `-- name: GetNotice :one
 SELECT id, title, content, notice_type, channels, target_type, target_ids, status, created_by, created_at, updated_at, published_at, withdrawn_at FROM notification_notices WHERE id = $1
 `

@@ -57,9 +57,9 @@ type FileGroup struct {
 type Repository interface {
 	Create(ctx context.Context, file File) (File, error)
 	Get(ctx context.Context, id uuid.UUID) (File, error)
-	List(ctx context.Context, groupID *uuid.UUID, query string, page, pageSize int) ([]File, int64, error)
+	List(ctx context.Context, ownerID uuid.UUID, allOwners bool, groupID *uuid.UUID, query string, page, pageSize int) ([]File, int64, error)
 	SoftDelete(ctx context.Context, id uuid.UUID) error
-	FileGroups(ctx context.Context) ([]FileGroup, error)
+	FileGroups(ctx context.Context, ownerID uuid.UUID, allOwners bool) ([]FileGroup, error)
 	FileGroup(ctx context.Context, id uuid.UUID) (FileGroup, error)
 	CreateFileGroup(ctx context.Context, group FileGroup) (FileGroup, error)
 	UpdateFileGroup(ctx context.Context, group FileGroup) (FileGroup, error)

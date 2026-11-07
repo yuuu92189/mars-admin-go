@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -37,7 +38,9 @@ type Hub struct {
 	mu      sync.RWMutex
 	clients map[uuid.UUID]map[*client]struct{}
 	count   atomic.Int64
+	closed  atomic.Bool
 	metrics prometheus.GaugeFunc
+	origins []string
 }
 
 type client struct {
@@ -51,10 +54,11 @@ type envelope struct {
 	Event      domain.Event `json:"event"`
 }
 
-func New(logger *slog.Logger, auth Authenticator, messaging *application.Service, redisClient *redis.Client, registry prometheus.Registerer) *Hub {
+func New(logger *slog.Logger, auth Authenticator, messaging *application.Service, redisClient *redis.Client, registry prometheus.Registerer, allowedOrigins ...string) *Hub {
 	hub := &Hub{
 		logger: logger, auth: auth, messaging: messaging, redis: redisClient,
 		clients: make(map[uuid.UUID]map[*client]struct{}),
+		origins: websocketOriginPatterns(allowedOrigins),
 	}
 	hub.metrics = prometheus.NewGaugeFunc(prometheus.GaugeOpts{
 		Namespace: "mars_admin",
@@ -97,7 +101,7 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns:  []string{"localhost:*", "127.0.0.1:*"},
+		OriginPatterns:  h.origins,
 		CompressionMode: websocket.CompressionContextTakeover,
 	})
 	if err != nil {
@@ -106,7 +110,10 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	conn.SetReadLimit(64 << 10)
 	c := &client{userID: actor.UserID, conn: conn, send: make(chan []byte, 32)}
-	h.register(c)
+	if !h.register(c) {
+		_ = conn.Close(websocket.StatusGoingAway, "server shutting down")
+		return
+	}
 	defer h.unregister(c)
 
 	writeCtx, cancelWriter := context.WithCancel(context.Background())
@@ -126,6 +133,23 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		h.handleMessage(r.Context(), actor, c, payload)
 	}
+}
+
+func websocketOriginPatterns(origins []string) []string {
+	patterns := make([]string, 0, len(origins))
+	seen := make(map[string]struct{}, len(origins))
+	for _, origin := range origins {
+		parsed, err := url.Parse(strings.TrimSpace(origin))
+		if err != nil || parsed.Host == "" {
+			continue
+		}
+		if _, exists := seen[parsed.Host]; exists {
+			continue
+		}
+		seen[parsed.Host] = struct{}{}
+		patterns = append(patterns, parsed.Host)
+	}
+	return patterns
 }
 
 func (h *Hub) Publish(ctx context.Context, recipients []uuid.UUID, event domain.Event) error {
@@ -244,14 +268,18 @@ func (h *Hub) writer(ctx context.Context, c *client) {
 	}
 }
 
-func (h *Hub) register(c *client) {
+func (h *Hub) register(c *client) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	if h.closed.Load() {
+		return false
+	}
 	if h.clients[c.userID] == nil {
 		h.clients[c.userID] = make(map[*client]struct{})
 	}
 	h.clients[c.userID][c] = struct{}{}
 	h.count.Add(1)
+	return true
 }
 
 func (h *Hub) unregister(c *client) {
@@ -263,9 +291,50 @@ func (h *Hub) unregister(c *client) {
 			delete(h.clients, c.userID)
 		}
 	}
-	close(c.send)
 	_ = c.conn.CloseNow()
 	h.count.Add(-1)
+}
+
+func (h *Hub) Close(ctx context.Context) error {
+	h.closed.Store(true)
+	h.mu.RLock()
+	connections := make([]*client, 0, h.count.Load())
+	for _, clients := range h.clients {
+		for connection := range clients {
+			connections = append(connections, connection)
+		}
+	}
+	h.mu.RUnlock()
+	var closeWait sync.WaitGroup
+	for _, connection := range connections {
+		closeWait.Add(1)
+		go func(connection *client) {
+			defer closeWait.Done()
+			_ = connection.conn.Close(websocket.StatusGoingAway, "server shutting down")
+		}(connection)
+	}
+	closed := make(chan struct{})
+	go func() {
+		closeWait.Wait()
+		close(closed)
+	}()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-closed:
+	}
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		if h.count.Load() == 0 {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
 }
 
 func (h *Hub) subscribe(ctx context.Context) {

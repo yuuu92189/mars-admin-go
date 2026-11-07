@@ -228,28 +228,28 @@ func (w *tickWorker) Work(ctx context.Context, _ *river.Job[TickArgs]) error {
 			return err
 		}
 	}
-	if err := tx.Commit(ctx); err != nil {
-		return err
-	}
 	for _, job := range jobs {
-		run := domain.Run{ID: mustID(), JobID: job.id, Status: "queued", Attempt: 1, CreatedAt: time.Now().UTC()}
-		created, err := w.schedulerRepo.CreateRun(ctx, run)
-		if err != nil {
-			w.logger.ErrorContext(ctx, "create scheduled run", "error", err, "job_id", job.id)
-			continue
+		runID := mustID()
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO scheduler_job_runs (id, job_id, status, attempt)
+			VALUES ($1, $2, 'queued', 1)`, runID, job.id); err != nil {
+			return err
 		}
-		result, err := w.client.Insert(ctx, ScheduledJobArgs{
-			RunID: created.ID, JobID: job.id, Handler: job.handler, Payload: job.payload,
+		result, err := w.client.InsertTx(ctx, tx, ScheduledJobArgs{
+			RunID: runID, JobID: job.id, Handler: job.handler, Payload: job.payload,
 			TimeoutSeconds: job.timeoutSeconds,
 		}, &river.InsertOpts{Queue: "scheduler", MaxAttempts: int(job.maxAttempts)})
 		if err != nil {
-			created.Status = "failed"
-			created.ErrorMessage = err.Error()
-			_ = w.schedulerRepo.UpdateRun(ctx, created)
-			continue
+			return fmt.Errorf("enqueue scheduled job %s: %w", job.id, err)
 		}
-		created.RiverJobID = &result.Job.ID
-		_ = w.schedulerRepo.UpdateRun(ctx, created)
+		if _, err := tx.Exec(ctx, `
+			UPDATE scheduler_job_runs SET river_job_id = $2 WHERE id = $1`,
+			runID, result.Job.ID); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
 	}
 	return nil
 }

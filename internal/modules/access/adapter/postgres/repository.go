@@ -113,6 +113,14 @@ func (r *Repository) Roles(ctx context.Context, query string, page, pageSize int
 	return roles, total, nil
 }
 
+func (r *Repository) Role(ctx context.Context, id uuid.UUID) (domain.Role, error) {
+	row, err := sqlc.New(r.pool).GetRole(ctx, pgUUID(id))
+	if err != nil {
+		return domain.Role{}, err
+	}
+	return mapRole(row), nil
+}
+
 func (r *Repository) CreateRole(ctx context.Context, input domain.CreateRoleInput) (domain.Role, error) {
 	row, err := sqlc.New(r.pool).CreateRole(ctx, sqlc.CreateRoleParams{
 		ID:          pgUUID(mustID()),

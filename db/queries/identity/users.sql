@@ -19,10 +19,97 @@ INSERT INTO identity_social_identities (id, user_id, provider, subject, metadata
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (provider, subject) DO NOTHING;
 
+-- name: CreateSocialIdentityStrict :exec
+INSERT INTO identity_social_identities (id, user_id, provider, subject, metadata)
+VALUES ($1, $2, $3, $4, $5);
+
 -- name: GetUserByID :one
 SELECT *
 FROM identity_users
 WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: GetUserByIDInDataScope :one
+SELECT u.*
+FROM identity_users u
+WHERE u.id = $1
+  AND u.deleted_at IS NULL
+  AND (
+    $3::text = 'all'
+    OR ($3::text = 'self' AND u.id = $2)
+    OR (
+      $3::text = 'department'
+      AND EXISTS (
+        SELECT 1
+        FROM organization_memberships mine
+        JOIN organization_memberships target ON target.department_id = mine.department_id
+        WHERE mine.user_id = $2 AND target.user_id = u.id
+      )
+    )
+    OR (
+      $3::text = 'department_tree'
+      AND EXISTS (
+        SELECT 1
+        FROM organization_memberships mine
+        JOIN organization_departments my_dept ON my_dept.id = mine.department_id
+        JOIN organization_memberships target ON target.user_id = u.id
+        JOIN organization_departments target_dept ON target_dept.id = target.department_id
+        WHERE mine.user_id = $2
+          AND target_dept.path <@ my_dept.path
+      )
+    )
+    OR (
+      $3::text = 'custom'
+      AND EXISTS (
+        SELECT 1
+        FROM access_user_roles aur
+        JOIN access_role_departments ard ON ard.role_id = aur.role_id
+        JOIN organization_memberships target ON target.department_id = ard.department_id
+        WHERE aur.user_id = $2 AND target.user_id = u.id
+      )
+    )
+  );
+
+-- name: CountDepartmentsWithinScope :one
+SELECT count(DISTINCT department.id)::bigint
+FROM organization_departments department
+WHERE department.deleted_at IS NULL
+  AND department.id = ANY($3::uuid[])
+  AND (
+    $2::text = 'all'
+    OR (
+      $2::text = 'department'
+      AND EXISTS (
+        SELECT 1
+        FROM organization_memberships mine
+        WHERE mine.user_id = $1 AND mine.department_id = department.id
+      )
+    )
+    OR (
+      $2::text = 'department_tree'
+      AND EXISTS (
+        SELECT 1
+        FROM organization_memberships mine
+        JOIN organization_departments my_dept ON my_dept.id = mine.department_id
+        WHERE mine.user_id = $1 AND department.path <@ my_dept.path
+      )
+    )
+    OR (
+      $2::text = 'custom'
+      AND EXISTS (
+        SELECT 1
+        FROM access_user_roles role
+        JOIN access_role_departments allowed ON allowed.role_id = role.role_id
+        WHERE role.user_id = $1 AND allowed.department_id = department.id
+      )
+    )
+  );
+
+-- name: CountPrivilegedRoles :one
+SELECT count(*)::bigint
+FROM access_roles
+WHERE id = ANY($1::uuid[])
+  AND is_super_admin = true
+  AND deleted_at IS NULL;
 
 -- name: ListUsers :many
 SELECT u.*
@@ -144,7 +231,12 @@ WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: UpdateUserPassword :execrows
 UPDATE identity_users
-SET password_hash = $2, updated_at = now(), version = version + 1
+SET password_hash = $2, password_login_enabled = true, updated_at = now(), version = version + 1
+WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: DisablePasswordLogin :exec
+UPDATE identity_users
+SET password_login_enabled = false, updated_at = now()
 WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: RecordFailedLogin :one

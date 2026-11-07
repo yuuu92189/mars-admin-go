@@ -166,7 +166,11 @@ func (s *Service) Decide(ctx context.Context, actor domain.Actor, input domain.D
 			decision.TerminalStatus = "approved"
 		}
 	}
-	return s.repo.Decide(ctx, actor, input, decision)
+	task, updatedInstance, err := s.repo.Decide(ctx, actor, input, decision)
+	if err != nil {
+		return domain.Task{}, domain.Instance{}, mapDecisionError(err)
+	}
+	return task, updatedInstance, nil
 }
 
 func (s *Service) Terminate(ctx context.Context, instanceID, actorID uuid.UUID, comment string) (domain.Instance, error) {

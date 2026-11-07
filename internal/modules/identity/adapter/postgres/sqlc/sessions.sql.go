@@ -12,6 +12,69 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const attemptOneTimeCode = `-- name: AttemptOneTimeCode :one
+WITH candidate AS (
+    SELECT
+        code.id,
+        (code.code_hash = $3)::boolean AS matches,
+        code.max_attempts,
+        code.attempts,
+        code.consumed_at,
+        (
+            code.consumed_at IS NULL
+            AND code.expires_at > now()
+            AND code.attempts < code.max_attempts
+        )::boolean AS can_attempt
+    FROM identity_one_time_codes AS code
+    WHERE code.purpose = $1 AND code.subject = $2
+    ORDER BY code.created_at DESC
+    LIMIT 1
+    FOR UPDATE
+), updated AS (
+    UPDATE identity_one_time_codes AS code
+    SET attempts = code.attempts + 1,
+        consumed_at = CASE
+            WHEN candidate.matches OR code.attempts + 1 >= candidate.max_attempts
+            THEN now()
+            ELSE code.consumed_at
+        END
+    FROM candidate
+    WHERE code.id = candidate.id AND candidate.can_attempt
+    RETURNING candidate.matches, code.attempts, code.consumed_at
+)
+SELECT
+    COALESCE((SELECT matches FROM updated), false)::boolean AS valid,
+    COALESCE(
+        (SELECT attempts FROM updated),
+        (SELECT attempts FROM candidate),
+        0
+    )::integer AS attempts,
+    COALESCE(
+        (SELECT consumed_at IS NOT NULL FROM updated),
+        (SELECT consumed_at IS NOT NULL FROM candidate),
+        false
+    )::boolean AS consumed
+`
+
+type AttemptOneTimeCodeParams struct {
+	Purpose  string `json:"purpose"`
+	Subject  string `json:"subject"`
+	CodeHash []byte `json:"code_hash"`
+}
+
+type AttemptOneTimeCodeRow struct {
+	Valid    bool  `json:"valid"`
+	Attempts int32 `json:"attempts"`
+	Consumed bool  `json:"consumed"`
+}
+
+func (q *Queries) AttemptOneTimeCode(ctx context.Context, arg AttemptOneTimeCodeParams) (AttemptOneTimeCodeRow, error) {
+	row := q.db.QueryRow(ctx, attemptOneTimeCode, arg.Purpose, arg.Subject, arg.CodeHash)
+	var i AttemptOneTimeCodeRow
+	err := row.Scan(&i.Valid, &i.Attempts, &i.Consumed)
+	return i, err
+}
+
 const consumeCaptchaChallenge = `-- name: ConsumeCaptchaChallenge :one
 UPDATE identity_captcha_challenges AS challenge
 SET consumed_at = now()
@@ -42,70 +105,37 @@ func (q *Queries) ConsumeCaptchaChallenge(ctx context.Context, arg ConsumeCaptch
 	return kind, err
 }
 
-const consumeOneTimeCode = `-- name: ConsumeOneTimeCode :one
-UPDATE identity_one_time_codes AS code
-SET consumed_at = now()
-WHERE code.id = (
-    SELECT candidate.id
-    FROM identity_one_time_codes AS candidate
-    WHERE candidate.purpose = $1 AND candidate.subject = $2 AND candidate.code_hash = $3
-      AND candidate.consumed_at IS NULL AND candidate.expires_at > now() AND candidate.attempts < 5
-    ORDER BY candidate.created_at DESC
-    LIMIT 1
-    FOR UPDATE
-)
-RETURNING code.id, code.purpose, code.subject, code.code_hash, code.expires_at, code.consumed_at, code.attempts, code.created_at
-`
-
-type ConsumeOneTimeCodeParams struct {
-	Purpose  string `json:"purpose"`
-	Subject  string `json:"subject"`
-	CodeHash []byte `json:"code_hash"`
-}
-
-func (q *Queries) ConsumeOneTimeCode(ctx context.Context, arg ConsumeOneTimeCodeParams) (IdentityOneTimeCode, error) {
-	row := q.db.QueryRow(ctx, consumeOneTimeCode, arg.Purpose, arg.Subject, arg.CodeHash)
-	var i IdentityOneTimeCode
-	err := row.Scan(
-		&i.ID,
-		&i.Purpose,
-		&i.Subject,
-		&i.CodeHash,
-		&i.ExpiresAt,
-		&i.ConsumedAt,
-		&i.Attempts,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const createSession = `-- name: CreateSession :one
 INSERT INTO identity_sessions (
-    id, user_id, client_type, token_hash, refresh_token_hash, device_name,
+    id, user_id, refresh_family_id, refresh_generation, client_type, token_hash, refresh_token_hash, device_name,
     ip_address, user_agent, expires_at, refresh_expires_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 )
-RETURNING id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at
+RETURNING id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at, refresh_family_id, refresh_generation
 `
 
 type CreateSessionParams struct {
-	ID               pgtype.UUID        `json:"id"`
-	UserID           pgtype.UUID        `json:"user_id"`
-	ClientType       string             `json:"client_type"`
-	TokenHash        []byte             `json:"token_hash"`
-	RefreshTokenHash []byte             `json:"refresh_token_hash"`
-	DeviceName       string             `json:"device_name"`
-	IpAddress        *netip.Addr        `json:"ip_address"`
-	UserAgent        string             `json:"user_agent"`
-	ExpiresAt        pgtype.Timestamptz `json:"expires_at"`
-	RefreshExpiresAt pgtype.Timestamptz `json:"refresh_expires_at"`
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	RefreshFamilyID   pgtype.UUID        `json:"refresh_family_id"`
+	RefreshGeneration int64              `json:"refresh_generation"`
+	ClientType        string             `json:"client_type"`
+	TokenHash         []byte             `json:"token_hash"`
+	RefreshTokenHash  []byte             `json:"refresh_token_hash"`
+	DeviceName        string             `json:"device_name"`
+	IpAddress         *netip.Addr        `json:"ip_address"`
+	UserAgent         string             `json:"user_agent"`
+	ExpiresAt         pgtype.Timestamptz `json:"expires_at"`
+	RefreshExpiresAt  pgtype.Timestamptz `json:"refresh_expires_at"`
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (IdentitySession, error) {
 	row := q.db.QueryRow(ctx, createSession,
 		arg.ID,
 		arg.UserID,
+		arg.RefreshFamilyID,
+		arg.RefreshGeneration,
 		arg.ClientType,
 		arg.TokenHash,
 		arg.RefreshTokenHash,
@@ -130,12 +160,27 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (I
 		&i.LastSeenAt,
 		&i.RevokedAt,
 		&i.CreatedAt,
+		&i.RefreshFamilyID,
+		&i.RefreshGeneration,
 	)
 	return i, err
 }
 
+const findRefreshHistorySession = `-- name: FindRefreshHistorySession :one
+SELECT session_id
+FROM identity_refresh_token_history
+WHERE token_hash = $1
+`
+
+func (q *Queries) FindRefreshHistorySession(ctx context.Context, tokenHash []byte) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, findRefreshHistorySession, tokenHash)
+	var session_id pgtype.UUID
+	err := row.Scan(&session_id)
+	return session_id, err
+}
+
 const getSessionByAccessHash = `-- name: GetSessionByAccessHash :one
-SELECT id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at
+SELECT id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at, refresh_family_id, refresh_generation
 FROM identity_sessions
 WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
 `
@@ -157,12 +202,14 @@ func (q *Queries) GetSessionByAccessHash(ctx context.Context, tokenHash []byte) 
 		&i.LastSeenAt,
 		&i.RevokedAt,
 		&i.CreatedAt,
+		&i.RefreshFamilyID,
+		&i.RefreshGeneration,
 	)
 	return i, err
 }
 
 const getSessionByRefreshHash = `-- name: GetSessionByRefreshHash :one
-SELECT id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at
+SELECT id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at, refresh_family_id, refresh_generation
 FROM identity_sessions
 WHERE refresh_token_hash = $1 AND revoked_at IS NULL AND refresh_expires_at > now()
 `
@@ -184,6 +231,8 @@ func (q *Queries) GetSessionByRefreshHash(ctx context.Context, refreshTokenHash 
 		&i.LastSeenAt,
 		&i.RevokedAt,
 		&i.CreatedAt,
+		&i.RefreshFamilyID,
+		&i.RefreshGeneration,
 	)
 	return i, err
 }
@@ -216,17 +265,24 @@ func (q *Queries) InsertCaptchaChallenge(ctx context.Context, arg InsertCaptchaC
 }
 
 const insertOneTimeCode = `-- name: InsertOneTimeCode :exec
+WITH invalidated AS (
+    UPDATE identity_one_time_codes AS code
+    SET consumed_at = now()
+    WHERE code.purpose = $2 AND code.subject = $3
+      AND code.consumed_at IS NULL AND code.expires_at > now()
+)
 INSERT INTO identity_one_time_codes (
-    id, purpose, subject, code_hash, expires_at
-) VALUES ($1, $2, $3, $4, $5)
+    id, purpose, subject, code_hash, expires_at, max_attempts
+) VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type InsertOneTimeCodeParams struct {
-	ID        pgtype.UUID        `json:"id"`
-	Purpose   string             `json:"purpose"`
-	Subject   string             `json:"subject"`
-	CodeHash  []byte             `json:"code_hash"`
-	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	ID          pgtype.UUID        `json:"id"`
+	Purpose     string             `json:"purpose"`
+	Subject     string             `json:"subject"`
+	CodeHash    []byte             `json:"code_hash"`
+	ExpiresAt   pgtype.Timestamptz `json:"expires_at"`
+	MaxAttempts int32              `json:"max_attempts"`
 }
 
 func (q *Queries) InsertOneTimeCode(ctx context.Context, arg InsertOneTimeCodeParams) error {
@@ -236,12 +292,13 @@ func (q *Queries) InsertOneTimeCode(ctx context.Context, arg InsertOneTimeCodePa
 		arg.Subject,
 		arg.CodeHash,
 		arg.ExpiresAt,
+		arg.MaxAttempts,
 	)
 	return err
 }
 
 const listUserSessions = `-- name: ListUserSessions :many
-SELECT id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at
+SELECT id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at, refresh_family_id, refresh_generation
 FROM identity_sessions
 WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
 ORDER BY last_seen_at DESC
@@ -270,6 +327,8 @@ func (q *Queries) ListUserSessions(ctx context.Context, userID pgtype.UUID) ([]I
 			&i.LastSeenAt,
 			&i.RevokedAt,
 			&i.CreatedAt,
+			&i.RefreshFamilyID,
+			&i.RefreshGeneration,
 		); err != nil {
 			return nil, err
 		}
@@ -314,6 +373,48 @@ func (q *Queries) RecordLoginEvent(ctx context.Context, arg RecordLoginEventPara
 	return err
 }
 
+const revokeOwnedSession = `-- name: RevokeOwnedSession :execrows
+UPDATE identity_sessions
+SET revoked_at = now()
+WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL
+`
+
+type RevokeOwnedSessionParams struct {
+	ID     pgtype.UUID `json:"id"`
+	UserID pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) RevokeOwnedSession(ctx context.Context, arg RevokeOwnedSessionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeOwnedSession, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const revokeRefreshReplay = `-- name: RevokeRefreshReplay :one
+WITH replayed AS (
+    SELECT history.session_id
+    FROM identity_refresh_token_history AS history
+    WHERE history.token_hash = $1
+), revoked AS (
+    UPDATE identity_sessions AS session
+    SET revoked_at = now()
+    FROM replayed
+    WHERE session.id = replayed.session_id
+      AND session.revoked_at IS NULL
+    RETURNING session.id
+)
+SELECT EXISTS (SELECT 1 FROM replayed)::boolean AS replayed
+`
+
+func (q *Queries) RevokeRefreshReplay(ctx context.Context, tokenHash []byte) (bool, error) {
+	row := q.db.QueryRow(ctx, revokeRefreshReplay, tokenHash)
+	var replayed bool
+	err := row.Scan(&replayed)
+	return replayed, err
+}
+
 const revokeSession = `-- name: RevokeSession :execrows
 UPDATE identity_sessions SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL
 `
@@ -339,33 +440,75 @@ func (q *Queries) RevokeUserSessions(ctx context.Context, userID pgtype.UUID) (i
 }
 
 const rotateSessionTokens = `-- name: RotateSessionTokens :one
-UPDATE identity_sessions
-SET token_hash = $2,
-    refresh_token_hash = $3,
-    expires_at = $4,
-    refresh_expires_at = $5,
-    last_seen_at = now()
-WHERE id = $1 AND revoked_at IS NULL AND refresh_expires_at > now()
-RETURNING id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at
+WITH rotated AS (
+    UPDATE identity_sessions AS session
+    SET token_hash = $3,
+        refresh_token_hash = $4,
+        expires_at = $5,
+        refresh_expires_at = $6,
+        refresh_generation = refresh_generation + 1,
+        last_seen_at = now()
+    WHERE session.id = $1
+      AND session.refresh_token_hash = $2
+      AND session.revoked_at IS NULL
+      AND session.refresh_expires_at > now()
+      AND EXISTS (
+          SELECT 1
+          FROM identity_users AS account
+          WHERE account.id = session.user_id
+            AND account.status = 'active'
+            AND account.deleted_at IS NULL
+      )
+    RETURNING id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at, refresh_family_id, refresh_generation
+), history AS (
+    INSERT INTO identity_refresh_token_history (
+        id, session_id, token_hash, generation
+    )
+    SELECT $7, rotated.id, $2, rotated.refresh_generation
+    FROM rotated
+)
+SELECT id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at, refresh_family_id, refresh_generation FROM rotated
 `
 
 type RotateSessionTokensParams struct {
-	ID               pgtype.UUID        `json:"id"`
-	TokenHash        []byte             `json:"token_hash"`
-	RefreshTokenHash []byte             `json:"refresh_token_hash"`
-	ExpiresAt        pgtype.Timestamptz `json:"expires_at"`
-	RefreshExpiresAt pgtype.Timestamptz `json:"refresh_expires_at"`
+	ID                 pgtype.UUID        `json:"id"`
+	RefreshTokenHash   []byte             `json:"refresh_token_hash"`
+	TokenHash          []byte             `json:"token_hash"`
+	RefreshTokenHash_2 []byte             `json:"refresh_token_hash_2"`
+	ExpiresAt          pgtype.Timestamptz `json:"expires_at"`
+	RefreshExpiresAt   pgtype.Timestamptz `json:"refresh_expires_at"`
+	ID_2               pgtype.UUID        `json:"id_2"`
 }
 
-func (q *Queries) RotateSessionTokens(ctx context.Context, arg RotateSessionTokensParams) (IdentitySession, error) {
+type RotateSessionTokensRow struct {
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	ClientType        string             `json:"client_type"`
+	TokenHash         []byte             `json:"token_hash"`
+	RefreshTokenHash  []byte             `json:"refresh_token_hash"`
+	DeviceName        string             `json:"device_name"`
+	IpAddress         *netip.Addr        `json:"ip_address"`
+	UserAgent         string             `json:"user_agent"`
+	ExpiresAt         pgtype.Timestamptz `json:"expires_at"`
+	RefreshExpiresAt  pgtype.Timestamptz `json:"refresh_expires_at"`
+	LastSeenAt        pgtype.Timestamptz `json:"last_seen_at"`
+	RevokedAt         pgtype.Timestamptz `json:"revoked_at"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	RefreshFamilyID   pgtype.UUID        `json:"refresh_family_id"`
+	RefreshGeneration int64              `json:"refresh_generation"`
+}
+
+func (q *Queries) RotateSessionTokens(ctx context.Context, arg RotateSessionTokensParams) (RotateSessionTokensRow, error) {
 	row := q.db.QueryRow(ctx, rotateSessionTokens,
 		arg.ID,
-		arg.TokenHash,
 		arg.RefreshTokenHash,
+		arg.TokenHash,
+		arg.RefreshTokenHash_2,
 		arg.ExpiresAt,
 		arg.RefreshExpiresAt,
+		arg.ID_2,
 	)
-	var i IdentitySession
+	var i RotateSessionTokensRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -380,6 +523,8 @@ func (q *Queries) RotateSessionTokens(ctx context.Context, arg RotateSessionToke
 		&i.LastSeenAt,
 		&i.RevokedAt,
 		&i.CreatedAt,
+		&i.RefreshFamilyID,
+		&i.RefreshGeneration,
 	)
 	return i, err
 }
