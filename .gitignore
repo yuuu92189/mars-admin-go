@@ -1,0 +1,17 @@
+.env
+.env.local
+configs/config.local.yaml
+data/
+uploads/
+coverage.out
+coverage.html
+bin/
+dist/
+mars-admin-api
+mars-admin-worker
+mars-admin-migrate
+mars-admin-legacy-import
+*.test
+*.prof
+.DS_Store
+Thumbs.db

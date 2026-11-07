@@ -1,0 +1,92 @@
+version: "2"
+sql:
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/identity
+    gen:
+      go:
+        package: identitysqlc
+        out: internal/modules/identity/adapter/postgres/sqlc
+        sql_package: pgx/v5
+        emit_json_tags: true
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/access
+    gen:
+      go:
+        package: accesssqlc
+        out: internal/modules/access/adapter/postgres/sqlc
+        sql_package: pgx/v5
+        emit_json_tags: true
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/organization
+    gen:
+      go:
+        package: organizationsqlc
+        out: internal/modules/organization/adapter/postgres/sqlc
+        sql_package: pgx/v5
+        emit_json_tags: true
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/system
+    gen:
+      go:
+        package: systemsqlc
+        out: internal/modules/system/adapter/postgres/sqlc
+        sql_package: pgx/v5
+        emit_json_tags: true
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/messaging
+    gen:
+      go:
+        package: messagingsqlc
+        out: internal/modules/messaging/adapter/postgres/sqlc
+        sql_package: pgx/v5
+        emit_json_tags: true
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/storage
+    gen:
+      go:
+        package: storagesqlc
+        out: internal/modules/storage/adapter/postgres/sqlc
+        sql_package: pgx/v5
+        emit_json_tags: true
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/workflow
+    gen:
+      go:
+        package: workflowsqlc
+        out: internal/modules/workflow/adapter/postgres/sqlc
+        sql_package: pgx/v5
+        emit_json_tags: true
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/scheduler
+    gen:
+      go:
+        package: schedulersqlc
+        out: internal/modules/scheduler/adapter/postgres/sqlc
+        sql_package: pgx/v5
+        emit_json_tags: true
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries/audit
+    gen:
+      go:
+        package: auditsqlc
+        out: internal/modules/audit/adapter/postgres/sqlc
+        sql_package: pgx/v5
+        emit_json_tags: true
+        emit_empty_slices: true

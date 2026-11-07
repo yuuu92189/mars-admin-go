@@ -1,0 +1,44 @@
+image:
+  repository: mars-admin-go
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+replicaCount:
+  api: 2
+  worker: 1
+
+existingSecret: mars-admin-secrets
+
+config:
+  APP_ENV: production
+  APP_VERSION: "0.1.0"
+  APP_PORT: "8080"
+  AUTO_MIGRATE: "false"
+  AUTH_COOKIE_SECURE: "true"
+  AUTH_COOKIE_SAME_SITE: lax
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  api:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  worker:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+ingress:
+  enabled: false
+  className: nginx
+  host: mars-admin.example.com
+  tlsSecret: ""

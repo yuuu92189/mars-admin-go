@@ -1,0 +1,172 @@
+{
+  "runId": "01a1b6bb-8f38-7775-aa7a-a8d4846557e6",
+  "source": "mysql://***@tcp(127.0.0.1:33306)/mars-system?parseTime=true\u0026loc=UTC",
+  "startedAt": "2026-11-07T15:58:27.6404888Z",
+  "finishedAt": "2026-11-07T15:58:33.0704662Z",
+  "status": "completed",
+  "tables": {
+    "access_menus": {
+      "read": 171,
+      "inserted": 119,
+      "skipped": 52,
+      "failed": 0
+    },
+    "access_permissions": {
+      "read": 87,
+      "inserted": 87,
+      "skipped": 0,
+      "failed": 0
+    },
+    "access_role_departments": {
+      "read": 0,
+      "inserted": 0,
+      "skipped": 0,
+      "failed": 0
+    },
+    "access_role_menus": {
+      "read": 244,
+      "inserted": 187,
+      "skipped": 57,
+      "failed": 0
+    },
+    "access_role_permissions": {
+      "read": 153,
+      "inserted": 153,
+      "skipped": 0,
+      "failed": 0
+    },
+    "access_roles": {
+      "read": 2,
+      "inserted": 1,
+      "skipped": 1,
+      "failed": 0
+    },
+    "access_user_roles": {
+      "read": 398,
+      "inserted": 397,
+      "skipped": 1,
+      "failed": 0
+    },
+    "identity_users": {
+      "read": 409,
+      "inserted": 397,
+      "skipped": 12,
+      "failed": 0
+    },
+    "messaging_group_members": {
+      "read": 34,
+      "inserted": 34,
+      "skipped": 0,
+      "failed": 0
+    },
+    "messaging_groups": {
+      "read": 19,
+      "inserted": 18,
+      "skipped": 1,
+      "failed": 0
+    },
+    "messaging_messages": {
+      "read": 991,
+      "inserted": 792,
+      "skipped": 199,
+      "failed": 0
+    },
+    "notification_notices": {
+      "read": 17,
+      "inserted": 2,
+      "skipped": 15,
+      "failed": 0
+    },
+    "notification_recipients": {
+      "read": 1,
+      "inserted": 1,
+      "skipped": 0,
+      "failed": 0
+    },
+    "notification_send_logs": {
+      "read": 18,
+      "inserted": 4,
+      "skipped": 14,
+      "failed": 0
+    },
+    "organization_departments": {
+      "read": 8,
+      "inserted": 8,
+      "skipped": 0,
+      "failed": 0
+    },
+    "organization_memberships": {
+      "read": 4,
+      "inserted": 4,
+      "skipped": 0,
+      "failed": 0
+    },
+    "organization_positions": {
+      "read": 7,
+      "inserted": 6,
+      "skipped": 1,
+      "failed": 0
+    },
+    "organization_user_positions": {
+      "read": 3,
+      "inserted": 3,
+      "skipped": 0,
+      "failed": 0
+    },
+    "storage_file_groups": {
+      "read": 1,
+      "inserted": 1,
+      "skipped": 0,
+      "failed": 0
+    },
+    "storage_files": {
+      "read": 10,
+      "inserted": 1,
+      "skipped": 9,
+      "failed": 0
+    },
+    "system_dictionary_items": {
+      "read": 11,
+      "inserted": 6,
+      "skipped": 5,
+      "failed": 0
+    },
+    "system_dictionary_types": {
+      "read": 3,
+      "inserted": 3,
+      "skipped": 0,
+      "failed": 0
+    },
+    "system_settings": {
+      "read": 14,
+      "inserted": 14,
+      "skipped": 0,
+      "failed": 0
+    }
+  },
+  "validation": {
+    "departments": 8,
+    "identity_users": 397,
+    "legacy_mappings": 1359,
+    "menus": 145,
+    "orphan_role_menus": 0,
+    "orphan_user_roles": 0,
+    "roles": 2
+  },
+  "warnings": [
+    "Legacy file objects are not copied by this importer; file metadata import is skipped.",
+    "Sensitive provider configuration values are redacted before settings import.",
+    "position 2 references missing parent 6; imported as root",
+    "position 4 references missing parent 6; imported as root",
+    "legacy file 45 is missing from the upload directory and was skipped",
+    "legacy file 48 is missing from the upload directory and was skipped",
+    "legacy file 74 is missing from the upload directory and was skipped",
+    "legacy file 75 is missing from the upload directory and was skipped",
+    "legacy file 76 is missing from the upload directory and was skipped",
+    "legacy file 79 is missing from the upload directory and was skipped",
+    "legacy file 80 is missing from the upload directory and was skipped",
+    "legacy file 81 is missing from the upload directory and was skipped",
+    "legacy file 82 is missing from the upload directory and was skipped",
+    "chat group 1 references a missing owner and was skipped"
+  ]
+}

@@ -1,0 +1,170 @@
+{
+  "runId": "01a1b6bd-62b6-761f-b836-fa8230846912",
+  "source": "mysql://***@tcp(127.0.0.1:33306)/mars-system?parseTime=true\u0026loc=UTC",
+  "startedAt": "2026-11-07T16:00:27.3184014Z",
+  "finishedAt": "2026-11-07T16:00:30.8825792Z",
+  "status": "completed",
+  "tables": {
+    "access_menus": {
+      "read": 171,
+      "inserted": 0,
+      "skipped": 171,
+      "failed": 0
+    },
+    "access_permissions": {
+      "read": 87,
+      "inserted": 0,
+      "skipped": 87,
+      "failed": 0
+    },
+    "access_role_departments": {
+      "read": 0,
+      "inserted": 0,
+      "skipped": 0,
+      "failed": 0
+    },
+    "access_role_menus": {
+      "read": 244,
+      "inserted": 0,
+      "skipped": 244,
+      "failed": 0
+    },
+    "access_role_permissions": {
+      "read": 153,
+      "inserted": 0,
+      "skipped": 153,
+      "failed": 0
+    },
+    "access_roles": {
+      "read": 2,
+      "inserted": 0,
+      "skipped": 2,
+      "failed": 0
+    },
+    "access_user_roles": {
+      "read": 398,
+      "inserted": 0,
+      "skipped": 398,
+      "failed": 0
+    },
+    "identity_users": {
+      "read": 409,
+      "inserted": 0,
+      "skipped": 409,
+      "failed": 0
+    },
+    "messaging_group_members": {
+      "read": 34,
+      "inserted": 0,
+      "skipped": 34,
+      "failed": 0
+    },
+    "messaging_groups": {
+      "read": 19,
+      "inserted": 0,
+      "skipped": 19,
+      "failed": 0
+    },
+    "messaging_messages": {
+      "read": 991,
+      "inserted": 0,
+      "skipped": 991,
+      "failed": 0
+    },
+    "notification_notices": {
+      "read": 17,
+      "inserted": 0,
+      "skipped": 17,
+      "failed": 0
+    },
+    "notification_recipients": {
+      "read": 1,
+      "inserted": 0,
+      "skipped": 1,
+      "failed": 0
+    },
+    "notification_send_logs": {
+      "read": 18,
+      "inserted": 0,
+      "skipped": 18,
+      "failed": 0
+    },
+    "organization_departments": {
+      "read": 8,
+      "inserted": 0,
+      "skipped": 8,
+      "failed": 0
+    },
+    "organization_memberships": {
+      "read": 4,
+      "inserted": 0,
+      "skipped": 4,
+      "failed": 0
+    },
+    "organization_positions": {
+      "read": 7,
+      "inserted": 0,
+      "skipped": 7,
+      "failed": 0
+    },
+    "organization_user_positions": {
+      "read": 3,
+      "inserted": 0,
+      "skipped": 3,
+      "failed": 0
+    },
+    "storage_file_groups": {
+      "read": 1,
+      "inserted": 0,
+      "skipped": 1,
+      "failed": 0
+    },
+    "storage_files": {
+      "read": 10,
+      "inserted": 0,
+      "skipped": 10,
+      "failed": 0
+    },
+    "system_dictionary_items": {
+      "read": 11,
+      "inserted": 0,
+      "skipped": 11,
+      "failed": 0
+    },
+    "system_dictionary_types": {
+      "read": 3,
+      "inserted": 0,
+      "skipped": 3,
+      "failed": 0
+    },
+    "system_settings": {
+      "read": 14,
+      "inserted": 0,
+      "skipped": 14,
+      "failed": 0
+    }
+  },
+  "validation": {
+    "departments": 8,
+    "identity_users": 397,
+    "legacy_mappings": 1359,
+    "menus": 145,
+    "orphan_role_menus": 0,
+    "orphan_user_roles": 0,
+    "roles": 2
+  },
+  "warnings": [
+    "Legacy file objects are not copied by this importer; file metadata import is skipped.",
+    "Sensitive provider configuration values are redacted before settings import.",
+    "legacy file 45 is missing from the upload directory and was skipped",
+    "legacy file 48 is missing from the upload directory and was skipped",
+    "legacy file 74 is missing from the upload directory and was skipped",
+    "legacy file 75 is missing from the upload directory and was skipped",
+    "legacy file 76 is missing from the upload directory and was skipped",
+    "legacy file 79 is missing from the upload directory and was skipped",
+    "legacy file 80 is missing from the upload directory and was skipped",
+    "legacy file 81 is missing from the upload directory and was skipped",
+    "legacy file 82 is missing from the upload directory and was skipped",
+    "chat group 1 references a missing owner and was skipped"
+  ]
+}

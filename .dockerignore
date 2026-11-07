@@ -1,0 +1,10 @@
+.git
+.env
+coverage.out
+data
+uploads
+bin
+dist
+docs
+test
+**/*_test.go

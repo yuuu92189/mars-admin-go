@@ -1,0 +1,29 @@
+version: "2"
+run:
+  timeout: 5m
+linters:
+  default: standard
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - durationcheck
+    - errorlint
+    - exhaustive
+    - gocritic
+    - gosec
+    - misspell
+    - noctx
+    - nilerr
+    - prealloc
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - unparam
+formatters:
+  enable:
+    - gofmt
+    - goimports

@@ -1,0 +1,63 @@
+app:
+  env: development
+  name: Mars Admin Go Edition
+  version: 0.1.0
+  port: 8080
+  publicBaseURL: http://localhost:8080
+  shutdownTimeout: 20s
+  corsOrigins:
+    - http://localhost:3000
+    - http://localhost:3001
+database:
+  url: ${DATABASE_URL}
+  maxConnections: 20
+  minConnections: 2
+  connectionTimeout: 10s
+redis:
+  url: ${REDIS_URL}
+  poolSize: 10
+auth:
+  sessionTTL: 30m
+  refreshTTL: 720h
+  cookieSecure: false
+  cookieSameSite: lax
+storage:
+  provider: local
+  localDir: ./uploads
+  maxUploadBytes: 52428800
+integrations:
+  smsProvider: console
+  aliyunSMS:
+    endpoint: ${ALIYUN_SMS_ENDPOINT}
+    accessKeyID: ${ALIYUN_SMS_ACCESS_KEY_ID}
+    accessKeySecret: ${ALIYUN_SMS_ACCESS_KEY_SECRET}
+    signName: ${ALIYUN_SMS_SIGN_NAME}
+    templateCode: ${ALIYUN_SMS_TEMPLATE_CODE}
+  wechatMiniProgram:
+    appID: ${WECHAT_MINIPROGRAM_APP_ID}
+    appSecret: ${WECHAT_MINIPROGRAM_APP_SECRET}
+  pushWebhook:
+    provider: ${PUSH_WEBHOOK_PROVIDER}
+    url: ${PUSH_WEBHOOK_URL}
+  wechatPay:
+    endpoint: ${WECHAT_PAY_ENDPOINT}
+    merchantID: ${WECHAT_PAY_MERCHANT_ID}
+    appID: ${WECHAT_PAY_APP_ID}
+    serialNumber: ${WECHAT_PAY_SERIAL_NUMBER}
+    privateKeyPEM: ${WECHAT_PAY_PRIVATE_KEY_PEM}
+    platformPublicKeyPEM: ${WECHAT_PAY_PLATFORM_PUBLIC_KEY_PEM}
+  alipay:
+    endpoint: ${ALIPAY_ENDPOINT}
+    appID: ${ALIPAY_APP_ID}
+    privateKeyPEM: ${ALIPAY_PRIVATE_KEY_PEM}
+    publicKeyPEM: ${ALIPAY_PUBLIC_KEY_PEM}
+  smtp:
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT}
+    username: ${SMTP_USERNAME}
+    password: ${SMTP_PASSWORD}
+    from: ${SMTP_FROM}
+    tls: ${SMTP_TLS}
+telemetry:
+  otlpEndpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+  serviceName: mars-admin-api
