@@ -34,6 +34,7 @@ The local Docker service on 8080 was stale and rejected canonical captcha fields
 | `pnpm check:api-types` | PASS |
 | `pnpm test:e2e` with current-source API on `localhost:8081` | PASS, 25 passed / 11 skipped (36 total) |
 | `pnpm visual:compare` | PASS, Vue/React at 1440×900 Light and 390×844 Dark |
+| Remote GitHub Actions Frontend CI | PASS, run `42457068872` |
 
 The visual suite masks the random captcha image because its value is intentionally non-deterministic. The direct comparison script supplies the same deterministic captcha fixture to both applications. This is a screenshot fixture, not a mocked login flow.
 

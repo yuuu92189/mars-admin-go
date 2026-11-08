@@ -2,6 +2,10 @@ name: Frontend E2E
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-e2e.yml"
   pull_request:
     paths:
       - "frontend/**"

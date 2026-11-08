@@ -22,7 +22,7 @@
 | P2-16 responsive | PASS for Phase 2 pages | login at 1440/1280/1024/768/390/360; dashboard at 1440/1024/768/390 plus desktop/mobile |
 | P2-17 tests | PASS for Phase 2 scope | 19 Vitest/RTL tests; Playwright 25 passed / 11 intentionally skipped |
 | P2-18 visual regression | PASS with scope | automated baselines plus direct Vue/React login comparison and geometry |
-| P2-19 CI | NOT RUN | workflow definitions exist, but remote GitHub Actions execution is pending |
+| P2-19 CI | PASS | remote Frontend CI run `42457068872` completed successfully; E2E workflow is active |
 | P2-20 documentation | PASS | this directory |
 
 ## Conditions
@@ -31,8 +31,7 @@
 2. Authenticated E2E requires `E2E_ADMIN_USERNAME` and `E2E_ADMIN_PASSWORD`; without local test credentials those tests skip. In the recorded run they executed against the current-source API.
 3. The superadmin UI cannot infer `isSuperAdmin` from `/auth/me`; backend 403 remains authoritative. No dedicated non-admin E2E account was available, so visible-menu filtering is unit-tested and real permission enforcement remains backend-only.
 4. Current environment must use a current main API image. A stale 8080 image is not contract evidence.
-5. Remote GitHub Actions execution is `NOT RUN`; only local workflow definitions and local command results exist.
-6. Dashboard visual snapshots are evidence for the foundation view, not all Vue dashboard modules.
+5. Dashboard visual snapshots are evidence for the foundation view, not all Vue dashboard modules.
 
 ## Conclusion
 
