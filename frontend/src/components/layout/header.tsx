@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
+import { usePathname } from "next/navigation";
 import { ChevronDown, Search } from "lucide-react";
 import { Avatar } from "@/components/ui/surface";
 import { IconButton } from "@/components/ui/button";
 import { Dropdown } from "@/components/ui/overlay";
 import { AppIcon } from "@/components/ui/app-icon";
 import { useAuth } from "@/components/auth/auth-provider";
-import { useTheme } from "@/components/providers/theme-provider";
 import type { NavGroup } from "./nav";
 
 export function Header({
@@ -16,18 +21,21 @@ export function Header({
   onToggleRail,
   onCommand,
   onAppearance,
+  onPassword,
+  onLogout,
 }: {
   groups: NavGroup[];
   onToggleRail: () => void;
   onCommand: () => void;
   onAppearance: () => void;
+  onPassword: () => void;
+  onLogout: () => void;
 }) {
-  const { user, logout } = useAuth();
-  const { theme, cycleTheme } = useTheme();
-  const router = useRouter();
+  const { user } = useAuth();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const chipRef = useRef<HTMLButtonElement>(null);
 
   const current = useMemo(
     () =>
@@ -45,6 +53,31 @@ export function Header({
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    requestAnimationFrame(() => {
+      menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    });
+  }, [menuOpen]);
+
+  function onMenuKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setMenuOpen(false);
+      chipRef.current?.focus();
+      return;
+    }
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    event.preventDefault();
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+    );
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    const next =
+      items[(index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length];
+    next?.focus();
+  }
 
   return (
     <header className="topbar">
@@ -72,18 +105,20 @@ export function Header({
       <button
         type="button"
         className="icon-btn"
-        aria-label="切换主题"
-        title={`主题：${theme}`}
-        onClick={cycleTheme}
+        aria-label="外观设置"
+        title="外观设置"
+        onClick={onAppearance}
       >
-        <AppIcon name={theme === "dark" ? "sun" : "moon"} size={17} />
+        <AppIcon name="contrast" size={17} />
       </button>
-      <div className="user-chip-wrap" ref={menuRef}>
+      <div className="user-chip-wrap" ref={menuRef} onKeyDown={onMenuKeyDown}>
         <button
+          ref={chipRef}
           type="button"
           className="user-chip"
           aria-haspopup="menu"
           aria-expanded={menuOpen}
+          aria-controls="user-menu"
           onClick={() => setMenuOpen((open) => !open)}
         >
           <Avatar name={user?.user?.displayName ?? user?.user?.username} size={32} />
@@ -93,13 +128,24 @@ export function Header({
           </span>
           <ChevronDown size={14} style={{ color: "var(--ink-soft)" }} />
         </button>
-        <Dropdown open={menuOpen} className="user-menu">
+        <Dropdown id="user-menu" open={menuOpen} className="user-menu">
           <div className="menu-head">
             <div style={{ fontWeight: 680 }}>{user?.user?.displayName ?? user?.user?.username}</div>
             <div className="soft" style={{ fontSize: 12 }}>
               @{user?.user?.username}
             </div>
           </div>
+          <button
+            type="button"
+            className="menu-item"
+            role="menuitem"
+            onClick={() => {
+              setMenuOpen(false);
+              onPassword();
+            }}
+          >
+            <AppIcon name="key" size={16} /> 修改密码
+          </button>
           <button
             type="button"
             className="menu-item"
@@ -113,20 +159,12 @@ export function Header({
           </button>
           <button
             type="button"
-            className="menu-item"
+            className="menu-item is-danger"
             role="menuitem"
             onClick={() => {
               setMenuOpen(false);
-              router.push("/settings/profile");
+              onLogout();
             }}
-          >
-            <AppIcon name="key" size={16} /> 个人资料
-          </button>
-          <button
-            type="button"
-            className="menu-item is-danger"
-            role="menuitem"
-            onClick={() => void logout()}
           >
             <AppIcon name="logout" size={16} /> 退出登录
           </button>

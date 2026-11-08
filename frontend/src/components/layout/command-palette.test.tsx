@@ -5,6 +5,24 @@ import { CommandPalette } from "./command-palette";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/dashboard",
+}));
+
+vi.mock("@/components/auth/auth-provider", () => ({
+  useAuth: () => ({
+    user: {
+      permissions: ["user:read"],
+      menus: [],
+      roles: ["admin"],
+    },
+  }),
+}));
+
+vi.mock("@/components/providers/theme-provider", () => ({
+  useTheme: () => ({
+    resolvedTheme: "light",
+    setTheme: vi.fn(),
+  }),
 }));
 
 describe("CommandPalette", () => {
@@ -29,11 +47,13 @@ describe("CommandPalette", () => {
         ]}
         onClose={onClose}
         onAppearance={vi.fn()}
+        onPassword={vi.fn()}
+        onLogout={vi.fn()}
       />,
     );
 
     expect(screen.getByRole("dialog", { name: "命令面板" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /用户管理/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /用户管理/ })).toBeInTheDocument();
 
     await userEvent.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalledOnce();

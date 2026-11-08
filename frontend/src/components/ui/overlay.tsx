@@ -1,22 +1,33 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { lockDocumentScroll } from "@/lib/scroll-lock";
 
 function useOverlay(open: boolean, onClose: () => void) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
+    const releaseScroll = lockDocumentScroll();
+    const focusableSelector =
+      'button:not([disabled]):not([tabindex="-1"]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
       if (event.key !== "Tab" || !panelRef.current) return;
-      const focusable = panelRef.current.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      );
+      const focusable = panelRef.current.querySelectorAll<HTMLElement>(focusableSelector);
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -29,17 +40,18 @@ function useOverlay(open: boolean, onClose: () => void) {
       }
     };
     document.addEventListener("keydown", onKeyDown);
-    document.body.style.overflow = "hidden";
-    window.setTimeout(
-      () => panelRef.current?.querySelector<HTMLElement>("[data-autofocus]")?.focus(),
-      0,
-    );
+    const focusTimer = window.setTimeout(() => {
+      const preferred = panelRef.current?.querySelector<HTMLElement>("[data-autofocus]");
+      const first = panelRef.current?.querySelector<HTMLElement>(focusableSelector);
+      (preferred ?? first)?.focus();
+    }, 0);
     return () => {
+      window.clearTimeout(focusTimer);
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
+      releaseScroll();
       previous?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return panelRef;
 }
@@ -88,6 +100,8 @@ export function Dialog({
   width?: number;
 }) {
   const panelRef = useOverlay(open, onClose);
+  const titleId = useId();
+  const descriptionId = useId();
   return (
     <Overlay open={open} onClose={onClose}>
       <div
@@ -95,15 +109,20 @@ export function Dialog({
         className="modal"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="dialog-title"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
         style={{ maxWidth: width }}
       >
         <div className="modal-head">
           <div>
-            <h2 id="dialog-title" className="modal-title">
+            <h2 id={titleId} className="modal-title">
               {title}
             </h2>
-            {description ? <p className="modal-sub">{description}</p> : null}
+            {description ? (
+              <p id={descriptionId} className="modal-sub">
+                {description}
+              </p>
+            ) : null}
           </div>
           <button type="button" className="icon-btn" aria-label="关闭" onClick={onClose}>
             <X size={18} />
@@ -134,6 +153,8 @@ export function Drawer({
   width?: number;
 }) {
   const panelRef = useOverlay(open, onClose);
+  const titleId = useId();
+  const descriptionId = useId();
   return (
     <Overlay open={open} onClose={onClose} className="drawer-overlay">
       <div
@@ -141,15 +162,20 @@ export function Drawer({
         className="drawer"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="drawer-title"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
         style={{ width }}
       >
         <div className="drawer-head">
           <div>
-            <h2 id="drawer-title" className="modal-title">
+            <h2 id={titleId} className="modal-title">
               {title}
             </h2>
-            {description ? <p className="modal-sub">{description}</p> : null}
+            {description ? (
+              <p id={descriptionId} className="modal-sub">
+                {description}
+              </p>
+            ) : null}
           </div>
           <button type="button" className="icon-btn" aria-label="关闭" onClick={onClose}>
             <X size={18} />
@@ -166,14 +192,16 @@ export function Dropdown({
   open,
   children,
   className,
+  id,
 }: {
   open: boolean;
   children: ReactNode;
   className?: string;
+  id?: string;
 }) {
   if (!open) return null;
   return (
-    <div className={cn("menu-pop m-float", className)} role="menu">
+    <div id={id} className={cn("menu-pop m-float", className)} role="menu">
       {children}
     </div>
   );
