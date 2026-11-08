@@ -74,6 +74,146 @@
     },
     {
       "app": "vue",
+      "scenario": "desktop-dark",
+      "metrics": {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scrollWidth": 1440,
+        "login": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "brandPanel": {
+          "x": 16,
+          "y": 16,
+          "width": 795.81,
+          "height": 868
+        },
+        "loginCard": {
+          "x": 907.91,
+          "y": 185.75,
+          "width": 420,
+          "height": 528.5
+        },
+        "loginSide": {
+          "x": 811.81,
+          "y": 16,
+          "width": 612.19,
+          "height": 868
+        }
+      }
+    },
+    {
+      "app": "react",
+      "scenario": "desktop-dark",
+      "metrics": {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scrollWidth": 1440,
+        "login": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "brandPanel": {
+          "x": 16,
+          "y": 16,
+          "width": 795.81,
+          "height": 868
+        },
+        "loginCard": {
+          "x": 907.91,
+          "y": 185.75,
+          "width": 420,
+          "height": 528.5
+        },
+        "loginSide": {
+          "x": 811.81,
+          "y": 16,
+          "width": 612.19,
+          "height": 868
+        }
+      }
+    },
+    {
+      "app": "vue",
+      "scenario": "mobile-light",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollWidth": 390,
+        "login": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844
+        },
+        "brandPanel": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 251.59
+        },
+        "loginCard": {
+          "x": 18,
+          "y": 270.55,
+          "width": 354,
+          "height": 528.5
+        },
+        "loginSide": {
+          "x": 0,
+          "y": 251.59,
+          "width": 390,
+          "height": 592.41
+        }
+      }
+    },
+    {
+      "app": "react",
+      "scenario": "mobile-light",
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scrollWidth": 390,
+        "login": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844
+        },
+        "brandPanel": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 253.09
+        },
+        "loginCard": {
+          "x": 18,
+          "y": 271.3,
+          "width": 354,
+          "height": 528.5
+        },
+        "loginSide": {
+          "x": 0,
+          "y": 253.09,
+          "width": 390,
+          "height": 590.91
+        }
+      }
+    },
+    {
+      "app": "vue",
       "scenario": "mobile-dark",
       "metrics": {
         "viewport": {

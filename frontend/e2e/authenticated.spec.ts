@@ -24,7 +24,12 @@ async function login(page: Page) {
 test("admin can log in, load the shell and fetch dashboard counters", async ({
   page,
 }, testInfo) => {
-  await page.addInitScript(() => localStorage.setItem("mars:theme", "light"));
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "scaffold.appearance",
+      JSON.stringify({ theme: "light", density: "regular", railCollapsed: false }),
+    ),
+  );
   await login(page);
   await expect(page.getByText("运行数据已接入")).toBeVisible();
   await page.screenshot({
@@ -33,10 +38,23 @@ test("admin can log in, load the shell and fetch dashboard counters", async ({
     animations: "disabled",
   });
 
-  await page.getByRole("button", { name: "切换主题" }).click();
+  await page.getByRole("button", { name: "外观设置" }).click();
+  await page.getByRole("group", { name: "主题" }).getByRole("button", { name: "深色" }).click();
+  await page.getByRole("group", { name: "表格密度" }).getByRole("button", { name: "紧凑" }).click();
+  await page.getByRole("button", { name: "完成" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue("--row-h").trim(),
+      ),
+    )
+    .toBe("40px");
   await page.reload();
   await expect(page.getByRole("heading", { name: "系统运行概况" })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
   await page.waitForTimeout(500);
   await page.screenshot({
     path: `visual-baselines/dashboard-${testInfo.project.name}-dark.png`,
@@ -46,6 +64,8 @@ test("admin can log in, load the shell and fetch dashboard counters", async ({
 
   await page.locator(".user-chip").click();
   await page.getByRole("menuitem", { name: "退出登录" }).click();
+  await expect(page.getByRole("dialog", { name: "退出登录" })).toBeVisible();
+  await page.getByRole("button", { name: "退出" }).click();
   await expect(page).toHaveURL(/\/login/);
   await page.goto("/dashboard");
   await expect(page).toHaveURL(/\/login\?redirect=/);
@@ -63,6 +83,8 @@ test("desktop shell supports rail collapse and command palette keyboard flow", a
   await expect(frame).not.toHaveClass(/is-collapsed/);
   await toggle.click();
   await expect(frame).toHaveClass(/is-collapsed/);
+  await page.reload();
+  await expect(frame).toHaveClass(/is-collapsed/);
   await page.screenshot({
     path: "visual-baselines/dashboard-desktop-collapsed-light.png",
     fullPage: true,
@@ -70,9 +92,27 @@ test("desktop shell supports rail collapse and command palette keyboard flow", a
   });
   await toggle.click();
   await expect(frame).not.toHaveClass(/is-collapsed/);
-
   await page.keyboard.press("Control+K");
   await expect(page.getByRole("dialog", { name: "命令面板" })).toBeVisible();
+  await page.getByRole("combobox", { name: "搜索页面、用户或动作" }).fill("用户");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/system\/user/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/dashboard/);
+
+  await page.keyboard.press("Control+K");
+  const userSearch = page.getByRole("combobox", { name: "搜索页面、用户或动作" });
+  await userSearch.fill(username ?? "");
+  const userResult = page
+    .getByRole("option")
+    .filter({ hasText: `@${username ?? ""}` })
+    .first();
+  await expect(userResult).toBeVisible();
+  await userResult.click();
+  await expect(page).toHaveURL(/\/system\/user\?keyword=/);
+  await page.goto("/dashboard");
+
+  await page.keyboard.press("Control+K");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "命令面板" })).toBeHidden();
 
@@ -80,6 +120,19 @@ test("desktop shell supports rail collapse and command palette keyboard flow", a
   await expect(page.getByRole("dialog", { name: "命令面板" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "命令面板" })).toBeHidden();
+
+  await page.locator(".user-chip").click();
+  await page.getByRole("menuitem", { name: "修改密码" }).click();
+  await expect(page.getByRole("dialog", { name: "修改密码" })).toBeVisible();
+  await page.getByRole("button", { name: "确认修改" }).click();
+  await expect(page.getByText("请输入当前密码")).toBeVisible();
+  await expect(page.getByText("请输入新密码")).toBeVisible();
+  await page.getByLabel("当前密码").fill("current-password");
+  await page.getByLabel(/^新密码/).fill("short");
+  await page.getByLabel("确认新密码").fill("short");
+  await page.getByRole("button", { name: "确认修改" }).click();
+  await expect(page.getByText("新密码至少 8 位")).toBeVisible();
+  await page.getByRole("button", { name: "取消" }).click();
 });
 
 test("mobile navigation opens and closes with the scrim", async ({ page }, testInfo) => {
@@ -148,6 +201,7 @@ test("dashboard has no horizontal overflow at required viewports", async ({ page
   test.skip(testInfo.project.name !== "desktop", "The viewport matrix runs once.");
   await login(page);
   for (const viewport of [
+    { width: 1920, height: 1080 },
     { width: 1440, height: 900 },
     { width: 1024, height: 768 },
     { width: 768, height: 1024 },

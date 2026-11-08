@@ -13,6 +13,16 @@ const scenarios = [
     theme: "light",
   },
   {
+    name: "desktop-dark",
+    viewport: { width: 1440, height: 900 },
+    theme: "dark",
+  },
+  {
+    name: "mobile-light",
+    viewport: { width: 390, height: 844 },
+    theme: "light",
+  },
+  {
     name: "mobile-dark",
     viewport: { width: 390, height: 844 },
     theme: "dark",
@@ -39,7 +49,10 @@ async function capture(browser, app, scenario) {
   await page.addInitScript(
     ({ appName, theme }) => {
       if (appName === "react") {
-        localStorage.setItem("mars:theme", theme);
+        localStorage.setItem(
+          "scaffold.appearance",
+          JSON.stringify({ theme, density: "regular", railCollapsed: false }),
+        );
       } else {
         localStorage.setItem(
           "scaffold.appearance",

@@ -2,7 +2,12 @@ import { expect, test } from "@playwright/test";
 
 test("login desktop light baseline", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.addInitScript(() => localStorage.setItem("mars:theme", "light"));
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "scaffold.appearance",
+      JSON.stringify({ theme: "light", density: "regular", railCollapsed: false }),
+    ),
+  );
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "登录" })).toBeVisible();
   await expect(page).toHaveScreenshot("login-desktop-light.png", {
@@ -14,7 +19,12 @@ test("login desktop light baseline", async ({ page }) => {
 
 test("login mobile dark baseline", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.addInitScript(() => localStorage.setItem("mars:theme", "dark"));
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "scaffold.appearance",
+      JSON.stringify({ theme: "dark", density: "regular", railCollapsed: false }),
+    ),
+  );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "登录" })).toBeVisible();

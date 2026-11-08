@@ -1,0 +1,1438 @@
+{
+  "reference": "http://127.0.0.1:5173",
+  "implementation": "http://127.0.0.1:3000",
+  "records": [
+    {
+      "scenario": "shell-expanded-light-desktop",
+      "vue": {
+        "app": "vue",
+        "scenario": "shell-expanded-light-desktop",
+        "screenshotPath": "vue-shell-expanded-light-desktop.png",
+        "metrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 1068.69
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      },
+      "react": {
+        "app": "react",
+        "scenario": "shell-expanded-light-desktop",
+        "screenshotPath": "react-shell-expanded-light-desktop.png",
+        "metrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 908.94
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      },
+      "comparison": {
+        "scenario": "shell-expanded-light-desktop",
+        "mismatchPixels": 75068,
+        "mismatchRatio": 0.0579,
+        "diffPath": "diff-shell-expanded-light-desktop.png",
+        "vueMetrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 1068.69
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        },
+        "reactMetrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 908.94
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      }
+    },
+    {
+      "scenario": "shell-collapsed-dark-desktop",
+      "vue": {
+        "app": "vue",
+        "scenario": "shell-collapsed-dark-desktop",
+        "screenshotPath": "vue-shell-collapsed-dark-desktop.png",
+        "metrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 76,
+            "height": 882
+          },
+          "topbar": {
+            "x": 85,
+            "y": 9,
+            "width": 1346,
+            "height": 64
+          },
+          "content": {
+            "x": 85,
+            "y": 73,
+            "width": 1346,
+            "height": 818
+          },
+          "page": {
+            "x": 85,
+            "y": 73,
+            "width": 1346,
+            "height": 1068.69
+          },
+          "railWidth": "76px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      },
+      "react": {
+        "app": "react",
+        "scenario": "shell-collapsed-dark-desktop",
+        "screenshotPath": "react-shell-collapsed-dark-desktop.png",
+        "metrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 76,
+            "height": 882
+          },
+          "topbar": {
+            "x": 85,
+            "y": 9,
+            "width": 1346,
+            "height": 64
+          },
+          "content": {
+            "x": 85,
+            "y": 73,
+            "width": 1346,
+            "height": 818
+          },
+          "page": {
+            "x": 85,
+            "y": 73,
+            "width": 1346,
+            "height": 908.94
+          },
+          "railWidth": "76px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      },
+      "comparison": {
+        "scenario": "shell-collapsed-dark-desktop",
+        "mismatchPixels": 66914,
+        "mismatchRatio": 0.0516,
+        "diffPath": "diff-shell-collapsed-dark-desktop.png",
+        "vueMetrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 76,
+            "height": 882
+          },
+          "topbar": {
+            "x": 85,
+            "y": 9,
+            "width": 1346,
+            "height": 64
+          },
+          "content": {
+            "x": 85,
+            "y": 73,
+            "width": 1346,
+            "height": 818
+          },
+          "page": {
+            "x": 85,
+            "y": 73,
+            "width": 1346,
+            "height": 1068.69
+          },
+          "railWidth": "76px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        },
+        "reactMetrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 76,
+            "height": 882
+          },
+          "topbar": {
+            "x": 85,
+            "y": 9,
+            "width": 1346,
+            "height": 64
+          },
+          "content": {
+            "x": 85,
+            "y": 73,
+            "width": 1346,
+            "height": 818
+          },
+          "page": {
+            "x": 85,
+            "y": 73,
+            "width": 1346,
+            "height": 908.94
+          },
+          "railWidth": "76px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      }
+    },
+    {
+      "scenario": "shell-compact-light-desktop",
+      "vue": {
+        "app": "vue",
+        "scenario": "shell-compact-light-desktop",
+        "screenshotPath": "vue-shell-compact-light-desktop.png",
+        "metrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 1068.69
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      },
+      "react": {
+        "app": "react",
+        "scenario": "shell-compact-light-desktop",
+        "screenshotPath": "react-shell-compact-light-desktop.png",
+        "metrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 908.94
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      },
+      "comparison": {
+        "scenario": "shell-compact-light-desktop",
+        "mismatchPixels": 75068,
+        "mismatchRatio": 0.0579,
+        "diffPath": "diff-shell-compact-light-desktop.png",
+        "vueMetrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 1068.69
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        },
+        "reactMetrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 908.94
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      }
+    },
+    {
+      "scenario": "shell-command-palette-light-desktop",
+      "vue": {
+        "app": "vue",
+        "scenario": "shell-command-palette-light-desktop",
+        "screenshotPath": "vue-shell-command-palette-light-desktop.png",
+        "metrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 1068.69
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      },
+      "react": {
+        "app": "react",
+        "scenario": "shell-command-palette-light-desktop",
+        "screenshotPath": "react-shell-command-palette-light-desktop.png",
+        "metrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 908.94
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      },
+      "comparison": {
+        "scenario": "shell-command-palette-light-desktop",
+        "mismatchPixels": 181934,
+        "mismatchRatio": 0.1404,
+        "diffPath": "diff-shell-command-palette-light-desktop.png",
+        "vueMetrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 1068.69
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        },
+        "reactMetrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 908.94
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      }
+    },
+    {
+      "scenario": "shell-appearance-dialog-light-desktop",
+      "vue": {
+        "app": "vue",
+        "scenario": "shell-appearance-dialog-light-desktop",
+        "screenshotPath": "vue-shell-appearance-dialog-light-desktop.png",
+        "metrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 1068.69
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      },
+      "react": {
+        "app": "react",
+        "scenario": "shell-appearance-dialog-light-desktop",
+        "screenshotPath": "react-shell-appearance-dialog-light-desktop.png",
+        "metrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 908.94
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      },
+      "comparison": {
+        "scenario": "shell-appearance-dialog-light-desktop",
+        "mismatchPixels": 93714,
+        "mismatchRatio": 0.0723,
+        "diffPath": "diff-shell-appearance-dialog-light-desktop.png",
+        "vueMetrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 1068.69
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        },
+        "reactMetrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 908.94
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      }
+    },
+    {
+      "scenario": "shell-user-menu-light-desktop",
+      "vue": {
+        "app": "vue",
+        "scenario": "shell-user-menu-light-desktop",
+        "screenshotPath": "vue-shell-user-menu-light-desktop.png",
+        "metrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 1068.69
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      },
+      "react": {
+        "app": "react",
+        "scenario": "shell-user-menu-light-desktop",
+        "screenshotPath": "react-shell-user-menu-light-desktop.png",
+        "metrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 908.94
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      },
+      "comparison": {
+        "scenario": "shell-user-menu-light-desktop",
+        "mismatchPixels": 75082,
+        "mismatchRatio": 0.0579,
+        "diffPath": "diff-shell-user-menu-light-desktop.png",
+        "vueMetrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 1068.69
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        },
+        "reactMetrics": {
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "scrollWidth": 1440,
+          "frame": {
+            "x": 8,
+            "y": 8,
+            "width": 1424,
+            "height": 884
+          },
+          "rail": {
+            "x": 9,
+            "y": 9,
+            "width": 232,
+            "height": 882
+          },
+          "topbar": {
+            "x": 241,
+            "y": 9,
+            "width": 1190,
+            "height": 64
+          },
+          "content": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 818
+          },
+          "page": {
+            "x": 241,
+            "y": 73,
+            "width": 1190,
+            "height": 908.94
+          },
+          "railWidth": "232px",
+          "topbarHeight": "64px",
+          "frameRadius": "30px"
+        }
+      }
+    },
+    {
+      "scenario": "dashboard-mobile-light",
+      "vue": {
+        "app": "vue",
+        "scenario": "dashboard-mobile-light",
+        "screenshotPath": "vue-dashboard-mobile-light.png",
+        "metrics": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollWidth": 390,
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844
+          },
+          "rail": {
+            "x": -273,
+            "y": 0,
+            "width": 260,
+            "height": 844
+          },
+          "topbar": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 64
+          },
+          "content": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 780
+          },
+          "page": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 2147.3
+          },
+          "railWidth": "260px",
+          "topbarHeight": "64px",
+          "frameRadius": "0px"
+        }
+      },
+      "react": {
+        "app": "react",
+        "scenario": "dashboard-mobile-light",
+        "screenshotPath": "react-dashboard-mobile-light.png",
+        "metrics": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollWidth": 390,
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844
+          },
+          "rail": {
+            "x": -273,
+            "y": 0,
+            "width": 260,
+            "height": 844
+          },
+          "topbar": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 64
+          },
+          "content": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 780
+          },
+          "page": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 1689.8
+          },
+          "railWidth": "260px",
+          "topbarHeight": "64px",
+          "frameRadius": "0px"
+        }
+      },
+      "comparison": {
+        "scenario": "dashboard-mobile-light",
+        "mismatchPixels": 25280,
+        "mismatchRatio": 0.0768,
+        "diffPath": "diff-dashboard-mobile-light.png",
+        "vueMetrics": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollWidth": 390,
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844
+          },
+          "rail": {
+            "x": -273,
+            "y": 0,
+            "width": 260,
+            "height": 844
+          },
+          "topbar": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 64
+          },
+          "content": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 780
+          },
+          "page": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 2147.3
+          },
+          "railWidth": "260px",
+          "topbarHeight": "64px",
+          "frameRadius": "0px"
+        },
+        "reactMetrics": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollWidth": 390,
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844
+          },
+          "rail": {
+            "x": -273,
+            "y": 0,
+            "width": 260,
+            "height": 844
+          },
+          "topbar": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 64
+          },
+          "content": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 780
+          },
+          "page": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 1689.8
+          },
+          "railWidth": "260px",
+          "topbarHeight": "64px",
+          "frameRadius": "0px"
+        }
+      }
+    },
+    {
+      "scenario": "dashboard-mobile-dark",
+      "vue": {
+        "app": "vue",
+        "scenario": "dashboard-mobile-dark",
+        "screenshotPath": "vue-dashboard-mobile-dark.png",
+        "metrics": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollWidth": 390,
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844
+          },
+          "rail": {
+            "x": -273,
+            "y": 0,
+            "width": 260,
+            "height": 844
+          },
+          "topbar": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 64
+          },
+          "content": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 780
+          },
+          "page": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 2147.3
+          },
+          "railWidth": "260px",
+          "topbarHeight": "64px",
+          "frameRadius": "0px"
+        }
+      },
+      "react": {
+        "app": "react",
+        "scenario": "dashboard-mobile-dark",
+        "screenshotPath": "react-dashboard-mobile-dark.png",
+        "metrics": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollWidth": 390,
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844
+          },
+          "rail": {
+            "x": -273,
+            "y": 0,
+            "width": 260,
+            "height": 844
+          },
+          "topbar": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 64
+          },
+          "content": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 780
+          },
+          "page": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 1689.8
+          },
+          "railWidth": "260px",
+          "topbarHeight": "64px",
+          "frameRadius": "0px"
+        }
+      },
+      "comparison": {
+        "scenario": "dashboard-mobile-dark",
+        "mismatchPixels": 22218,
+        "mismatchRatio": 0.0675,
+        "diffPath": "diff-dashboard-mobile-dark.png",
+        "vueMetrics": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollWidth": 390,
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844
+          },
+          "rail": {
+            "x": -273,
+            "y": 0,
+            "width": 260,
+            "height": 844
+          },
+          "topbar": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 64
+          },
+          "content": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 780
+          },
+          "page": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 2147.3
+          },
+          "railWidth": "260px",
+          "topbarHeight": "64px",
+          "frameRadius": "0px"
+        },
+        "reactMetrics": {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "scrollWidth": 390,
+          "frame": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844
+          },
+          "rail": {
+            "x": -273,
+            "y": 0,
+            "width": 260,
+            "height": 844
+          },
+          "topbar": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 64
+          },
+          "content": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 780
+          },
+          "page": {
+            "x": 0,
+            "y": 64,
+            "width": 390,
+            "height": 1689.8
+          },
+          "railWidth": "260px",
+          "topbarHeight": "64px",
+          "frameRadius": "0px"
+        }
+      }
+    }
+  ]
+}
