@@ -4,6 +4,7 @@ import { Dialog } from "@/components/ui/overlay";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/select";
 import { useTheme } from "@/components/providers/theme-provider";
+import { DENSITY_OPTIONS, THEME_OPTIONS } from "@/lib/appearance";
 
 export function AppearanceDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { theme, setTheme, density, setDensity } = useTheme();
@@ -12,7 +13,7 @@ export function AppearanceDialog({ open, onClose }: { open: boolean; onClose: ()
       open={open}
       onClose={onClose}
       title="外观设置"
-      description="主题与密度只影响当前浏览器，不写入业务数据。"
+      description="主题、表格密度与导航状态只影响当前浏览器，不写入业务数据。"
       footer={
         <Button variant="primary" onClick={onClose}>
           完成
@@ -29,12 +30,8 @@ export function AppearanceDialog({ open, onClose }: { open: boolean; onClose: ()
           <Segmented
             label="主题"
             value={theme}
-            onChange={(value) => setTheme(value as "light" | "dark" | "system")}
-            options={[
-              { value: "light", label: "浅色" },
-              { value: "dark", label: "深色" },
-              { value: "system", label: "系统" },
-            ]}
+            onChange={(value) => setTheme(value as "light" | "dark" | "auto")}
+            options={THEME_OPTIONS}
           />
         </div>
         <div className="pref-row">
@@ -45,11 +42,8 @@ export function AppearanceDialog({ open, onClose }: { open: boolean; onClose: ()
           <Segmented
             label="表格密度"
             value={density}
-            onChange={(value) => setDensity(value as "comfortable" | "compact")}
-            options={[
-              { value: "comfortable", label: "舒适" },
-              { value: "compact", label: "紧凑" },
-            ]}
+            onChange={(value) => setDensity(value as "comfy" | "regular" | "compact")}
+            options={DENSITY_OPTIONS}
           />
         </div>
       </div>
