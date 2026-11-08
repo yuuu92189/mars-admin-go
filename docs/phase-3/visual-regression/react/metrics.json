@@ -1,0 +1,1411 @@
+{
+  "reference": "http://127.0.0.1:3000",
+  "generatedAt": "2026-11-08T14:20:26.349Z",
+  "consoleErrors": [],
+  "records": [
+    {
+      "page": "dashboard",
+      "scenario": "desktop-light",
+      "fileName": "dashboard-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1232.94
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "dashboard",
+      "scenario": "desktop-dark",
+      "fileName": "dashboard-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1232.94
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "dashboard",
+      "scenario": "desktop-compact",
+      "fileName": "dashboard-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1232.94
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "dashboard",
+      "scenario": "tablet-landscape",
+      "fileName": "dashboard-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 798,
+        "height": 1808.19
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "dashboard",
+      "scenario": "tablet-portrait",
+      "fileName": "dashboard-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 768,
+        "height": 1823.3
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "dashboard",
+      "scenario": "mobile",
+      "fileName": "dashboard-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 390,
+        "height": 2706.3
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "users",
+      "scenario": "desktop-light",
+      "fileName": "users-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "users",
+      "scenario": "desktop-dark",
+      "fileName": "users-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "users",
+      "scenario": "desktop-compact",
+      "fileName": "users-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "users",
+      "scenario": "tablet-landscape",
+      "fileName": "users-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 798,
+        "height": 686
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "users",
+      "scenario": "tablet-portrait",
+      "fileName": "users-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 768,
+        "height": 960
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "users",
+      "scenario": "mobile",
+      "fileName": "users-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 390,
+        "height": 835.05
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "roles",
+      "scenario": "desktop-light",
+      "fileName": "roles-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "roles",
+      "scenario": "desktop-dark",
+      "fileName": "roles-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "roles",
+      "scenario": "desktop-compact",
+      "fileName": "roles-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "roles",
+      "scenario": "tablet-landscape",
+      "fileName": "roles-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 798,
+        "height": 686
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "roles",
+      "scenario": "tablet-portrait",
+      "fileName": "roles-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 768,
+        "height": 960
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "roles",
+      "scenario": "mobile",
+      "fileName": "roles-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 764,
+        "height": 780
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "menus",
+      "scenario": "desktop-light",
+      "fileName": "menus-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1628.69
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "menus",
+      "scenario": "desktop-dark",
+      "fileName": "menus-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1628.69
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "menus",
+      "scenario": "desktop-compact",
+      "fileName": "menus-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1487.94
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "menus",
+      "scenario": "tablet-landscape",
+      "fileName": "menus-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 800.03,
+        "height": 1680.69
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "menus",
+      "scenario": "tablet-portrait",
+      "fileName": "menus-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 776.03,
+        "height": 1683.8
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "menus",
+      "scenario": "mobile",
+      "fileName": "menus-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 776.03,
+        "height": 1683.8
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "departments",
+      "scenario": "desktop-light",
+      "fileName": "departments-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "departments",
+      "scenario": "desktop-dark",
+      "fileName": "departments-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "departments",
+      "scenario": "desktop-compact",
+      "fileName": "departments-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "departments",
+      "scenario": "tablet-landscape",
+      "fileName": "departments-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 798,
+        "height": 686
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "departments",
+      "scenario": "tablet-portrait",
+      "fileName": "departments-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 768,
+        "height": 960
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "departments",
+      "scenario": "mobile",
+      "fileName": "departments-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 764,
+        "height": 780
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "positions",
+      "scenario": "desktop-light",
+      "fileName": "positions-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "positions",
+      "scenario": "desktop-dark",
+      "fileName": "positions-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "positions",
+      "scenario": "desktop-compact",
+      "fileName": "positions-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "positions",
+      "scenario": "tablet-landscape",
+      "fileName": "positions-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 798,
+        "height": 686
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "positions",
+      "scenario": "tablet-portrait",
+      "fileName": "positions-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 768,
+        "height": 960
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "positions",
+      "scenario": "mobile",
+      "fileName": "positions-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 390,
+        "height": 780
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "dictionaries",
+      "scenario": "desktop-light",
+      "fileName": "dictionaries-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "dictionaries",
+      "scenario": "desktop-dark",
+      "fileName": "dictionaries-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "dictionaries",
+      "scenario": "desktop-compact",
+      "fileName": "dictionaries-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "dictionaries",
+      "scenario": "tablet-landscape",
+      "fileName": "dictionaries-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 798,
+        "height": 686
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "dictionaries",
+      "scenario": "tablet-portrait",
+      "fileName": "dictionaries-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 768,
+        "height": 960
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "dictionaries",
+      "scenario": "mobile",
+      "fileName": "dictionaries-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 390,
+        "height": 780
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "settings",
+      "scenario": "desktop-light",
+      "fileName": "settings-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1001.44
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "settings",
+      "scenario": "desktop-dark",
+      "fileName": "settings-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1001.44
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "settings",
+      "scenario": "desktop-compact",
+      "fileName": "settings-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1001.44
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "settings",
+      "scenario": "tablet-landscape",
+      "fileName": "settings-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 798,
+        "height": 1001.44
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "settings",
+      "scenario": "tablet-portrait",
+      "fileName": "settings-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 768,
+        "height": 1686.8
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "settings",
+      "scenario": "mobile",
+      "fileName": "settings-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 390,
+        "height": 1725.8
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "notices",
+      "scenario": "desktop-light",
+      "fileName": "notices-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "notices",
+      "scenario": "desktop-dark",
+      "fileName": "notices-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "notices",
+      "scenario": "desktop-compact",
+      "fileName": "notices-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "notices",
+      "scenario": "tablet-landscape",
+      "fileName": "notices-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 883.14,
+        "height": 686
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "notices",
+      "scenario": "tablet-portrait",
+      "fileName": "notices-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 859.14,
+        "height": 960
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "notices",
+      "scenario": "mobile",
+      "fileName": "notices-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 859.14,
+        "height": 780
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "scheduler",
+      "scenario": "desktop-light",
+      "fileName": "scheduler-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "scheduler",
+      "scenario": "desktop-dark",
+      "fileName": "scheduler-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "scheduler",
+      "scenario": "desktop-compact",
+      "fileName": "scheduler-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "scheduler",
+      "scenario": "tablet-landscape",
+      "fileName": "scheduler-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 810.81,
+        "height": 686
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "scheduler",
+      "scenario": "tablet-portrait",
+      "fileName": "scheduler-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 786.81,
+        "height": 960
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "scheduler",
+      "scenario": "mobile",
+      "fileName": "scheduler-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 786.81,
+        "height": 780
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "operation-logs",
+      "scenario": "desktop-light",
+      "fileName": "operation-logs-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1886.19
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "operation-logs",
+      "scenario": "desktop-dark",
+      "fileName": "operation-logs-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1886.19
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "operation-logs",
+      "scenario": "desktop-compact",
+      "fileName": "operation-logs-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1726.19
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "operation-logs",
+      "scenario": "tablet-landscape",
+      "fileName": "operation-logs-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 798,
+        "height": 1961.19
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "operation-logs",
+      "scenario": "tablet-portrait",
+      "fileName": "operation-logs-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 768,
+        "height": 2138.3
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "operation-logs",
+      "scenario": "mobile",
+      "fileName": "operation-logs-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 764,
+        "height": 2392.55
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "login-logs",
+      "scenario": "desktop-light",
+      "fileName": "login-logs-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1807.53
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "login-logs",
+      "scenario": "desktop-dark",
+      "fileName": "login-logs-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1807.53
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "login-logs",
+      "scenario": "desktop-compact",
+      "fileName": "login-logs-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 1647.53
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "login-logs",
+      "scenario": "tablet-landscape",
+      "fileName": "login-logs-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 921.55,
+        "height": 1798.59
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "login-logs",
+      "scenario": "tablet-portrait",
+      "fileName": "login-logs-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 897.55,
+        "height": 1900.7
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "login-logs",
+      "scenario": "mobile",
+      "fileName": "login-logs-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 897.55,
+        "height": 1943.23
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "codegen",
+      "scenario": "desktop-light",
+      "fileName": "codegen-desktop-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "codegen",
+      "scenario": "desktop-dark",
+      "fileName": "codegen-desktop-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "dark",
+      "density": "regular"
+    },
+    {
+      "page": "codegen",
+      "scenario": "desktop-compact",
+      "fileName": "codegen-desktop-compact.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 1190,
+        "height": 818
+      },
+      "theme": "light",
+      "density": "compact"
+    },
+    {
+      "page": "codegen",
+      "scenario": "tablet-landscape",
+      "fileName": "codegen-tablet-landscape.png",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "scrollWidth": 1024,
+      "scrollHeight": 768,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 942.27,
+        "height": 686
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "codegen",
+      "scenario": "tablet-portrait",
+      "fileName": "codegen-tablet-portrait.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scrollWidth": 768,
+      "scrollHeight": 1024,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 918.27,
+        "height": 960
+      },
+      "theme": "light",
+      "density": "regular"
+    },
+    {
+      "page": "codegen",
+      "scenario": "mobile",
+      "fileName": "codegen-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrollWidth": 390,
+      "scrollHeight": 844,
+      "horizontalOverflow": false,
+      "pageRect": {
+        "width": 918.27,
+        "height": 780
+      },
+      "theme": "light",
+      "density": "regular"
+    }
+  ]
+}

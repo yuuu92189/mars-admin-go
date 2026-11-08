@@ -40,6 +40,7 @@ func (h *Handler) Routes() chi.Router {
 	router.With(httpserver.RequirePermission("codegen:manage")).Delete("/imported/{id}", h.deleteImportedTable)
 	router.With(httpserver.RequirePermission("codegen:manage")).Get("/imported/{id}/preview", h.previewImportedTable)
 	router.With(httpserver.RequirePermission("codegen:manage")).Post("/imported/{id}/sync", h.syncImportedTable)
+	router.With(httpserver.RequirePermission("codegen:manage")).Get("/download", h.legacyDownload)
 	return router
 }
 

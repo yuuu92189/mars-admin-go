@@ -142,7 +142,11 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		codeSender = smsProvider
 	}
 	identityRepo := identitypostgres.New(pool)
-	loginLimiter := httpserver.NewRateLimit(redisClient, "auth:login", int64(cfg.Auth.LoginMaxAttempts+5), 5*time.Minute)
+	loginRateLimit := cfg.Auth.LoginRateLimit
+	if loginRateLimit < 1 {
+		loginRateLimit = int64(cfg.Auth.LoginMaxAttempts + 5)
+	}
+	loginLimiter := httpserver.NewRateLimit(redisClient, "auth:login", loginRateLimit, 5*time.Minute)
 	socialProviders := make(map[string]identitydomain.SocialProvider)
 	if wechat, err := providerRegistry.Social("wechat_miniprogram"); err == nil {
 		if concrete, ok := wechat.(*integrations.WeChatMiniProgram); ok {
@@ -152,8 +156,9 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	identityService := identityapp.New(identityRepo, loginLimiter, identityapp.Options{
 		SessionTTL: cfg.Auth.SessionTTL, RefreshTTL: cfg.Auth.RefreshTTL,
 		RefreshGracePeriod: cfg.Auth.RefreshGracePeriod,
-		MaxLoginAttempts:   cfg.Auth.LoginMaxAttempts, LockDuration: cfg.Auth.LoginLockDuration,
-		CodeSender: codeSender, CaptchaEnabled: cfg.Auth.CaptchaEnabled,
+		MaxLoginAttempts:   cfg.Auth.LoginMaxAttempts, LoginRateLimit: loginRateLimit,
+		LockDuration: cfg.Auth.LoginLockDuration,
+		CodeSender:   codeSender, CaptchaEnabled: cfg.Auth.CaptchaEnabled,
 		SecretBox: secretBox, SocialProviders: socialProviders, AccessCache: accessCache,
 	})
 	organizationService := organizationapp.New(organizationRepo, identityService)

@@ -334,7 +334,7 @@ func (h *Handler) snapshot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request) {
-	data, err := h.service.Dashboard(r.Context())
+	data, err := h.service.Dashboard(r.Context(), r.URL.Query().Get("range"))
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return

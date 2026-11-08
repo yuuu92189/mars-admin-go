@@ -254,6 +254,24 @@ paths:
           in: query
           schema:
             type: string
+        - name: userType
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+        - name: departmentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: positionId
+          in: query
+          schema:
+            type: string
+            format: uuid
       responses:
         "200":
           description: User page
@@ -331,6 +349,13 @@ paths:
       tags: [Access]
       operationId: listRoles
       x-required-permission: role:read
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: keyword
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: Role page
@@ -397,7 +422,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DictionaryTypePage"
+                type: array
+                items:
+                  $ref: "#/components/schemas/DictionaryType"
     post:
       tags: [System]
       operationId: createDictionary
@@ -458,6 +485,27 @@ paths:
       tags: [Audit]
       operationId: listAuditEvents
       x-required-permission: audit:read
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: resourceType
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
       responses:
         "200":
           description: Audit event page
@@ -602,6 +650,14 @@ paths:
       tags: [Notification]
       operationId: listNotices
       x-required-permission: notice:read
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published, withdrawn]
       responses:
         "200":
           description: Notice page
@@ -613,6 +669,12 @@ paths:
       tags: [Notification]
       operationId: createNotice
       x-required-permission: notice:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoticeInput"
       responses:
         "201":
           description: Draft notice
@@ -635,6 +697,14 @@ paths:
       tags: [Scheduler]
       operationId: listScheduledJobs
       x-required-permission: scheduler:read
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, paused]
       responses:
         "200":
           description: Scheduled job page
@@ -646,6 +716,12 @@ paths:
       tags: [Scheduler]
       operationId: createScheduledJob
       x-required-permission: scheduler:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduledJobInput"
       responses:
         "201":
           description: Scheduled job
@@ -765,6 +841,12 @@ paths:
       tags: [Codegen]
       operationId: listDatabaseTables
       x-required-permission: codegen:read
+      parameters:
+        - name: schema
+          in: query
+          schema:
+            type: string
+            default: public
       responses:
         "200":
           description: PostgreSQL tables
@@ -779,31 +861,19 @@ paths:
       tags: [Codegen]
       operationId: previewGeneratedCode
       x-required-permission: codegen:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodegenGenerateInput"
       responses:
         "200":
           description: Generated file preview
           content:
             application/json:
               schema:
-                type: object
-                required: [files, activeFile, code]
-                properties:
-                  files:
-                    type: array
-                    items:
-                      type: object
-                      required: [name, path, code]
-                      properties:
-                        name:
-                          type: string
-                        path:
-                          type: string
-                        code:
-                          type: string
-                  activeFile:
-                    type: string
-                  code:
-                    type: string
+                $ref: "#/components/schemas/CodegenOutput"
   /api/v1/admin/monitoring/snapshot:
     get:
       tags: [Monitoring]
@@ -976,6 +1046,12 @@ paths:
       tags: [Access]
       operationId: updateRole
       x-required-permission: role:create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRole"
       responses:
         "200":
           description: Updated role
@@ -1005,6 +1081,12 @@ paths:
       tags: [Access]
       operationId: setRoleMenus
       x-required-permission: role:assign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleMenuIDs"
       responses: { "204": { description: Role menus updated } }
   /api/v1/admin/access/roles/{id}/permissions:
     parameters: [{ $ref: "#/components/parameters/Id" }]
@@ -1012,6 +1094,12 @@ paths:
       tags: [Access]
       operationId: setRolePermissions
       x-required-permission: role:assign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RolePermissions"
       responses: { "204": { description: Role permissions updated } }
   /api/v1/admin/access/permissions:
     get:
@@ -1045,6 +1133,12 @@ paths:
       tags: [Access]
       operationId: createMenu
       x-required-permission: role:assign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MenuInput"
       responses:
         "201":
           description: Created menu
@@ -1058,6 +1152,12 @@ paths:
       tags: [Access]
       operationId: updateMenu
       x-required-permission: role:assign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MenuInput"
       responses:
         "200":
           description: Updated menu
@@ -1087,6 +1187,12 @@ paths:
       tags: [Organization]
       operationId: updateDepartment
       x-required-permission: department:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepartmentInput"
       responses:
         "200":
           description: Updated department
@@ -1117,6 +1223,12 @@ paths:
       tags: [Organization]
       operationId: createPosition
       x-required-permission: department:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PositionInput"
       responses:
         "201":
           description: Created position
@@ -1130,6 +1242,12 @@ paths:
       tags: [Organization]
       operationId: updatePosition
       x-required-permission: department:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PositionInput"
       responses:
         "200":
           description: Updated position
@@ -1148,6 +1266,12 @@ paths:
       tags: [System]
       operationId: updateDictionary
       x-required-permission: dictionary:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DictionaryTypeInput"
       responses:
         "200":
           description: Updated dictionary
@@ -1180,6 +1304,12 @@ paths:
       tags: [System]
       operationId: createDictionaryItem
       x-required-permission: dictionary:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DictionaryItemInput"
       responses:
         "201":
           description: Created dictionary item
@@ -1193,6 +1323,12 @@ paths:
       tags: [System]
       operationId: updateDictionaryItem
       x-required-permission: dictionary:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DictionaryItemInput"
       responses:
         "200":
           description: Updated dictionary item
@@ -1237,6 +1373,9 @@ paths:
       tags: [Audit]
       operationId: listLoginEvents
       x-required-permission: audit:read
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
       responses:
         "200":
           description: Login event page
@@ -1481,6 +1620,9 @@ paths:
       tags: [Notification]
       operationId: listMyNotices
       x-required-permission: notice:read
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
       responses:
         "200":
           description: Current user notifications
@@ -1520,6 +1662,12 @@ paths:
       tags: [Notification]
       operationId: updateNotice
       x-required-permission: notice:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoticeInput"
       responses:
         "200":
           description: Updated notice
@@ -1527,6 +1675,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Notice"
+    delete:
+      tags: [Notification]
+      operationId: deleteNotice
+      x-required-permission: notice:manage
+      responses:
+        "204":
+          description: Notice deleted
+        "404":
+          $ref: "#/components/responses/Problem"
   /api/v1/notices/{id}/publish:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     post:
@@ -1558,6 +1715,12 @@ paths:
       tags: [Scheduler]
       operationId: updateScheduledJob
       x-required-permission: scheduler:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduledJobInput"
       responses:
         "200":
           description: Updated job
@@ -1602,6 +1765,9 @@ paths:
       tags: [Scheduler]
       operationId: listScheduledJobRuns
       x-required-permission: scheduler:read
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
       responses:
         "200":
           description: Job run history
@@ -1699,17 +1865,30 @@ paths:
       tags: [Codegen]
       operationId: listImportedCodegenTables
       x-required-permission: codegen:read
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: query
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: Imported table page
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CodegenTablePage"
+                $ref: "#/components/schemas/ImportedCodegenTablePage"
     post:
       tags: [Codegen]
       operationId: importCodegenTables
       x-required-permission: codegen:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodegenImportInput"
       responses:
         "201":
           description: Imported tables
@@ -1718,7 +1897,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/CodegenTable"
+                  $ref: "#/components/schemas/ImportedCodegenTable"
   /api/v1/admin/codegen/imported/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
@@ -1731,18 +1910,24 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CodegenTable"
+                $ref: "#/components/schemas/ImportedCodegenTable"
     put:
       tags: [Codegen]
       operationId: updateImportedCodegenTable
       x-required-permission: codegen:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportedCodegenTable"
       responses:
         "200":
           description: Updated imported table
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CodegenTable"
+                $ref: "#/components/schemas/ImportedCodegenTable"
     delete:
       tags: [Codegen]
       operationId: deleteImportedCodegenTable
@@ -1760,19 +1945,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  files:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                        path:
-                          type: string
-                        code:
-                          type: string
+                $ref: "#/components/schemas/CodegenOutput"
   /api/v1/admin/codegen/imported/{id}/sync:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     post:
@@ -1785,22 +1958,48 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CodegenTable"
+                $ref: "#/components/schemas/ImportedCodegenTable"
+  /api/v1/admin/codegen/download:
+    get:
+      tags: [Codegen]
+      operationId: downloadGeneratedCode
+      x-required-permission: codegen:manage
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          description: Comma-separated imported table ids.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ZIP archive generated from imported table definitions
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/Problem"
   /api/v1/admin/monitoring/dashboard:
     get:
       tags: [Monitoring]
       operationId: monitoringDashboard
       x-required-permission: audit:read
+      parameters:
+        - name: range
+          in: query
+          schema:
+            type: string
+            enum: [24h, 7d, 30d]
+            default: 24h
       responses:
         "200":
-          description: Dashboard counters
+          description: Dashboard counters and real time-series data
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties:
-                  type: integer
-                  format: int64
+                $ref: "#/components/schemas/Dashboard"
   /api/v1/admin/integrations:
     get:
       tags: [Integrations]
@@ -2016,9 +2215,32 @@ components:
         version:
           type: integer
           format: int64
+        lastLoginAt:
+          type: string
+          format: date-time
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        mfaEnabled:
+          type: boolean
+        departmentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        roleIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        positionIds:
+          type: array
+          items:
+            type: string
+            format: uuid
     UserPage:
       type: object
       properties:
@@ -2061,6 +2283,19 @@ components:
           items:
             type: string
             format: uuid
+        departmentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        primaryDepartmentId:
+          type: string
+          format: uuid
+        positionIds:
+          type: array
+          items:
+            type: string
+            format: uuid
     UpdateUser:
       type: object
       required: [displayName, version]
@@ -2082,6 +2317,24 @@ components:
         version:
           type: integer
           format: int64
+        roleIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        departmentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        primaryDepartmentId:
+          type: string
+          format: uuid
+        positionIds:
+          type: array
+          items:
+            type: string
+            format: uuid
     CurrentUser:
       type: object
       properties:
@@ -2134,6 +2387,32 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Menu"
+    MenuInput:
+      type: object
+      required: [name, type, sort, visible, isFrame]
+      properties:
+        parentId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: integer
+          enum: [1, 2, 3]
+        path:
+          type: string
+        component:
+          type: string
+        permission:
+          type: string
+        icon:
+          type: string
+        sort:
+          type: integer
+        visible:
+          type: boolean
+        isFrame:
+          type: boolean
     Role:
       type: object
       properties:
@@ -2189,6 +2468,28 @@ components:
         dataScope:
           type: string
           enum: [all, custom, department, department_tree, self]
+    UpdateRole:
+      type: object
+      required: [name, dataScope, status]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        dataScope:
+          type: string
+          enum: [all, custom, department, department_tree, self]
+        status:
+          type: string
+          enum: [active, disabled]
+    RolePermissions:
+      type: object
+      required: [permissions]
+      properties:
+        permissions:
+          type: array
+          items:
+            type: string
     Department:
       type: object
       properties:
@@ -2204,6 +2505,22 @@ components:
           type: string
         path:
           type: string
+        leaderName:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        sort:
+          type: integer
+        status:
+          type: string
+          enum: [active, disabled]
+        depth:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
         children:
           type: array
           items:
@@ -2380,6 +2697,24 @@ components:
         createdAt:
           type: string
           format: date-time
+    PositionInput:
+      type: object
+      required: [code, name, sort, status]
+      properties:
+        parentId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        sort:
+          type: integer
+        status:
+          type: string
+          enum: [active, disabled]
+        description:
+          type: string
     PositionPage:
       type: object
       required: [items, total, page, pageSize]
@@ -2452,6 +2787,26 @@ components:
         id:
           type: string
           format: uuid
+        typeId:
+          type: string
+          format: uuid
+        value:
+          type: string
+        label:
+          type: string
+        sort:
+          type: integer
+        tagStyle:
+          type: string
+        isDefault:
+          type: boolean
+        status:
+          type: string
+          enum: [active, disabled]
+    DictionaryItemInput:
+      type: object
+      required: [typeId, value, label, sort, isDefault, status]
+      properties:
         typeId:
           type: string
           format: uuid
@@ -2708,6 +3063,30 @@ components:
           type: integer
         pageSize:
           type: integer
+    NoticeInput:
+      type: object
+      required: [title, content, noticeType, channels, targetType]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        content:
+          type: string
+          maxLength: 20000
+        noticeType:
+          type: integer
+        channels:
+          type: array
+          items:
+            type: string
+        targetType:
+          type: string
+          enum: [all, users, departments]
+        targetIds:
+          type: array
+          items:
+            type: string
+            format: uuid
     ScheduledJob:
       type: object
       properties:
@@ -2761,6 +3140,29 @@ components:
           type: integer
         pageSize:
           type: integer
+    ScheduledJobInput:
+      type: object
+      required: [name, handler, cronExpression, maxAttempts, timeoutSeconds]
+      properties:
+        name:
+          type: string
+        handler:
+          type: string
+        cronExpression:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        maxAttempts:
+          type: integer
+          minimum: 1
+          maximum: 20
+        timeoutSeconds:
+          type: integer
+          minimum: 1
+          maximum: 86400
+        concurrencyKey:
+          type: string
     ScheduledJobRun:
       type: object
       properties:
@@ -2990,14 +3392,101 @@ components:
           type: string
         comment:
           type: string
-    CodegenTablePage:
+        columns:
+          type: array
+          items:
+            $ref: "#/components/schemas/CodegenColumn"
+    CodegenColumn:
+      type: object
+      properties:
+        name:
+          type: string
+        dataType:
+          type: string
+        nullable:
+          type: boolean
+        defaultValue:
+          type: string
+        comment:
+          type: string
+        primaryKey:
+          type: boolean
+    ImportedCodegenTable:
+      type: object
+      required:
+        [
+          id,
+          schema,
+          tableName,
+          tableComment,
+          className,
+          packageName,
+          moduleName,
+          businessName,
+          functionName,
+          author,
+          genType,
+          genPath,
+          frontType,
+          formLayout,
+          parentMenuId,
+          remark,
+          columns,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        schema:
+          type: string
+        tableName:
+          type: string
+        tableComment:
+          type: string
+        className:
+          type: string
+        packageName:
+          type: string
+        moduleName:
+          type: string
+        businessName:
+          type: string
+        functionName:
+          type: string
+        author:
+          type: string
+        genType:
+          type: string
+        genPath:
+          type: string
+        frontType:
+          type: string
+        formLayout:
+          type: string
+        parentMenuId:
+          type: string
+        remark:
+          type: string
+        columns:
+          type: array
+          items:
+            $ref: "#/components/schemas/CodegenColumn"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ImportedCodegenTablePage:
       type: object
       required: [items, total, page, pageSize]
       properties:
         items:
           type: array
           items:
-            $ref: "#/components/schemas/CodegenTable"
+            $ref: "#/components/schemas/ImportedCodegenTable"
         total:
           type: integer
           format: int64
@@ -3005,6 +3494,187 @@ components:
           type: integer
         pageSize:
           type: integer
+    CodegenImportInput:
+      type: object
+      required: [schema, tables]
+      properties:
+        schema:
+          type: string
+          default: public
+        tables:
+          type: array
+          minItems: 1
+          items:
+            type: string
+    CodegenGenerateInput:
+      type: object
+      required: [schema, tables]
+      properties:
+        schema:
+          type: string
+          default: public
+        tables:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        module:
+          type: string
+        package:
+          type: string
+        apiPrefix:
+          type: string
+    CodegenFile:
+      type: object
+      required: [name, path, code]
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        code:
+          type: string
+    CodegenOutput:
+      type: object
+      required: [files, warnings]
+      properties:
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/CodegenFile"
+        warnings:
+          type: array
+          items:
+            type: string
+    DashboardPoint:
+      type: object
+      required: [label, value]
+      properties:
+        label:
+          type: string
+        value:
+          type: integer
+          format: int64
+        failed:
+          type: integer
+          format: int64
+    DashboardRoleDistribution:
+      type: object
+      required: [label, value]
+      properties:
+        label:
+          type: string
+        value:
+          type: integer
+          format: int64
+    DashboardActivity:
+      type: object
+      required: [who, target, outcome, occurredAt]
+      properties:
+        who:
+          type: string
+        target:
+          type: string
+        outcome:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+    Dashboard:
+      type: object
+      required:
+        [
+          users,
+          userCount,
+          roleCount,
+          menuCount,
+          permissionCount,
+          onlineSessions,
+          files,
+          messages,
+          publishedNotices,
+          outboxPending,
+          outboxDead,
+          range,
+          loginTrend,
+          loginTotal,
+          loginPreviousTotal,
+          operationTrend,
+          operationTotal,
+          operationSuccessRate,
+          roleDistribution,
+          recentLogins,
+          recentActivity,
+        ]
+      properties:
+        users:
+          type: integer
+          format: int64
+        userCount:
+          type: integer
+          format: int64
+        roleCount:
+          type: integer
+          format: int64
+        menuCount:
+          type: integer
+          format: int64
+        permissionCount:
+          type: integer
+          format: int64
+        onlineSessions:
+          type: integer
+          format: int64
+        files:
+          type: integer
+          format: int64
+        messages:
+          type: integer
+          format: int64
+        publishedNotices:
+          type: integer
+          format: int64
+        outboxPending:
+          type: integer
+          format: int64
+        outboxDead:
+          type: integer
+          format: int64
+        range:
+          type: string
+          enum: [24h, 7d, 30d]
+        loginTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardPoint"
+        loginTotal:
+          type: integer
+          format: int64
+        loginPreviousTotal:
+          type: integer
+          format: int64
+        operationTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardPoint"
+        operationTotal:
+          type: integer
+          format: int64
+        operationSuccessRate:
+          type: number
+          format: double
+        roleDistribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardRoleDistribution"
+        recentLogins:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardActivity"
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardActivity"
     MonitoringSnapshot:
       type: object
       properties:

@@ -1,0 +1,1643 @@
+{
+  "generatedAt": "2026-11-08T14:23:58.357Z",
+  "records": [
+    {
+      "page": "dashboard",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "dashboard-desktop-light.png"
+      },
+      "mismatchPixels": 82521,
+      "mismatchRatio": 0.0637,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "dashboard",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "dashboard-desktop-dark.png"
+      },
+      "mismatchPixels": 78094,
+      "mismatchRatio": 0.0603,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "dashboard",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "dashboard-desktop-compact.png"
+      },
+      "mismatchPixels": 82521,
+      "mismatchRatio": 0.0637,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "dashboard",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "dashboard-tablet-landscape.png"
+      },
+      "mismatchPixels": 50248,
+      "mismatchRatio": 0.0639,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "dashboard",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "dashboard-tablet-portrait.png"
+      },
+      "mismatchPixels": 70268,
+      "mismatchRatio": 0.0894,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "dashboard",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "dashboard-mobile.png"
+      },
+      "mismatchPixels": 33887,
+      "mismatchRatio": 0.1029,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "users",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "users-desktop-light.png"
+      },
+      "mismatchPixels": 32142,
+      "mismatchRatio": 0.0248,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "users",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "users-desktop-dark.png"
+      },
+      "mismatchPixels": 29096,
+      "mismatchRatio": 0.0225,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "users",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "users-desktop-compact.png"
+      },
+      "mismatchPixels": 32294,
+      "mismatchRatio": 0.0249,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "users",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "users-tablet-landscape.png"
+      },
+      "mismatchPixels": 25369,
+      "mismatchRatio": 0.0323,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "users",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "users-tablet-portrait.png"
+      },
+      "mismatchPixels": 26511,
+      "mismatchRatio": 0.0337,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "users",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "users-mobile.png"
+      },
+      "mismatchPixels": 22373,
+      "mismatchRatio": 0.068,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "roles",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "roles-desktop-light.png"
+      },
+      "mismatchPixels": 28782,
+      "mismatchRatio": 0.0222,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "roles",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "roles-desktop-dark.png"
+      },
+      "mismatchPixels": 25215,
+      "mismatchRatio": 0.0195,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "roles",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "roles-desktop-compact.png"
+      },
+      "mismatchPixels": 28667,
+      "mismatchRatio": 0.0221,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "roles",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "roles-tablet-landscape.png"
+      },
+      "mismatchPixels": 36234,
+      "mismatchRatio": 0.0461,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "roles",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "roles-tablet-portrait.png"
+      },
+      "mismatchPixels": 25882,
+      "mismatchRatio": 0.0329,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "roles",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "roles-mobile.png"
+      },
+      "mismatchPixels": 19938,
+      "mismatchRatio": 0.0606,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "menus",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "menus-desktop-light.png"
+      },
+      "mismatchPixels": 49788,
+      "mismatchRatio": 0.0384,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "menus",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "menus-desktop-dark.png"
+      },
+      "mismatchPixels": 49711,
+      "mismatchRatio": 0.0384,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "menus",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "menus-desktop-compact.png"
+      },
+      "mismatchPixels": 52602,
+      "mismatchRatio": 0.0406,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "menus",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "menus-tablet-landscape.png"
+      },
+      "mismatchPixels": 46012,
+      "mismatchRatio": 0.0585,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "menus",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "menus-tablet-portrait.png"
+      },
+      "mismatchPixels": 47983,
+      "mismatchRatio": 0.061,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "menus",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "menus-mobile.png"
+      },
+      "mismatchPixels": 30241,
+      "mismatchRatio": 0.0919,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "departments",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "departments-desktop-light.png"
+      },
+      "mismatchPixels": 72337,
+      "mismatchRatio": 0.0558,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "departments",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "departments-desktop-dark.png"
+      },
+      "mismatchPixels": 37602,
+      "mismatchRatio": 0.029,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "departments",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "departments-desktop-compact.png"
+      },
+      "mismatchPixels": 72198,
+      "mismatchRatio": 0.0557,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "departments",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "departments-tablet-landscape.png"
+      },
+      "mismatchPixels": 65628,
+      "mismatchRatio": 0.0835,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "departments",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "departments-tablet-portrait.png"
+      },
+      "mismatchPixels": 24586,
+      "mismatchRatio": 0.0313,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "departments",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "departments-mobile.png"
+      },
+      "mismatchPixels": 20472,
+      "mismatchRatio": 0.0622,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "positions",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "positions-desktop-light.png"
+      },
+      "mismatchPixels": 31525,
+      "mismatchRatio": 0.0243,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "positions",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "positions-desktop-dark.png"
+      },
+      "mismatchPixels": 42611,
+      "mismatchRatio": 0.0329,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "positions",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "positions-desktop-compact.png"
+      },
+      "mismatchPixels": 31525,
+      "mismatchRatio": 0.0243,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "positions",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "positions-tablet-landscape.png"
+      },
+      "mismatchPixels": 26904,
+      "mismatchRatio": 0.0342,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "positions",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "positions-tablet-portrait.png"
+      },
+      "mismatchPixels": 22669,
+      "mismatchRatio": 0.0288,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "positions",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "positions-mobile.png"
+      },
+      "mismatchPixels": 24798,
+      "mismatchRatio": 0.0753,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "dictionaries",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "dictionaries-desktop-light.png"
+      },
+      "mismatchPixels": 25414,
+      "mismatchRatio": 0.0196,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "dictionaries",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "dictionaries-desktop-dark.png"
+      },
+      "mismatchPixels": 23632,
+      "mismatchRatio": 0.0182,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "dictionaries",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "dictionaries-desktop-compact.png"
+      },
+      "mismatchPixels": 25414,
+      "mismatchRatio": 0.0196,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "dictionaries",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "dictionaries-tablet-landscape.png"
+      },
+      "mismatchPixels": 21788,
+      "mismatchRatio": 0.0277,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "dictionaries",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "dictionaries-tablet-portrait.png"
+      },
+      "mismatchPixels": 19815,
+      "mismatchRatio": 0.0252,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "dictionaries",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "dictionaries-mobile.png"
+      },
+      "mismatchPixels": 24149,
+      "mismatchRatio": 0.0734,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "settings",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "settings-desktop-light.png"
+      },
+      "mismatchPixels": 39246,
+      "mismatchRatio": 0.0303,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "settings",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "settings-desktop-dark.png"
+      },
+      "mismatchPixels": 40601,
+      "mismatchRatio": 0.0313,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "settings",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "settings-desktop-compact.png"
+      },
+      "mismatchPixels": 39246,
+      "mismatchRatio": 0.0303,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "settings",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "settings-tablet-landscape.png"
+      },
+      "mismatchPixels": 34118,
+      "mismatchRatio": 0.0434,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "settings",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "settings-tablet-portrait.png"
+      },
+      "mismatchPixels": 22168,
+      "mismatchRatio": 0.0282,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "settings",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "settings-mobile.png"
+      },
+      "mismatchPixels": 17294,
+      "mismatchRatio": 0.0525,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "notices",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "notices-desktop-light.png"
+      },
+      "mismatchPixels": 29232,
+      "mismatchRatio": 0.0226,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "notices",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "notices-desktop-dark.png"
+      },
+      "mismatchPixels": 25329,
+      "mismatchRatio": 0.0195,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "notices",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "notices-desktop-compact.png"
+      },
+      "mismatchPixels": 29373,
+      "mismatchRatio": 0.0227,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "notices",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "notices-tablet-landscape.png"
+      },
+      "mismatchPixels": 37382,
+      "mismatchRatio": 0.0475,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "notices",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "notices-tablet-portrait.png"
+      },
+      "mismatchPixels": 20363,
+      "mismatchRatio": 0.0259,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "notices",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "notices-mobile.png"
+      },
+      "mismatchPixels": 15286,
+      "mismatchRatio": 0.0464,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "scheduler",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "scheduler-desktop-light.png"
+      },
+      "mismatchPixels": 30138,
+      "mismatchRatio": 0.0233,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "scheduler",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "scheduler-desktop-dark.png"
+      },
+      "mismatchPixels": 26067,
+      "mismatchRatio": 0.0201,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "scheduler",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "scheduler-desktop-compact.png"
+      },
+      "mismatchPixels": 30224,
+      "mismatchRatio": 0.0233,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "scheduler",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "scheduler-tablet-landscape.png"
+      },
+      "mismatchPixels": 30686,
+      "mismatchRatio": 0.039,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "scheduler",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "scheduler-tablet-portrait.png"
+      },
+      "mismatchPixels": 31142,
+      "mismatchRatio": 0.0396,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "scheduler",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "scheduler-mobile.png"
+      },
+      "mismatchPixels": 25648,
+      "mismatchRatio": 0.0779,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "operation-logs",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "operation-logs-desktop-light.png"
+      },
+      "mismatchPixels": 101504,
+      "mismatchRatio": 0.0783,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "operation-logs",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "operation-logs-desktop-dark.png"
+      },
+      "mismatchPixels": 95835,
+      "mismatchRatio": 0.0739,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "operation-logs",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "operation-logs-desktop-compact.png"
+      },
+      "mismatchPixels": 101506,
+      "mismatchRatio": 0.0783,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "operation-logs",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "operation-logs-tablet-landscape.png"
+      },
+      "mismatchPixels": 54318,
+      "mismatchRatio": 0.0691,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "operation-logs",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "operation-logs-tablet-portrait.png"
+      },
+      "mismatchPixels": 56813,
+      "mismatchRatio": 0.0722,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "operation-logs",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "operation-logs-mobile.png"
+      },
+      "mismatchPixels": 17499,
+      "mismatchRatio": 0.0532,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "login-logs",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "login-logs-desktop-light.png"
+      },
+      "mismatchPixels": 46232,
+      "mismatchRatio": 0.0357,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "login-logs",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "login-logs-desktop-dark.png"
+      },
+      "mismatchPixels": 46401,
+      "mismatchRatio": 0.0358,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "login-logs",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "login-logs-desktop-compact.png"
+      },
+      "mismatchPixels": 47181,
+      "mismatchRatio": 0.0364,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "login-logs",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "login-logs-tablet-landscape.png"
+      },
+      "mismatchPixels": 29687,
+      "mismatchRatio": 0.0377,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "login-logs",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "login-logs-tablet-portrait.png"
+      },
+      "mismatchPixels": 29414,
+      "mismatchRatio": 0.0374,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "login-logs",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "login-logs-mobile.png"
+      },
+      "mismatchPixels": 19345,
+      "mismatchRatio": 0.0588,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "codegen",
+      "scenario": "desktop-light",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "codegen-desktop-light.png"
+      },
+      "mismatchPixels": 42681,
+      "mismatchRatio": 0.0329,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "codegen",
+      "scenario": "desktop-dark",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "codegen-desktop-dark.png"
+      },
+      "mismatchPixels": 42844,
+      "mismatchRatio": 0.0331,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "codegen",
+      "scenario": "desktop-compact",
+      "vue": {
+        "width": 1440,
+        "height": 900
+      },
+      "react": {
+        "width": 1440,
+        "height": 900
+      },
+      "diff": {
+        "width": 1440,
+        "height": 900,
+        "fileName": "codegen-desktop-compact.png"
+      },
+      "mismatchPixels": 42657,
+      "mismatchRatio": 0.0329,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "codegen",
+      "scenario": "tablet-landscape",
+      "vue": {
+        "width": 1024,
+        "height": 768
+      },
+      "react": {
+        "width": 1024,
+        "height": 768
+      },
+      "diff": {
+        "width": 1024,
+        "height": 768,
+        "fileName": "codegen-tablet-landscape.png"
+      },
+      "mismatchPixels": 30082,
+      "mismatchRatio": 0.0383,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "codegen",
+      "scenario": "tablet-portrait",
+      "vue": {
+        "width": 768,
+        "height": 1024
+      },
+      "react": {
+        "width": 768,
+        "height": 1024
+      },
+      "diff": {
+        "width": 768,
+        "height": 1024,
+        "fileName": "codegen-tablet-portrait.png"
+      },
+      "mismatchPixels": 34203,
+      "mismatchRatio": 0.0435,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    },
+    {
+      "page": "codegen",
+      "scenario": "mobile",
+      "vue": {
+        "width": 390,
+        "height": 844
+      },
+      "react": {
+        "width": 390,
+        "height": 844
+      },
+      "diff": {
+        "width": 390,
+        "height": 844,
+        "fileName": "codegen-mobile.png"
+      },
+      "mismatchPixels": 29534,
+      "mismatchRatio": 0.0897,
+      "heightDelta": 0,
+      "note": "Vue uses deterministic visual fixtures; React uses the live Go-backed business data."
+    }
+  ]
+}

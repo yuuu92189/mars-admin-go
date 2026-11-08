@@ -522,6 +522,115 @@
 .dash-login-card > .bento-head { flex: none; }
 .dash-login-list { flex: 1 1 auto; height: 176px; min-height: 0; overflow-y: auto; }
 
+/* ── Phase 3 · 业务页面补充 ─────────────────────────────────── */
+.band-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.band-grid-2 > .band { margin-bottom: 0; }
+
+.dict-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+.dict-swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 178px;
+  padding: 16px;
+  border-radius: var(--r-xl);
+  border: 1px solid var(--line-strong);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--cat-bg) 64%, transparent), transparent 56%),
+    var(--surface);
+  box-shadow: var(--edge), var(--e1);
+  text-align: left;
+  transition: translate .28s var(--ease-premium), box-shadow .28s ease;
+}
+.dict-swatch:hover { translate: 0 -3px; box-shadow: var(--edge), var(--e2); }
+.dict-swatch-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dict-swatch-code { font-family: var(--font-mono); font-size: 10.5px; color: var(--cat-ink); }
+.dict-swatch strong { font-size: 18px; letter-spacing: -.02em; }
+.dict-swatch-desc { min-height: 34px; font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+.dict-swatch-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; font-size: 11.5px; color: var(--ink-muted); }
+.dict-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background: var(--cat-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cat-ink) 24%, transparent);
+}
+.dict-chip.is-large { width: 32px; height: 32px; }
+
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--r-xl);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  box-shadow: var(--edge), var(--e1);
+}
+.pipeline-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--hover-bg);
+}
+.pipeline-index { font-family: var(--font-mono); font-size: 10px; color: var(--ink-faint); }
+.pipeline-title { display: block; font-size: 13px; font-weight: 650; }
+.pipeline-desc { display: block; font-size: 11px; color: var(--ink-soft); }
+.pipeline-link { position: absolute; right: -9px; width: 8px; height: 1px; background: var(--line-strong); }
+
+.ladder {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  box-shadow: var(--edge), var(--e1);
+}
+.ladder-stage { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 22px; overflow: auto; }
+.ladder-step {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  width: min(720px, 100%);
+  min-height: 70px;
+  padding: 12px 16px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--cat-bg) 45%, var(--surface));
+  box-shadow: var(--edge), var(--e1);
+  text-align: left;
+  transition: translate .24s var(--ease-premium), box-shadow .24s ease;
+}
+.ladder-step:hover { translate: 8px 0; box-shadow: var(--edge), var(--e2); }
+.ladder-index { font-family: var(--font-mono); font-size: 11px; color: var(--cat-ink); }
+.ladder-main { min-width: 0; }
+.ladder-name { display: block; font-size: 16px; font-weight: 700; }
+.ladder-code { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--ink-soft); }
+.ladder-people { font-family: var(--font-mono); color: var(--cat-ink); }
+.ladder-people b { font-size: 22px; }
+.ladder-people small { margin-left: 3px; color: var(--ink-faint); }
+
+@media (max-width: 760px) {
+  .band-grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .pipeline { grid-template-columns: minmax(0, 1fr); }
+  .pipeline-link { display: none; }
+  .ladder-step { grid-template-columns: 34px minmax(0, 1fr) auto; }
+  .ladder-step > .tag { display: none; }
+}
+
 @container security-board (max-width: 704px) {
   .vuln-board .hero-head { margin-bottom: 24px; }
   .vuln-board .hero-body { grid-template-columns: 1fr; gap: 28px; }

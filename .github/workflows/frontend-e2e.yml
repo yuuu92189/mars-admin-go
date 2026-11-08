@@ -30,7 +30,7 @@ jobs:
       API_BASE_URL: http://127.0.0.1:8080
       E2E_ADMIN_USERNAME: admin
       E2E_ADMIN_PASSWORD: ci-admin-password
-      E2E_SESSION_TTL_SECONDS: "10"
+      E2E_SESSION_TTL_SECONDS: "45"
       DATABASE_URL: postgres://mars:ci-postgres-password@127.0.0.1:5432/mars_admin?sslmode=disable
       REDIS_URL: redis://127.0.0.1:6379/0
       APP_ENV: development
@@ -41,12 +41,13 @@ jobs:
       APP_PUBLIC_BASE_URL: http://127.0.0.1:8080
       APP_CORS_ORIGINS: http://127.0.0.1:3000
       AUTO_MIGRATE: "true"
-      AUTH_SESSION_TTL: 10s
+      AUTH_SESSION_TTL: 45s
       AUTH_REFRESH_TTL: 1h
       AUTH_COOKIE_SECURE: "false"
       AUTH_COOKIE_SAME_SITE: lax
       AUTH_CAPTCHA_ENABLED: "false"
       AUTH_LOGIN_MAX_ATTEMPTS: "100"
+      AUTH_LOGIN_RATE_LIMIT: "100"
       AUTH_LOGIN_LOCK_DURATION: 1m
       STORAGE_PROVIDER: local
       STORAGE_LOCAL_DIR: /tmp/mars-admin-uploads

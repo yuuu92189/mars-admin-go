@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
+test.setTimeout(90_000);
 
 const username = process.env.E2E_ADMIN_USERNAME;
 const password = process.env.E2E_ADMIN_PASSWORD;
@@ -18,10 +19,11 @@ test("expired access session refreshes through the BFF and returns to the dashbo
   await page.goto("/login");
   await page.getByRole("textbox", { name: "账号" }).fill(username ?? "");
   await page.getByLabel("密码").fill(password ?? "");
-  await page.getByPlaceholder("请输入计算结果").fill("1");
+  const captcha = page.getByPlaceholder("请输入计算结果");
+  if (await captcha.isVisible()) await captcha.fill("1");
   await page.getByRole("button", { name: "登录" }).click();
   await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByRole("heading", { name: "系统运行概况" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "登录脉搏" })).toBeVisible();
 
   await page.waitForTimeout(sessionTtl * 1000 + 1_500);
   const refreshResponse = page.waitForResponse(
@@ -30,6 +32,6 @@ test("expired access session refreshes through the BFF and returns to the dashbo
   );
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByRole("heading", { name: "系统运行概况" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "登录脉搏" })).toBeVisible();
   expect([302, 307]).toContain((await refreshResponse).status());
 });

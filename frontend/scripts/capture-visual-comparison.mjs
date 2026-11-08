@@ -66,6 +66,13 @@ async function capture(browser, app, scenario) {
   );
 
   if (app.name === "react") {
+    await page.route("**/api/v1/admin/settings/public", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ "security.auth.captcha_enabled": true }),
+      }),
+    );
     await page.route("**/api/v1/auth/captcha*", (route) =>
       route.fulfill({
         status: 200,

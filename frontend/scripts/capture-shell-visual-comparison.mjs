@@ -86,7 +86,8 @@ const vueSummary = {
   ],
 };
 
-const reactCounters = {
+const reactDashboard = {
+  users: 12,
   userCount: 12,
   onlineSessions: 3,
   messages: 24,
@@ -97,6 +98,35 @@ const reactCounters = {
   publishedNotices: 1,
   outboxPending: 0,
   outboxDead: 0,
+  range: "24h",
+  loginTrend: [
+    { label: "00:00", value: 2 },
+    { label: "04:00", value: 4 },
+    { label: "08:00", value: 3 },
+    { label: "12:00", value: 6 },
+    { label: "16:00", value: 5 },
+    { label: "20:00", value: 7 },
+    { label: "23:00", value: 8 },
+  ],
+  loginTotal: 35,
+  loginPreviousTotal: 30,
+  operationTrend: [
+    { label: "11/02", value: 3, failed: 0 },
+    { label: "11/03", value: 5, failed: 0 },
+    { label: "11/04", value: 4, failed: 1 },
+    { label: "11/05", value: 7, failed: 0 },
+    { label: "11/06", value: 6, failed: 0 },
+    { label: "11/07", value: 8, failed: 0 },
+    { label: "11/08", value: 9, failed: 0 },
+  ],
+  operationTotal: 35,
+  operationSuccessRate: 99.2,
+  roleDistribution: [
+    { label: "管理员", value: 2 },
+    { label: "运营", value: 10 },
+  ],
+  recentLogins: [],
+  recentActivity: [],
 };
 
 const scenarios = [
@@ -237,19 +267,25 @@ async function preparePage(browser, app, scenario, session) {
     await page.goto(`${vueUrl}/dashboard`, { waitUntil: "networkidle" });
     await page.locator(".app-frame").waitFor();
   } else {
-    await page.route("**/api/v1/admin/monitoring/dashboard", (route) =>
+    await page.route(/\/api\/v1\/admin\/monitoring\/dashboard/, (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(reactCounters),
+        body: JSON.stringify(reactDashboard),
       }),
     );
-    await page.goto(`${reactUrl}/login`, { waitUntil: "networkidle" });
-    await page.getByRole("textbox", { name: "账号" }).fill(username ?? "");
-    await page.getByLabel("密码").fill(password ?? "");
-    await page.getByPlaceholder("请输入计算结果").fill("1");
-    await page.getByRole("button", { name: "登录" }).click();
-    await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
+    const loginResponse = await context.request.post(`${reactUrl}/api/v1/auth/login`, {
+      data: {
+        username,
+        password,
+        clientType: "admin",
+        deviceName: "visual-regression",
+      },
+    });
+    if (!loginResponse.ok()) {
+      throw new Error(`Unable to create React visual session: HTTP ${loginResponse.status()}`);
+    }
+    await page.goto(`${reactUrl}/dashboard`, { waitUntil: "networkidle" });
     await page.locator(".app-frame").waitFor();
   }
 

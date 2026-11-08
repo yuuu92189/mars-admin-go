@@ -110,7 +110,9 @@ func (r *Repository) ListUsers(ctx context.Context, filter domain.UserFilter) ([
 		Column3: filter.UserType,
 		Column4: filter.DataScope,
 		ID:      pgUUID(filter.ActorID),
-		Column6: filter.Sort,
+		Column6: optionalPgUUID(filter.DepartmentID),
+		Column7: optionalPgUUID(filter.PositionID),
+		Column8: filter.Sort,
 		Limit:   int32(filter.PageSize), // #nosec G115 -- application layer caps page size at 100.
 		Offset:  offset,
 	})
@@ -123,6 +125,8 @@ func (r *Repository) ListUsers(ctx context.Context, filter domain.UserFilter) ([
 		Column3: filter.UserType,
 		Column4: filter.DataScope,
 		ID:      pgUUID(filter.ActorID),
+		Column6: optionalPgUUID(filter.DepartmentID),
+		Column7: optionalPgUUID(filter.PositionID),
 	})
 	if err != nil {
 		return nil, 0, err
@@ -131,7 +135,55 @@ func (r *Repository) ListUsers(ctx context.Context, filter domain.UserFilter) ([
 	for _, row := range rows {
 		users = append(users, mapUser(row))
 	}
+	if err := r.enrichUsers(ctx, users); err != nil {
+		return nil, 0, err
+	}
 	return users, total, nil
+}
+
+func (r *Repository) enrichUsers(ctx context.Context, users []domain.User) error {
+	if len(users) == 0 {
+		return nil
+	}
+	ids := make([]uuid.UUID, 0, len(users))
+	index := make(map[uuid.UUID]*domain.User, len(users))
+	for i := range users {
+		ids = append(ids, users[i].ID)
+		index[users[i].ID] = &users[i]
+	}
+	load := func(query string, assign func(*domain.User, uuid.UUID)) error {
+		rows, err := r.pool.Query(ctx, query, pgUUIDs(ids))
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var userID, relationID uuid.UUID
+			if err := rows.Scan(&userID, &relationID); err != nil {
+				return err
+			}
+			if user := index[userID]; user != nil {
+				assign(user, relationID)
+			}
+		}
+		return rows.Err()
+	}
+	if err := load(
+		`SELECT user_id, role_id FROM access_user_roles WHERE user_id = ANY($1::uuid[]) ORDER BY role_id`,
+		func(user *domain.User, id uuid.UUID) { user.RoleIDs = append(user.RoleIDs, id) },
+	); err != nil {
+		return err
+	}
+	if err := load(
+		`SELECT user_id, department_id FROM organization_memberships WHERE user_id = ANY($1::uuid[]) ORDER BY department_id`,
+		func(user *domain.User, id uuid.UUID) { user.DepartmentIDs = append(user.DepartmentIDs, id) },
+	); err != nil {
+		return err
+	}
+	return load(
+		`SELECT user_id, position_id FROM organization_user_positions WHERE user_id = ANY($1::uuid[]) ORDER BY position_id`,
+		func(user *domain.User, id uuid.UUID) { user.PositionIDs = append(user.PositionIDs, id) },
+	)
 }
 
 func (r *Repository) CreateUser(ctx context.Context, user domain.User, roleIDs, departmentIDs, positionIDs []uuid.UUID, primaryDepartmentID *uuid.UUID) (domain.User, error) {
@@ -846,6 +898,13 @@ func pgUUIDs(ids []uuid.UUID) []pgtype.UUID {
 		values = append(values, pgUUID(id))
 	}
 	return values
+}
+
+func optionalPgUUID(id *uuid.UUID) pgtype.UUID {
+	if id == nil {
+		return pgtype.UUID{}
+	}
+	return pgUUID(*id)
 }
 
 func pgText(value string) pgtype.Text {

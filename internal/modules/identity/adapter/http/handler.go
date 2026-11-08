@@ -559,9 +559,20 @@ func (h *Handler) listUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	actor, _ := requestctx.ActorFrom(r.Context())
+	departmentID, err := optionalQueryUUID(r.URL.Query().Get("departmentId"))
+	if err != nil {
+		httpserver.WriteError(w, r, bootstrapLogger(), err)
+		return
+	}
+	positionID, err := optionalQueryUUID(r.URL.Query().Get("positionId"))
+	if err != nil {
+		httpserver.WriteError(w, r, bootstrapLogger(), err)
+		return
+	}
 	users, total, err := h.identity.ListUsers(r.Context(), actor, identitydomain.UserFilter{
 		Query: r.URL.Query().Get("keyword"), Status: r.URL.Query().Get("status"),
 		UserType: r.URL.Query().Get("userType"), Sort: r.URL.Query().Get("sort"),
+		DepartmentID: departmentID, PositionID: positionID,
 		Page: page, PageSize: pageSize,
 	})
 	if err != nil {
@@ -1116,6 +1127,17 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func optionalQueryUUID(value string) (*uuid.UUID, error) {
+	if strings.TrimSpace(value) == "" {
+		return nil, nil
+	}
+	id, err := uuid.Parse(value)
+	if err != nil {
+		return nil, err
+	}
+	return &id, nil
 }
 
 func bootstrapLogger() *slog.Logger {

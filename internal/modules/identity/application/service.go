@@ -25,6 +25,7 @@ type Service struct {
 	refreshTTL         time.Duration
 	refreshGracePeriod time.Duration
 	maxLoginAttempts   int32
+	loginRateLimit     int64
 	lockDuration       time.Duration
 	now                func() time.Time
 	codeSender         CodeSender
@@ -39,6 +40,7 @@ type Options struct {
 	RefreshTTL         time.Duration
 	RefreshGracePeriod time.Duration
 	MaxLoginAttempts   int32
+	LoginRateLimit     int64
 	LockDuration       time.Duration
 	Now                func() time.Time
 	CodeSender         CodeSender
@@ -72,6 +74,9 @@ func New(repo domain.Repository, rateLimiter domain.RateLimiter, opts Options) *
 	if opts.MaxLoginAttempts <= 0 {
 		opts.MaxLoginAttempts = 5
 	}
+	if opts.LoginRateLimit < 1 {
+		opts.LoginRateLimit = 30
+	}
 	if opts.LockDuration <= 0 {
 		opts.LockDuration = 30 * time.Minute
 	}
@@ -82,6 +87,7 @@ func New(repo domain.Repository, rateLimiter domain.RateLimiter, opts Options) *
 		refreshTTL:         opts.RefreshTTL,
 		refreshGracePeriod: opts.RefreshGracePeriod,
 		maxLoginAttempts:   opts.MaxLoginAttempts,
+		loginRateLimit:     opts.LoginRateLimit,
 		lockDuration:       opts.LockDuration,
 		now:                opts.Now,
 		codeSender:         opts.CodeSender,
@@ -1174,8 +1180,8 @@ func (s *Service) enforceLoginSourceRateLimits(ctx context.Context, input domain
 		limit  int64
 		window time.Duration
 	}{
-		{key: "login:ip:" + rateKeyPart(input.IPAddress), limit: 30, window: 5 * time.Minute},
-		{key: "login:device:" + device, limit: 20, window: 5 * time.Minute},
+		{key: "login:ip:" + rateKeyPart(input.IPAddress), limit: s.loginRateLimit, window: 5 * time.Minute},
+		{key: "login:device:" + device, limit: s.loginRateLimit, window: 5 * time.Minute},
 	}
 	allowed := true
 	for _, policy := range policies {

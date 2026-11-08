@@ -11,6 +11,10 @@ export function issueCaptcha(): Promise<CaptchaResponse> {
   return apiRequest<CaptchaResponse>("/api/v1/auth/captcha?type=image");
 }
 
+export function getPublicSettings(): Promise<Record<string, unknown>> {
+  return apiRequest<Record<string, unknown>>("/api/v1/admin/settings/public");
+}
+
 export async function login(input: LoginRequest): Promise<LoginResult> {
   const result = await apiRequest<LoginResult>("/api/v1/auth/login", {
     method: "POST",

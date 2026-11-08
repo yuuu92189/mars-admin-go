@@ -14,10 +14,11 @@ async function login(page: Page) {
   await page.goto("/login");
   await page.getByRole("textbox", { name: "账号" }).fill(username ?? "");
   await page.getByLabel("密码").fill(password ?? "");
-  await page.getByPlaceholder("请输入计算结果").fill("1");
+  const captcha = page.getByPlaceholder("请输入计算结果");
+  if (await captcha.isVisible()) await captcha.fill("1");
   await page.getByRole("button", { name: "登录" }).click();
   await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByRole("heading", { name: "系统运行概况" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "登录脉搏" })).toBeVisible();
   await page.waitForTimeout(900);
 }
 
@@ -31,7 +32,7 @@ test("admin can log in, load the shell and fetch dashboard counters", async ({
     ),
   );
   await login(page);
-  await expect(page.getByText("运行数据已接入")).toBeVisible();
+  await expect(page.getByText("真实运行数据")).toBeVisible();
   await page.screenshot({
     path: `visual-baselines/dashboard-${testInfo.project.name}-light.png`,
     fullPage: true,
@@ -52,7 +53,7 @@ test("admin can log in, load the shell and fetch dashboard counters", async ({
     )
     .toBe("40px");
   await page.reload();
-  await expect(page.getByRole("heading", { name: "系统运行概况" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "登录脉搏" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
   await page.waitForTimeout(500);
@@ -159,7 +160,7 @@ test("dashboard renders controlled permission and service error states", async (
   test.skip(testInfo.project.name !== "desktop", "Controlled error-state coverage.");
   await login(page);
   let mode: "forbidden" | "failure" = "forbidden";
-  await page.route("**/api/v1/admin/monitoring/dashboard", async (route) => {
+  await page.route(/\/api\/v1\/admin\/monitoring\/dashboard/, async (route) => {
     if (mode === "forbidden") {
       await route.fulfill({
         status: 403,

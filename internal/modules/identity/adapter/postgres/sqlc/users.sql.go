@@ -110,6 +110,20 @@ WHERE u.deleted_at IS NULL
   AND ($2::text = '' OR u.status = $2)
   AND ($3::text = '' OR u.user_type = $3)
   AND (
+    $6::uuid IS NULL
+    OR EXISTS (
+      SELECT 1 FROM organization_memberships membership
+      WHERE membership.user_id = u.id AND membership.department_id = $6
+    )
+  )
+  AND (
+    $7::uuid IS NULL
+    OR EXISTS (
+      SELECT 1 FROM organization_user_positions position
+      WHERE position.user_id = u.id AND position.position_id = $7
+    )
+  )
+  AND (
     $4::text = 'all'
     OR ($4::text = 'self' AND u.id = $5)
     OR (
@@ -151,6 +165,8 @@ type CountUsersParams struct {
 	Column3 string      `json:"column_3"`
 	Column4 string      `json:"column_4"`
 	ID      pgtype.UUID `json:"id"`
+	Column6 pgtype.UUID `json:"column_6"`
+	Column7 pgtype.UUID `json:"column_7"`
 }
 
 func (q *Queries) CountUsers(ctx context.Context, arg CountUsersParams) (int64, error) {
@@ -160,6 +176,8 @@ func (q *Queries) CountUsers(ctx context.Context, arg CountUsersParams) (int64, 
 		arg.Column3,
 		arg.Column4,
 		arg.ID,
+		arg.Column6,
+		arg.Column7,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -639,6 +657,20 @@ WHERE u.deleted_at IS NULL
   AND ($2::text = '' OR u.status = $2)
   AND ($3::text = '' OR u.user_type = $3)
   AND (
+    $6::uuid IS NULL
+    OR EXISTS (
+      SELECT 1 FROM organization_memberships membership
+      WHERE membership.user_id = u.id AND membership.department_id = $6
+    )
+  )
+  AND (
+    $7::uuid IS NULL
+    OR EXISTS (
+      SELECT 1 FROM organization_user_positions position
+      WHERE position.user_id = u.id AND position.position_id = $7
+    )
+  )
+  AND (
     $4::text = 'all'
     OR ($4::text = 'self' AND u.id = $5)
     OR (
@@ -673,12 +705,12 @@ WHERE u.deleted_at IS NULL
     )
   )
 ORDER BY
-  CASE WHEN $6::text = 'username_asc' THEN u.username END ASC,
-  CASE WHEN $6::text = 'username_desc' THEN u.username END DESC,
-  CASE WHEN $6::text = 'created_desc' THEN u.created_at END DESC,
-  CASE WHEN $6::text = 'created_asc' THEN u.created_at END ASC,
+  CASE WHEN $8::text = 'username_asc' THEN u.username END ASC,
+  CASE WHEN $8::text = 'username_desc' THEN u.username END DESC,
+  CASE WHEN $8::text = 'created_desc' THEN u.created_at END DESC,
+  CASE WHEN $8::text = 'created_asc' THEN u.created_at END ASC,
   u.id
-LIMIT $7 OFFSET $8
+LIMIT $9 OFFSET $10
 `
 
 type ListUsersParams struct {
@@ -687,7 +719,9 @@ type ListUsersParams struct {
 	Column3 string      `json:"column_3"`
 	Column4 string      `json:"column_4"`
 	ID      pgtype.UUID `json:"id"`
-	Column6 string      `json:"column_6"`
+	Column6 pgtype.UUID `json:"column_6"`
+	Column7 pgtype.UUID `json:"column_7"`
+	Column8 string      `json:"column_8"`
 	Limit   int32       `json:"limit"`
 	Offset  int32       `json:"offset"`
 }
@@ -700,6 +734,8 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]Identit
 		arg.Column4,
 		arg.ID,
 		arg.Column6,
+		arg.Column7,
+		arg.Column8,
 		arg.Limit,
 		arg.Offset,
 	)

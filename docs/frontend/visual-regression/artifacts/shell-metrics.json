@@ -87,7 +87,7 @@
             "x": 241,
             "y": 73,
             "width": 1190,
-            "height": 908.94
+            "height": 1232.94
           },
           "railWidth": "232px",
           "topbarHeight": "64px",
@@ -96,8 +96,8 @@
       },
       "comparison": {
         "scenario": "shell-expanded-light-desktop",
-        "mismatchPixels": 75068,
-        "mismatchRatio": 0.0579,
+        "mismatchPixels": 72638,
+        "mismatchRatio": 0.056,
         "diffPath": "diff-shell-expanded-light-desktop.png",
         "vueMetrics": {
           "viewport": {
@@ -173,7 +173,7 @@
             "x": 241,
             "y": 73,
             "width": 1190,
-            "height": 908.94
+            "height": 1232.94
           },
           "railWidth": "232px",
           "topbarHeight": "64px",
@@ -266,7 +266,7 @@
             "x": 85,
             "y": 73,
             "width": 1346,
-            "height": 908.94
+            "height": 1232.94
           },
           "railWidth": "76px",
           "topbarHeight": "64px",
@@ -275,8 +275,8 @@
       },
       "comparison": {
         "scenario": "shell-collapsed-dark-desktop",
-        "mismatchPixels": 66914,
-        "mismatchRatio": 0.0516,
+        "mismatchPixels": 64610,
+        "mismatchRatio": 0.0499,
         "diffPath": "diff-shell-collapsed-dark-desktop.png",
         "vueMetrics": {
           "viewport": {
@@ -352,7 +352,7 @@
             "x": 85,
             "y": 73,
             "width": 1346,
-            "height": 908.94
+            "height": 1232.94
           },
           "railWidth": "76px",
           "topbarHeight": "64px",
@@ -445,7 +445,7 @@
             "x": 241,
             "y": 73,
             "width": 1190,
-            "height": 908.94
+            "height": 1232.94
           },
           "railWidth": "232px",
           "topbarHeight": "64px",
@@ -454,8 +454,8 @@
       },
       "comparison": {
         "scenario": "shell-compact-light-desktop",
-        "mismatchPixels": 75068,
-        "mismatchRatio": 0.0579,
+        "mismatchPixels": 72638,
+        "mismatchRatio": 0.056,
         "diffPath": "diff-shell-compact-light-desktop.png",
         "vueMetrics": {
           "viewport": {
@@ -531,7 +531,7 @@
             "x": 241,
             "y": 73,
             "width": 1190,
-            "height": 908.94
+            "height": 1232.94
           },
           "railWidth": "232px",
           "topbarHeight": "64px",
@@ -624,7 +624,7 @@
             "x": 241,
             "y": 73,
             "width": 1190,
-            "height": 908.94
+            "height": 1232.94
           },
           "railWidth": "232px",
           "topbarHeight": "64px",
@@ -633,8 +633,8 @@
       },
       "comparison": {
         "scenario": "shell-command-palette-light-desktop",
-        "mismatchPixels": 181934,
-        "mismatchRatio": 0.1404,
+        "mismatchPixels": 186161,
+        "mismatchRatio": 0.1436,
         "diffPath": "diff-shell-command-palette-light-desktop.png",
         "vueMetrics": {
           "viewport": {
@@ -710,7 +710,7 @@
             "x": 241,
             "y": 73,
             "width": 1190,
-            "height": 908.94
+            "height": 1232.94
           },
           "railWidth": "232px",
           "topbarHeight": "64px",
@@ -803,7 +803,7 @@
             "x": 241,
             "y": 73,
             "width": 1190,
-            "height": 908.94
+            "height": 1232.94
           },
           "railWidth": "232px",
           "topbarHeight": "64px",
@@ -812,8 +812,8 @@
       },
       "comparison": {
         "scenario": "shell-appearance-dialog-light-desktop",
-        "mismatchPixels": 93714,
-        "mismatchRatio": 0.0723,
+        "mismatchPixels": 97365,
+        "mismatchRatio": 0.0751,
         "diffPath": "diff-shell-appearance-dialog-light-desktop.png",
         "vueMetrics": {
           "viewport": {
@@ -889,7 +889,7 @@
             "x": 241,
             "y": 73,
             "width": 1190,
-            "height": 908.94
+            "height": 1232.94
           },
           "railWidth": "232px",
           "topbarHeight": "64px",
@@ -982,7 +982,7 @@
             "x": 241,
             "y": 73,
             "width": 1190,
-            "height": 908.94
+            "height": 1232.94
           },
           "railWidth": "232px",
           "topbarHeight": "64px",
@@ -991,8 +991,8 @@
       },
       "comparison": {
         "scenario": "shell-user-menu-light-desktop",
-        "mismatchPixels": 75082,
-        "mismatchRatio": 0.0579,
+        "mismatchPixels": 72787,
+        "mismatchRatio": 0.0562,
         "diffPath": "diff-shell-user-menu-light-desktop.png",
         "vueMetrics": {
           "viewport": {
@@ -1068,7 +1068,7 @@
             "x": 241,
             "y": 73,
             "width": 1190,
-            "height": 908.94
+            "height": 1232.94
           },
           "railWidth": "232px",
           "topbarHeight": "64px",
@@ -1161,7 +1161,7 @@
             "x": 0,
             "y": 64,
             "width": 390,
-            "height": 1689.8
+            "height": 2801.8
           },
           "railWidth": "260px",
           "topbarHeight": "64px",
@@ -1170,8 +1170,8 @@
       },
       "comparison": {
         "scenario": "dashboard-mobile-light",
-        "mismatchPixels": 25280,
-        "mismatchRatio": 0.0768,
+        "mismatchPixels": 32037,
+        "mismatchRatio": 0.0973,
         "diffPath": "diff-dashboard-mobile-light.png",
         "vueMetrics": {
           "viewport": {
@@ -1247,7 +1247,7 @@
             "x": 0,
             "y": 64,
             "width": 390,
-            "height": 1689.8
+            "height": 2801.8
           },
           "railWidth": "260px",
           "topbarHeight": "64px",
@@ -1340,7 +1340,7 @@
             "x": 0,
             "y": 64,
             "width": 390,
-            "height": 1689.8
+            "height": 2801.8
           },
           "railWidth": "260px",
           "topbarHeight": "64px",
@@ -1349,8 +1349,8 @@
       },
       "comparison": {
         "scenario": "dashboard-mobile-dark",
-        "mismatchPixels": 22218,
-        "mismatchRatio": 0.0675,
+        "mismatchPixels": 25901,
+        "mismatchRatio": 0.0787,
         "diffPath": "diff-dashboard-mobile-dark.png",
         "vueMetrics": {
           "viewport": {
@@ -1426,7 +1426,7 @@
             "x": 0,
             "y": 64,
             "width": 390,
-            "height": 1689.8
+            "height": 2801.8
           },
           "railWidth": "260px",
           "topbarHeight": "64px",

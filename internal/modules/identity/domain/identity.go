@@ -165,14 +165,16 @@ type UpdateUserInput struct {
 }
 
 type UserFilter struct {
-	Query     string
-	Status    string
-	UserType  string
-	DataScope string
-	ActorID   uuid.UUID
-	Sort      string
-	Page      int
-	PageSize  int
+	Query        string
+	Status       string
+	UserType     string
+	DataScope    string
+	ActorID      uuid.UUID
+	DepartmentID *uuid.UUID
+	PositionID   *uuid.UUID
+	Sort         string
+	Page         int
+	PageSize     int
 }
 
 type LoginEvent struct {

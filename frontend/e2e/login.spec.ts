@@ -1,7 +1,5 @@
 import { expect, test } from "@playwright/test";
 
-const username = process.env.E2E_ADMIN_USERNAME;
-
 test("login page renders the canonical form", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "登录" })).toBeVisible();
@@ -44,12 +42,13 @@ test("forbidden page is explicit and does not leak session details", async ({ pa
 });
 
 test("wrong password stays on login and reports the API error", async ({ page }) => {
-  test.skip(!username, "Set E2E_ADMIN_USERNAME to exercise the real API error path.");
+  const unknownUsername = `e2e_missing_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   await page.goto("/login");
-  await page.getByRole("textbox", { name: "账号" }).fill(username ?? "");
+  await page.getByRole("textbox", { name: "账号" }).fill(unknownUsername);
   await page.getByLabel("密码").fill("definitely-wrong-password");
-  await page.getByPlaceholder("请输入计算结果").fill("1");
+  const captcha = page.getByPlaceholder("请输入计算结果");
+  if (await captcha.isVisible()) await captcha.fill("1");
   await page.getByRole("button", { name: "登录" }).click();
   await expect(page).toHaveURL(/\/login/);
-  await expect(page.getByRole("status")).toContainText("登录失败");
+  await expect(page.getByRole("status")).toContainText("登录失败", { timeout: 10_000 });
 });

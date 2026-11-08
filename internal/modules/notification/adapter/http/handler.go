@@ -35,6 +35,7 @@ func (h *Handler) Routes() chi.Router {
 	router.With(httpserver.RequirePermission("notice:manage")).Post("/{id}/publish", h.publish)
 	router.With(httpserver.RequirePermission("notice:manage")).Post("/{id}/withdraw", h.withdraw)
 	router.With(httpserver.RequirePermission("notice:read")).Post("/{id}/read", h.read)
+	router.With(httpserver.RequirePermission("notice:manage")).Delete("/{id}", h.legacyDelete)
 	return router
 }
 

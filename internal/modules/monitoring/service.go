@@ -5,6 +5,7 @@ import (
 	"math"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -48,17 +49,45 @@ type RedisStatus struct {
 }
 
 type Dashboard struct {
-	Users            int64 `json:"users"`
-	UserCount        int64 `json:"userCount"`
-	RoleCount        int64 `json:"roleCount"`
-	MenuCount        int64 `json:"menuCount"`
-	PermissionCount  int64 `json:"permissionCount"`
-	OnlineSessions   int64 `json:"onlineSessions"`
-	Files            int64 `json:"files"`
-	Messages         int64 `json:"messages"`
-	PublishedNotices int64 `json:"publishedNotices"`
-	OutboxPending    int64 `json:"outboxPending"`
-	OutboxDead       int64 `json:"outboxDead"`
+	Users            int64               `json:"users"`
+	UserCount        int64               `json:"userCount"`
+	RoleCount        int64               `json:"roleCount"`
+	MenuCount        int64               `json:"menuCount"`
+	PermissionCount  int64               `json:"permissionCount"`
+	OnlineSessions   int64               `json:"onlineSessions"`
+	Files            int64               `json:"files"`
+	Messages         int64               `json:"messages"`
+	PublishedNotices int64               `json:"publishedNotices"`
+	OutboxPending    int64               `json:"outboxPending"`
+	OutboxDead       int64               `json:"outboxDead"`
+	Range            string              `json:"range"`
+	LoginTrend       []DashboardPoint    `json:"loginTrend"`
+	LoginTotal       int64               `json:"loginTotal"`
+	LoginPrevious    int64               `json:"loginPreviousTotal"`
+	OperationTrend   []DashboardPoint    `json:"operationTrend"`
+	OperationTotal   int64               `json:"operationTotal"`
+	OperationSuccess float64             `json:"operationSuccessRate"`
+	RoleDistribution []RoleDistribution  `json:"roleDistribution"`
+	RecentLogins     []DashboardActivity `json:"recentLogins"`
+	RecentActivity   []DashboardActivity `json:"recentActivity"`
+}
+
+type DashboardPoint struct {
+	Label  string `json:"label"`
+	Value  int64  `json:"value"`
+	Failed int64  `json:"failed"`
+}
+
+type RoleDistribution struct {
+	Label string `json:"label"`
+	Value int64  `json:"value"`
+}
+
+type DashboardActivity struct {
+	Who        string    `json:"who"`
+	Target     string    `json:"target"`
+	Outcome    string    `json:"outcome"`
+	OccurredAt time.Time `json:"occurredAt"`
 }
 
 func New(pool *pgxpool.Pool, redisClient *redis.Client, registry prometheus.Registerer) *Service {
@@ -117,8 +146,10 @@ func (s *Service) ForceGC() {
 	debug.FreeOSMemory()
 }
 
-func (s *Service) Dashboard(ctx context.Context) (Dashboard, error) {
+func (s *Service) Dashboard(ctx context.Context, requestedRange string) (Dashboard, error) {
+	dashboardRange := normalizeDashboardRange(requestedRange)
 	var dashboard Dashboard
+	dashboard.Range = dashboardRange
 	queries := []struct {
 		sql string
 		dst *int64
@@ -140,5 +171,224 @@ func (s *Service) Dashboard(ctx context.Context) (Dashboard, error) {
 		}
 	}
 	dashboard.UserCount = dashboard.Users
+	var err error
+	dashboard.LoginTrend, err = s.loginTrend(ctx, dashboardRange)
+	if err != nil {
+		return Dashboard{}, err
+	}
+	dashboard.LoginTotal, dashboard.LoginPrevious, err = s.loginTotals(ctx, dashboardRange)
+	if err != nil {
+		return Dashboard{}, err
+	}
+	dashboard.OperationTrend, err = s.operationTrend(ctx)
+	if err != nil {
+		return Dashboard{}, err
+	}
+	dashboard.OperationTotal, dashboard.OperationSuccess, err = s.operationTotals(ctx, dashboardRange)
+	if err != nil {
+		return Dashboard{}, err
+	}
+	dashboard.RoleDistribution, err = s.roleDistribution(ctx)
+	if err != nil {
+		return Dashboard{}, err
+	}
+	dashboard.RecentLogins, err = s.recentLogins(ctx)
+	if err != nil {
+		return Dashboard{}, err
+	}
+	dashboard.RecentActivity, err = s.recentActivity(ctx)
+	if err != nil {
+		return Dashboard{}, err
+	}
 	return dashboard, nil
+}
+
+func normalizeDashboardRange(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "7d":
+		return "7d"
+	case "30d":
+		return "30d"
+	default:
+		return "24h"
+	}
+}
+
+func (s *Service) loginTrend(ctx context.Context, dashboardRange string) ([]DashboardPoint, error) {
+	if dashboardRange == "24h" {
+		return s.queryDashboardPoints(ctx, `
+			WITH buckets AS (
+				SELECT generate_series(
+					date_trunc('hour', now() AT TIME ZONE 'UTC') - interval '23 hours',
+					date_trunc('hour', now() AT TIME ZONE 'UTC'),
+					interval '1 hour'
+				) AS bucket
+			)
+			SELECT to_char(bucket, 'HH24:00'), count(event.id)::bigint, 0::bigint
+			FROM buckets
+			LEFT JOIN audit_login_events event
+				ON date_trunc('hour', event.occurred_at AT TIME ZONE 'UTC') = bucket
+			GROUP BY bucket
+			ORDER BY bucket`)
+	}
+	days := 7
+	if dashboardRange == "30d" {
+		days = 30
+	}
+	return s.queryDashboardPoints(ctx, `
+		WITH buckets AS (
+			SELECT generate_series(
+				current_date - ($1::int - 1),
+				current_date,
+				interval '1 day'
+			)::date AS bucket
+		)
+		SELECT to_char(bucket, 'MM/DD'), count(event.id)::bigint, 0::bigint
+		FROM buckets
+		LEFT JOIN audit_login_events event
+			ON (event.occurred_at AT TIME ZONE 'UTC')::date = bucket
+		GROUP BY bucket
+		ORDER BY bucket`, days)
+}
+
+func (s *Service) loginTotals(ctx context.Context, dashboardRange string) (int64, int64, error) {
+	selected, previous := dashboardIntervals(dashboardRange)
+	var current, prior int64
+	err := s.pool.QueryRow(ctx, `
+		SELECT
+			count(*) FILTER (WHERE occurred_at >= now() - $1::interval),
+			count(*) FILTER (WHERE occurred_at >= now() - $2::interval AND occurred_at < now() - $1::interval)
+		FROM audit_login_events`, selected, previous).Scan(&current, &prior)
+	return current, prior, err
+}
+
+func (s *Service) operationTrend(ctx context.Context) ([]DashboardPoint, error) {
+	return s.queryDashboardPoints(ctx, `
+		WITH buckets AS (
+			SELECT generate_series(
+				current_date - 6,
+				current_date,
+				interval '1 day'
+			)::date AS bucket
+		)
+		SELECT to_char(bucket, 'MM/DD'),
+			count(event.id)::bigint,
+			count(event.id) FILTER (WHERE event.outcome <> 'success')::bigint
+		FROM buckets
+		LEFT JOIN audit_events event
+			ON (event.occurred_at AT TIME ZONE 'UTC')::date = bucket
+		GROUP BY bucket
+		ORDER BY bucket`)
+}
+
+func (s *Service) operationTotals(ctx context.Context, dashboardRange string) (int64, float64, error) {
+	selected, _ := dashboardIntervals(dashboardRange)
+	var total, success int64
+	err := s.pool.QueryRow(ctx, `
+		SELECT count(*), count(*) FILTER (WHERE outcome = 'success')
+		FROM audit_events
+		WHERE occurred_at >= now() - $1::interval`, selected).Scan(&total, &success)
+	if err != nil {
+		return 0, 0, err
+	}
+	if total == 0 {
+		return 0, 0, nil
+	}
+	return total, math.Round(float64(success)/float64(total)*1000) / 10, nil
+}
+
+func (s *Service) roleDistribution(ctx context.Context) ([]RoleDistribution, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT role.name, count(actor.id)::bigint
+		FROM access_roles role
+		LEFT JOIN access_user_roles user_role ON user_role.role_id = role.id
+		LEFT JOIN identity_users actor ON actor.id = user_role.user_id AND actor.deleted_at IS NULL
+		WHERE role.deleted_at IS NULL
+		GROUP BY role.id, role.name
+		ORDER BY count(actor.id) DESC, role.name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]RoleDistribution, 0)
+	for rows.Next() {
+		var item RoleDistribution
+		if err := rows.Scan(&item.Label, &item.Value); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (s *Service) recentLogins(ctx context.Context) ([]DashboardActivity, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT username, COALESCE(NULLIF(client_type, ''), 'password'), outcome, occurred_at
+		FROM audit_login_events
+		ORDER BY occurred_at DESC
+		LIMIT 6`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]DashboardActivity, 0, 6)
+	for rows.Next() {
+		var item DashboardActivity
+		if err := rows.Scan(&item.Who, &item.Target, &item.Outcome, &item.OccurredAt); err != nil {
+			return nil, err
+		}
+		item.OccurredAt = item.OccurredAt.UTC()
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (s *Service) recentActivity(ctx context.Context) ([]DashboardActivity, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT actor_name, action || ' · ' || resource_type, outcome, occurred_at
+		FROM audit_events
+		ORDER BY occurred_at DESC
+		LIMIT 6`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]DashboardActivity, 0, 6)
+	for rows.Next() {
+		var item DashboardActivity
+		if err := rows.Scan(&item.Who, &item.Target, &item.Outcome, &item.OccurredAt); err != nil {
+			return nil, err
+		}
+		item.OccurredAt = item.OccurredAt.UTC()
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (s *Service) queryDashboardPoints(ctx context.Context, sql string, args ...any) ([]DashboardPoint, error) {
+	rows, err := s.pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]DashboardPoint, 0)
+	for rows.Next() {
+		var item DashboardPoint
+		if err := rows.Scan(&item.Label, &item.Value, &item.Failed); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func dashboardIntervals(dashboardRange string) (string, string) {
+	switch dashboardRange {
+	case "7d":
+		return "7 days", "14 days"
+	case "30d":
+		return "30 days", "60 days"
+	default:
+		return "24 hours", "48 hours"
+	}
 }

@@ -119,6 +119,20 @@ WHERE u.deleted_at IS NULL
   AND ($2::text = '' OR u.status = $2)
   AND ($3::text = '' OR u.user_type = $3)
   AND (
+    $6::uuid IS NULL
+    OR EXISTS (
+      SELECT 1 FROM organization_memberships membership
+      WHERE membership.user_id = u.id AND membership.department_id = $6
+    )
+  )
+  AND (
+    $7::uuid IS NULL
+    OR EXISTS (
+      SELECT 1 FROM organization_user_positions position
+      WHERE position.user_id = u.id AND position.position_id = $7
+    )
+  )
+  AND (
     $4::text = 'all'
     OR ($4::text = 'self' AND u.id = $5)
     OR (
@@ -153,12 +167,12 @@ WHERE u.deleted_at IS NULL
     )
   )
 ORDER BY
-  CASE WHEN $6::text = 'username_asc' THEN u.username END ASC,
-  CASE WHEN $6::text = 'username_desc' THEN u.username END DESC,
-  CASE WHEN $6::text = 'created_desc' THEN u.created_at END DESC,
-  CASE WHEN $6::text = 'created_asc' THEN u.created_at END ASC,
+  CASE WHEN $8::text = 'username_asc' THEN u.username END ASC,
+  CASE WHEN $8::text = 'username_desc' THEN u.username END DESC,
+  CASE WHEN $8::text = 'created_desc' THEN u.created_at END DESC,
+  CASE WHEN $8::text = 'created_asc' THEN u.created_at END ASC,
   u.id
-LIMIT $7 OFFSET $8;
+LIMIT $9 OFFSET $10;
 
 -- name: CountUsers :one
 SELECT count(*)
@@ -167,6 +181,20 @@ WHERE u.deleted_at IS NULL
   AND ($1::text = '' OR u.username ILIKE '%' || $1 || '%' OR u.display_name ILIKE '%' || $1 || '%')
   AND ($2::text = '' OR u.status = $2)
   AND ($3::text = '' OR u.user_type = $3)
+  AND (
+    $6::uuid IS NULL
+    OR EXISTS (
+      SELECT 1 FROM organization_memberships membership
+      WHERE membership.user_id = u.id AND membership.department_id = $6
+    )
+  )
+  AND (
+    $7::uuid IS NULL
+    OR EXISTS (
+      SELECT 1 FROM organization_user_positions position
+      WHERE position.user_id = u.id AND position.position_id = $7
+    )
+  )
   AND (
     $4::text = 'all'
     OR ($4::text = 'self' AND u.id = $5)

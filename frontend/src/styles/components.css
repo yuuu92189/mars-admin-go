@@ -184,6 +184,45 @@
 .select-option.is-disabled { color: var(--ink-faint); cursor: not-allowed; }
 .select-empty { padding: 14px 10px; font-size: 12px; color: var(--ink-soft); text-align: center; }
 
+/* ── React 图表 SVG ─────────────────────────────────────────── */
+.mchart-bar {
+  fill: color-mix(in srgb, var(--cat-2-ink) 34%, transparent);
+  transition: fill .2s ease, filter .2s ease;
+}
+.mchart-bar.is-active { fill: var(--blue); }
+.mchart-fail { fill: var(--red); opacity: .82; }
+.mchart-label { font-family: var(--font-mono); font-size: 10px; fill: var(--ink-faint); }
+.mring-tick { stroke: var(--tick); stroke-width: 1.1; stroke-linecap: round; }
+.mring-tick.is-major { stroke-width: 1.6; stroke: var(--tick-strong); }
+.mring-value {
+  font-size: 25px;
+  font-weight: 740;
+  letter-spacing: -.04em;
+  fill: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.mring-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .08em;
+  fill: var(--ink-faint);
+  text-transform: uppercase;
+}
+.swim-block {
+  position: absolute;
+  top: 50%;
+  height: 8px;
+  min-width: 3px;
+  translate: 0 -50%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--blue) 72%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--blue) 22%, transparent);
+}
+.swim-block.is-red {
+  background: color-mix(in srgb, var(--red) 80%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--red) 25%, transparent);
+}
+
 /* ── 勾选框 ─────────────────────────────────────────────────── */
 .checkbox {
   display: inline-flex;

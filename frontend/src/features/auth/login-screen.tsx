@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox, Field, TextInput } from "@/components/ui/input";
 import { useToast } from "@/components/providers/toast-provider";
 import { ApiError } from "@/lib/api/client";
-import { issueCaptcha, login } from "@/lib/api/auth";
+import { getPublicSettings, issueCaptcha, login } from "@/lib/api/auth";
 import type { CaptchaResponse } from "@/lib/api/types";
 import { EASE, prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
@@ -32,6 +32,8 @@ export function LoginScreen() {
   const [remember, setRemember] = useState(true);
   const [captcha, setCaptcha] = useState<CaptchaResponse | null>(null);
   const [captchaLoading, setCaptchaLoading] = useState(false);
+  const [captchaEnabled, setCaptchaEnabled] = useState(false);
+  const [settingsReady, setSettingsReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -43,7 +45,31 @@ export function LoginScreen() {
     // Hydration-safe restoration of the non-sensitive username hint.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (lastUsername) setForm((current) => ({ ...current, username: lastUsername }));
-    void refreshCaptcha();
+    let active = true;
+    getPublicSettings()
+      .then((settings) => {
+        if (!active) return;
+        const nestedLogin = settings.login;
+        const nestedEnabled =
+          nestedLogin && typeof nestedLogin === "object"
+            ? (nestedLogin as Record<string, unknown>).captchaEnabled
+            : undefined;
+        const enabled = Boolean(
+          settings["security.auth.captcha_enabled"] ?? nestedEnabled ?? false,
+        );
+        setCaptchaEnabled(enabled);
+        setSettingsReady(true);
+        if (enabled) void refreshCaptcha();
+      })
+      .catch(() => {
+        if (!active) return;
+        setCaptchaEnabled(true);
+        setSettingsReady(true);
+        void refreshCaptcha();
+      });
+    return () => {
+      active = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -223,7 +249,7 @@ export function LoginScreen() {
     const nextErrors: Partial<Record<keyof FormState, string>> = {};
     if (!form.username.trim()) nextErrors.username = "请输入账号";
     if (!form.password) nextErrors.password = "请输入密码";
-    if (!form.captcha.trim()) nextErrors.captcha = "请输入验证码";
+    if (captchaEnabled && !form.captcha.trim()) nextErrors.captcha = "请输入验证码";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
@@ -232,23 +258,23 @@ export function LoginScreen() {
       await login({
         username: form.username.trim(),
         password: form.password,
-        captchaId: captcha?.uuid,
-        captchaCode: form.captcha.trim(),
+        captchaId: captchaEnabled ? captcha?.uuid : undefined,
+        captchaCode: captchaEnabled ? form.captcha.trim() : undefined,
         clientType: "admin",
         rememberMe: remember,
       });
       if (remember) localStorage.setItem("mars:last-username", form.username.trim());
       else localStorage.removeItem("mars:last-username");
-      await playSuccess();
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get("redirect");
+      void playSuccess();
       router.replace(redirect?.startsWith("/") ? redirect : "/dashboard");
     } catch (error) {
       setSucceeded(false);
       const message = error instanceof ApiError ? error.message : "登录失败，请稍后重试";
       pushToast({ title: "登录失败", message, tone: "danger" });
       setForm((current) => ({ ...current, captcha: "" }));
-      await refreshCaptcha();
+      if (captchaEnabled) await refreshCaptcha();
     } finally {
       setSubmitting(false);
     }
@@ -298,35 +324,41 @@ export function LoginScreen() {
                     onChange={(event) => update("password", event.target.value)}
                   />
                 </Field>
-                <Field label="验证码" error={errors.captcha}>
-                  <div className="captcha-row">
-                    <TextInput
-                      icon="shield"
-                      placeholder="请输入计算结果"
-                      maxLength={6}
-                      autoComplete="off"
-                      value={form.captcha}
-                      invalid={Boolean(errors.captcha)}
-                      onChange={(event) => update("captcha", event.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="captcha-box m-groove"
-                      disabled={captchaLoading}
-                      aria-label="刷新验证码"
-                      title="刷新验证码"
-                      onClick={() => void refreshCaptcha()}
-                    >
-                      {captcha?.img ? (
-                        // The captcha image is generated by the Go backend, not a remote asset.
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img className="captcha-img captcha-img--single" src={captcha.img} alt="" />
-                      ) : (
-                        <RefreshCw size={16} className={cn(captchaLoading && "spin")} />
-                      )}
-                    </button>
-                  </div>
-                </Field>
+                {captchaEnabled ? (
+                  <Field label="验证码" error={errors.captcha}>
+                    <div className="captcha-row">
+                      <TextInput
+                        icon="shield"
+                        placeholder="请输入计算结果"
+                        maxLength={6}
+                        autoComplete="off"
+                        value={form.captcha}
+                        invalid={Boolean(errors.captcha)}
+                        onChange={(event) => update("captcha", event.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="captcha-box m-groove"
+                        disabled={captchaLoading}
+                        aria-label="刷新验证码"
+                        title="刷新验证码"
+                        onClick={() => void refreshCaptcha()}
+                      >
+                        {captcha?.img ? (
+                          // The captcha image is generated by the Go backend, not a remote asset.
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            className="captcha-img captcha-img--single"
+                            src={captcha.img}
+                            alt=""
+                          />
+                        ) : (
+                          <RefreshCw size={16} className={cn(captchaLoading && "spin")} />
+                        )}
+                      </button>
+                    </div>
+                  </Field>
+                ) : null}
                 <div className="login-options">
                   <Checkbox checked={remember} onChange={setRemember} label="记住账号" />
                 </div>
@@ -343,7 +375,7 @@ export function LoginScreen() {
                       type="submit"
                       variant="primary"
                       block
-                      loading={submitting}
+                      loading={submitting || !settingsReady}
                       className="login-submit"
                     >
                       登录

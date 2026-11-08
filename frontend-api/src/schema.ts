@@ -1330,7 +1330,7 @@ export interface paths {
         get: operations["getNotice"];
         put: operations["updateNotice"];
         post?: never;
-        delete?: never;
+        delete: operations["deleteNotice"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1636,6 +1636,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/codegen/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["downloadGeneratedCode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/monitoring/dashboard": {
         parameters: {
             query?: never;
@@ -1773,7 +1789,15 @@ export interface components {
             /** Format: int64 */
             version?: number;
             /** Format: date-time */
+            lastLoginAt?: string;
+            /** Format: date-time */
             createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            mfaEnabled?: boolean;
+            departmentIds?: string[];
+            roleIds?: string[];
+            positionIds?: string[];
         };
         UserPage: {
             items?: components["schemas"]["User"][];
@@ -1794,6 +1818,10 @@ export interface components {
             gender?: number;
             userType?: string;
             roleIds?: string[];
+            departmentIds?: string[];
+            /** Format: uuid */
+            primaryDepartmentId?: string;
+            positionIds?: string[];
         };
         UpdateUser: {
             displayName: string;
@@ -1805,6 +1833,11 @@ export interface components {
             gender?: number;
             /** Format: int64 */
             version: number;
+            roleIds?: string[];
+            departmentIds?: string[];
+            /** Format: uuid */
+            primaryDepartmentId?: string;
+            positionIds?: string[];
         };
         CurrentUser: {
             user?: components["schemas"]["User"];
@@ -1829,6 +1862,20 @@ export interface components {
             visible: boolean;
             isFrame: boolean;
             children?: components["schemas"]["Menu"][];
+        };
+        MenuInput: {
+            /** Format: uuid */
+            parentId?: string;
+            name: string;
+            /** @enum {integer} */
+            type: 1 | 2 | 3;
+            path?: string;
+            component?: string;
+            permission?: string;
+            icon?: string;
+            sort: number;
+            visible: boolean;
+            isFrame: boolean;
         };
         Role: {
             /** Format: uuid */
@@ -1860,6 +1907,17 @@ export interface components {
             /** @enum {string} */
             dataScope: "all" | "custom" | "department" | "department_tree" | "self";
         };
+        UpdateRole: {
+            name: string;
+            description?: string;
+            /** @enum {string} */
+            dataScope: "all" | "custom" | "department" | "department_tree" | "self";
+            /** @enum {string} */
+            status: "active" | "disabled";
+        };
+        RolePermissions: {
+            permissions: string[];
+        };
         Department: {
             /** Format: uuid */
             id?: string;
@@ -1868,6 +1926,15 @@ export interface components {
             name?: string;
             code?: string;
             path?: string;
+            leaderName?: string;
+            phone?: string;
+            email?: string;
+            sort?: number;
+            /** @enum {string} */
+            status?: "active" | "disabled";
+            depth?: number;
+            /** Format: date-time */
+            createdAt?: string;
             children?: components["schemas"]["Department"][];
         };
         DepartmentInput: {
@@ -1972,6 +2039,16 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        PositionInput: {
+            /** Format: uuid */
+            parentId?: string;
+            code: string;
+            name: string;
+            sort: number;
+            /** @enum {string} */
+            status: "active" | "disabled";
+            description?: string;
+        };
         PositionPage: {
             items: components["schemas"]["Position"][];
             /** Format: int64 */
@@ -2009,6 +2086,17 @@ export interface components {
         DictionaryItem: {
             /** Format: uuid */
             id: string;
+            /** Format: uuid */
+            typeId: string;
+            value: string;
+            label: string;
+            sort: number;
+            tagStyle?: string;
+            isDefault: boolean;
+            /** @enum {string} */
+            status: "active" | "disabled";
+        };
+        DictionaryItemInput: {
             /** Format: uuid */
             typeId: string;
             value: string;
@@ -2151,6 +2239,15 @@ export interface components {
             page: number;
             pageSize: number;
         };
+        NoticeInput: {
+            title: string;
+            content: string;
+            noticeType: number;
+            channels: string[];
+            /** @enum {string} */
+            targetType: "all" | "users" | "departments";
+            targetIds?: string[];
+        };
         ScheduledJob: {
             /** Format: uuid */
             id?: string;
@@ -2181,6 +2278,17 @@ export interface components {
             total: number;
             page: number;
             pageSize: number;
+        };
+        ScheduledJobInput: {
+            name: string;
+            handler: string;
+            cronExpression: string;
+            payload?: {
+                [key: string]: unknown;
+            };
+            maxAttempts: number;
+            timeoutSeconds: number;
+            concurrencyKey?: string;
         };
         ScheduledJobRun: {
             /** Format: uuid */
@@ -2315,13 +2423,126 @@ export interface components {
             schema?: string;
             name?: string;
             comment?: string;
+            columns?: components["schemas"]["CodegenColumn"][];
         };
-        CodegenTablePage: {
-            items: components["schemas"]["CodegenTable"][];
+        CodegenColumn: {
+            name?: string;
+            dataType?: string;
+            nullable?: boolean;
+            defaultValue?: string;
+            comment?: string;
+            primaryKey?: boolean;
+        };
+        ImportedCodegenTable: {
+            /** Format: uuid */
+            id: string;
+            schema: string;
+            tableName: string;
+            tableComment: string;
+            className: string;
+            packageName: string;
+            moduleName: string;
+            businessName: string;
+            functionName: string;
+            author: string;
+            genType: string;
+            genPath: string;
+            frontType: string;
+            formLayout: string;
+            parentMenuId: string;
+            remark: string;
+            columns: components["schemas"]["CodegenColumn"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ImportedCodegenTablePage: {
+            items: components["schemas"]["ImportedCodegenTable"][];
             /** Format: int64 */
             total: number;
             page: number;
             pageSize: number;
+        };
+        CodegenImportInput: {
+            /** @default public */
+            schema: string;
+            tables: string[];
+        };
+        CodegenGenerateInput: {
+            /** @default public */
+            schema: string;
+            tables: string[];
+            module?: string;
+            package?: string;
+            apiPrefix?: string;
+        };
+        CodegenFile: {
+            name: string;
+            path: string;
+            code: string;
+        };
+        CodegenOutput: {
+            files: components["schemas"]["CodegenFile"][];
+            warnings: string[];
+        };
+        DashboardPoint: {
+            label: string;
+            /** Format: int64 */
+            value: number;
+            /** Format: int64 */
+            failed?: number;
+        };
+        DashboardRoleDistribution: {
+            label: string;
+            /** Format: int64 */
+            value: number;
+        };
+        DashboardActivity: {
+            who: string;
+            target: string;
+            outcome: string;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        Dashboard: {
+            /** Format: int64 */
+            users: number;
+            /** Format: int64 */
+            userCount: number;
+            /** Format: int64 */
+            roleCount: number;
+            /** Format: int64 */
+            menuCount: number;
+            /** Format: int64 */
+            permissionCount: number;
+            /** Format: int64 */
+            onlineSessions: number;
+            /** Format: int64 */
+            files: number;
+            /** Format: int64 */
+            messages: number;
+            /** Format: int64 */
+            publishedNotices: number;
+            /** Format: int64 */
+            outboxPending: number;
+            /** Format: int64 */
+            outboxDead: number;
+            /** @enum {string} */
+            range: "24h" | "7d" | "30d";
+            loginTrend: components["schemas"]["DashboardPoint"][];
+            /** Format: int64 */
+            loginTotal: number;
+            /** Format: int64 */
+            loginPreviousTotal: number;
+            operationTrend: components["schemas"]["DashboardPoint"][];
+            /** Format: int64 */
+            operationTotal: number;
+            /** Format: double */
+            operationSuccessRate: number;
+            roleDistribution: components["schemas"]["DashboardRoleDistribution"][];
+            recentLogins: components["schemas"]["DashboardActivity"][];
+            recentActivity: components["schemas"]["DashboardActivity"][];
         };
         MonitoringSnapshot: {
             goVersion?: string;
@@ -2716,6 +2937,10 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 keyword?: string;
                 status?: string;
+                userType?: string;
+                sort?: string;
+                departmentId?: string;
+                positionId?: string;
             };
             header?: never;
             path?: never;
@@ -2833,7 +3058,11 @@ export interface operations {
     };
     listRoles: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                keyword?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2934,7 +3163,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DictionaryTypePage"];
+                    "application/json": components["schemas"]["DictionaryType"][];
                 };
             };
         };
@@ -3016,7 +3245,14 @@ export interface operations {
     };
     listAuditEvents: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                action?: string;
+                resourceType?: string;
+                from?: string;
+                to?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3200,7 +3436,11 @@ export interface operations {
     };
     listNotices: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                status?: "draft" | "published" | "withdrawn";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3225,7 +3465,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoticeInput"];
+            };
+        };
         responses: {
             /** @description Draft notice */
             201: {
@@ -3260,7 +3504,11 @@ export interface operations {
     };
     listScheduledJobs: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                status?: "active" | "paused";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3285,7 +3533,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduledJobInput"];
+            };
+        };
         responses: {
             /** @description Scheduled job */
             201: {
@@ -3442,7 +3694,9 @@ export interface operations {
     };
     listDatabaseTables: {
         parameters: {
-            query?: never;
+            query?: {
+                schema?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3467,7 +3721,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodegenGenerateInput"];
+            };
+        };
         responses: {
             /** @description Generated file preview */
             200: {
@@ -3475,15 +3733,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        files: {
-                            name: string;
-                            path: string;
-                            code: string;
-                        }[];
-                        activeFile: string;
-                        code: string;
-                    };
+                    "application/json": components["schemas"]["CodegenOutput"];
                 };
             };
         };
@@ -3773,7 +4023,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRole"];
+            };
+        };
         responses: {
             /** @description Updated role */
             200: {
@@ -3837,7 +4091,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleMenuIDs"];
+            };
+        };
         responses: {
             /** @description Role menus updated */
             204: {
@@ -3857,7 +4115,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RolePermissions"];
+            };
+        };
         responses: {
             /** @description Role permissions updated */
             204: {
@@ -3915,7 +4177,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuInput"];
+            };
+        };
         responses: {
             /** @description Created menu */
             201: {
@@ -3937,7 +4203,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuInput"];
+            };
+        };
         responses: {
             /** @description Updated menu */
             200: {
@@ -4001,7 +4271,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DepartmentInput"];
+            };
+        };
         responses: {
             /** @description Updated department */
             200: {
@@ -4061,7 +4335,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PositionInput"];
+            };
+        };
         responses: {
             /** @description Created position */
             201: {
@@ -4083,7 +4361,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PositionInput"];
+            };
+        };
         responses: {
             /** @description Updated position */
             200: {
@@ -4125,7 +4407,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DictionaryTypeInput"];
+            };
+        };
         responses: {
             /** @description Updated dictionary */
             200: {
@@ -4187,7 +4473,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DictionaryItemInput"];
+            };
+        };
         responses: {
             /** @description Created dictionary item */
             201: {
@@ -4209,7 +4499,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DictionaryItemInput"];
+            };
+        };
         responses: {
             /** @description Updated dictionary item */
             200: {
@@ -4286,7 +4580,10 @@ export interface operations {
     };
     listLoginEvents: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4728,7 +5025,10 @@ export interface operations {
     };
     listMyNotices: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4799,7 +5099,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoticeInput"];
+            };
+        };
         responses: {
             /** @description Updated notice */
             200: {
@@ -4810,6 +5114,27 @@ export interface operations {
                     "application/json": components["schemas"]["Notice"];
                 };
             };
+        };
+    };
+    deleteNotice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Notice deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Problem"];
         };
     };
     publishNotice: {
@@ -4883,7 +5208,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduledJobInput"];
+            };
+        };
         responses: {
             /** @description Updated job */
             200: {
@@ -4962,7 +5291,10 @@ export interface operations {
     };
     listScheduledJobRuns: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
             header?: never;
             path: {
                 id: components["parameters"]["Id"];
@@ -5132,7 +5464,11 @@ export interface operations {
     };
     listImportedCodegenTables: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                query?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5145,7 +5481,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CodegenTablePage"];
+                    "application/json": components["schemas"]["ImportedCodegenTablePage"];
                 };
             };
         };
@@ -5157,7 +5493,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodegenImportInput"];
+            };
+        };
         responses: {
             /** @description Imported tables */
             201: {
@@ -5165,7 +5505,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CodegenTable"][];
+                    "application/json": components["schemas"]["ImportedCodegenTable"][];
                 };
             };
         };
@@ -5187,7 +5527,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CodegenTable"];
+                    "application/json": components["schemas"]["ImportedCodegenTable"];
                 };
             };
         };
@@ -5201,7 +5541,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportedCodegenTable"];
+            };
+        };
         responses: {
             /** @description Updated imported table */
             200: {
@@ -5209,7 +5553,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CodegenTable"];
+                    "application/json": components["schemas"]["ImportedCodegenTable"];
                 };
             };
         };
@@ -5251,13 +5595,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        files?: {
-                            name?: string;
-                            path?: string;
-                            code?: string;
-                        }[];
-                    };
+                    "application/json": components["schemas"]["CodegenOutput"];
                 };
             };
         };
@@ -5279,29 +5617,53 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CodegenTable"];
+                    "application/json": components["schemas"]["ImportedCodegenTable"];
                 };
             };
         };
     };
-    monitoringDashboard: {
+    downloadGeneratedCode: {
         parameters: {
-            query?: never;
+            query: {
+                /** @description Comma-separated imported table ids. */
+                ids: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Dashboard counters */
+            /** @description ZIP archive generated from imported table definitions */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: number;
-                    };
+                    "application/zip": string;
+                };
+            };
+            400: components["responses"]["Problem"];
+        };
+    };
+    monitoringDashboard: {
+        parameters: {
+            query?: {
+                range?: "24h" | "7d" | "30d";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dashboard counters and real time-series data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dashboard"];
                 };
             };
         };

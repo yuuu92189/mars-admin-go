@@ -55,6 +55,7 @@ type AuthConfig struct {
 	CookieSecure            bool
 	CookieSameSite          string
 	LoginMaxAttempts        int32
+	LoginRateLimit          int64
 	LoginLockDuration       time.Duration
 	CaptchaEnabled          bool
 	SensitiveDataKey        string
@@ -180,6 +181,7 @@ func Load() (Config, error) {
 		CookieSecure:            parser.bool("AUTH_COOKIE_SECURE", false),
 		CookieSameSite:          strings.ToLower(env("AUTH_COOKIE_SAME_SITE", "lax")),
 		LoginMaxAttempts:        parser.int32("AUTH_LOGIN_MAX_ATTEMPTS", 5),
+		LoginRateLimit:          int64(parser.int("AUTH_LOGIN_RATE_LIMIT", 30)),
 		LoginLockDuration:       parser.duration("AUTH_LOGIN_LOCK_DURATION", 30*time.Minute),
 		CaptchaEnabled:          parser.bool("AUTH_CAPTCHA_ENABLED", false),
 		SensitiveDataKey:        os.Getenv("SETTINGS_ENCRYPTION_KEY"),
@@ -310,6 +312,9 @@ func (c Config) Validate() error {
 	}
 	if c.Auth.LoginMaxAttempts < 1 {
 		return errors.New("AUTH_LOGIN_MAX_ATTEMPTS must be positive")
+	}
+	if c.Auth.LoginRateLimit < 1 {
+		return errors.New("AUTH_LOGIN_RATE_LIMIT must be positive")
 	}
 	if c.Auth.LoginLockDuration <= 0 {
 		return errors.New("AUTH_LOGIN_LOCK_DURATION must be positive")
