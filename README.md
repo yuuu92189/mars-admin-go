@@ -12,6 +12,11 @@ Phase 1 implementation results, API contract changes and verification evidence a
 
 Phase 2 frontend foundation, design-system reconstruction, API/auth integration and acceptance evidence are in [`docs/frontend/README.md`](docs/frontend/README.md).
 
+Phase 2.1 frontend hardening, automatic refresh, Vue-aligned appearance/Shell behavior, visual
+comparison and final acceptance are in
+[`docs/frontend/13-phase-2.1-implementation-report.md`](docs/frontend/13-phase-2.1-implementation-report.md)
+and [`docs/frontend/14-phase-2.1-final-acceptance.md`](docs/frontend/14-phase-2.1-final-acceptance.md).
+
 The latest Refresh concurrency and transactional Outbox audit is in [`docs/audit-round-3/audit-summary.md`](docs/audit-round-3/audit-summary.md).
 
 The current Go-standard audit and remediation plan are in
@@ -61,6 +66,13 @@ pnpm dev
 ```
 
 The Next.js app runs at `http://127.0.0.1:3000` and proxies canonical `/api/v1/*` through its same-origin Route Handler to the Go API. The Vue reference remains at `scaffold-master-main/scaffold-vue` for visual comparison only.
+
+Set the single server-side API target when it is not the default:
+
+```bash
+cd frontend
+API_BASE_URL=http://localhost:8081 pnpm dev
+```
 
 Required environment variables are documented in `.env.example`. `DATABASE_URL` must be a PostgreSQL URL. Production startup rejects unsafe cookie combinations and does not silently replace missing provider credentials.
 

@@ -19,17 +19,17 @@ The frontend imports generated types from `frontend-api/src/schema.ts` through t
 
 ## Same-Origin Proxy
 
-The browser calls `/api/v1/*` on the Next origin. `frontend/src/app/api/[...path]/route.ts` forwards to `API_PROXY_TARGET`, strips the browser `Origin` header, preserves cookies and returns all upstream cookies. This avoids weakening Go CORS and keeps the production same-origin contract.
+The browser calls `/api/v1/*` on the Next origin. `frontend/src/app/api/[...path]/route.ts` forwards to the single server-side `API_BASE_URL`, strips the browser `Origin` header, preserves cookies and returns all upstream cookies. This avoids weakening Go CORS and keeps the production same-origin contract.
 
 ## Authentication
 
-| Flow | Endpoint | Frontend behavior |
-| --- | --- | --- |
-| Captcha | `GET /api/v1/auth/captcha?type=image` | Render the current single backend image in Light and Dark; refresh button |
-| Login | `POST /api/v1/auth/login` | Send canonical fields; never store token/password |
-| Session | `GET /api/v1/auth/me` | Server layout validates before rendering shell |
-| Logout | `POST /api/v1/auth/logout` | CSRF header, cookie clearing, redirect |
-| Unauthorized | any 401 | Dispatch `mars:unauthorized`, clear client state, redirect |
+| Flow         | Endpoint                              | Frontend behavior                                                         |
+| ------------ | ------------------------------------- | ------------------------------------------------------------------------- |
+| Captcha      | `GET /api/v1/auth/captcha?type=image` | Render the current single backend image in Light and Dark; refresh button |
+| Login        | `POST /api/v1/auth/login`             | Send canonical fields; never store token/password                         |
+| Session      | `GET /api/v1/auth/me`                 | Server layout validates before rendering shell                            |
+| Logout       | `POST /api/v1/auth/logout`            | CSRF header, cookie clearing, redirect                                    |
+| Unauthorized | any 401                               | Dispatch `mars:unauthorized`, clear client state, redirect                |
 
 The browser never reads `mars_session` or `mars_refresh`; only the non-HttpOnly CSRF cookie is read for the required header.
 

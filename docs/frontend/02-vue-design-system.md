@@ -4,27 +4,27 @@ The Phase 2 CSS baseline is a direct local copy of the seven Vue reference layer
 
 ## Core Tokens
 
-| Token group | Actual source values |
-| --- | --- |
-| Ink | `#101418`, `#596368`, `#7e888c`, `#99a2a5` |
-| Semantic | Blue `#236de9`, Lime `#82dd2d`, Red `#ff5a50` |
-| Radius | `8px`, `12px`, `16px`, `20px`, `24px`, plus `999px` pills |
-| Layout | Rail `232px`, collapsed rail `76px`, topbar `64px` |
-| Control | `36px` default, `30px` small |
-| Table density | `48px` default, `56px` comfortable, `40px` compact |
-| Easing | `cubic-bezier(.16, 1, .3, 1)` |
-| Motion | fast/normal/slow transitions use the copied CSS layer; GSAP uses the premium ease |
+| Token group   | Actual source values                                                              |
+| ------------- | --------------------------------------------------------------------------------- |
+| Ink           | `#101418`, `#596368`, `#7e888c`, `#99a2a5`                                        |
+| Semantic      | Blue `#236de9`, Lime `#82dd2d`, Red `#ff5a50`                                     |
+| Radius        | `8px`, `12px`, `16px`, `20px`, `24px`, plus `999px` pills                         |
+| Layout        | Rail `232px`, collapsed rail `76px`, topbar `64px`                                |
+| Control       | `36px` default, `30px` small                                                      |
+| Table density | `48px` regular default, `56px` comfy, `40px` compact                              |
+| Easing        | `cubic-bezier(.16, 1, .3, 1)`                                                     |
+| Motion        | fast/normal/slow transitions use the copied CSS layer; GSAP uses the premium ease |
 
 ## Materials
 
-| Class | Role | Source behavior |
-| --- | --- | --- |
-| `.m-rail` | Navigation rail | near-solid translucent background, 22px blur |
-| `.m-pill` | Active navigation, segmented thumb | strongest white edge, inset highlight, 22px blur |
-| `.m-float` | Popover/dialog/palette | 28px blur, saturated glass, largest ambient shadow |
-| `.m-surface` | Cards/tables | near-solid reading surface with edge highlight |
-| `.m-groove` | Inputs and inactive segmented track | inset groove, soft glass line |
-| `.m-glow` | Pointer material | radial white/lime glow at leaf container coordinates |
+| Class        | Role                                | Source behavior                                      |
+| ------------ | ----------------------------------- | ---------------------------------------------------- |
+| `.m-rail`    | Navigation rail                     | near-solid translucent background, 22px blur         |
+| `.m-pill`    | Active navigation, segmented thumb  | strongest white edge, inset highlight, 22px blur     |
+| `.m-float`   | Popover/dialog/palette              | 28px blur, saturated glass, largest ambient shadow   |
+| `.m-surface` | Cards/tables                        | near-solid reading surface with edge highlight       |
+| `.m-groove`  | Inputs and inactive segmented track | inset groove, soft glass line                        |
+| `.m-glow`    | Pointer material                    | radial white/lime glow at leaf container coordinates |
 
 The React implementation preserves the classes and adds pointer glow only where the original component used it. The material is not reduced to a single `backdrop-filter` rule.
 
