@@ -6,11 +6,13 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { logout as logoutRequest } from "@/lib/api/auth";
+import { ApiError, setSessionRefreshEnabled } from "@/lib/api/client";
 import type { CurrentUser } from "@/lib/api/types";
 
 type AuthContextValue = {
@@ -30,22 +32,38 @@ export function AuthProvider({
   const [user, setUser] = useState<CurrentUser | null>(initialUser);
   const router = useRouter();
   const pathname = usePathname();
+  const handlingUnauthorized = useRef(false);
+
+  useEffect(() => {
+    setSessionRefreshEnabled(true);
+  }, []);
 
   const logout = useCallback(async () => {
+    setSessionRefreshEnabled(false);
     try {
       await logoutRequest();
-    } finally {
-      setUser(null);
-      router.replace("/login");
+    } catch (error) {
+      if (!(error instanceof ApiError && error.status === 401)) {
+        setSessionRefreshEnabled(true);
+        throw error;
+      }
     }
+    setUser(null);
+    router.replace("/login");
   }, [router]);
 
   useEffect(() => {
     const onUnauthorized = () => {
+      if (handlingUnauthorized.current) return;
+      handlingUnauthorized.current = true;
+      setSessionRefreshEnabled(false);
       setUser(null);
       if (pathname !== "/login") {
         router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
       }
+      window.setTimeout(() => {
+        handlingUnauthorized.current = false;
+      }, 1000);
     };
     window.addEventListener("mars:unauthorized", onUnauthorized);
     return () => window.removeEventListener("mars:unauthorized", onUnauthorized);

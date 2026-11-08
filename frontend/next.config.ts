@@ -1,14 +1,15 @@
 import type { NextConfig } from "next";
+import { resolveApiBaseUrl } from "./src/lib/config/api-base-url";
 
-const proxyTarget = process.env.API_PROXY_TARGET ?? "http://localhost:8080";
+const apiBaseUrl = resolveApiBaseUrl(process.env);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   async rewrites() {
     return [
-      { source: "/health/:path*", destination: `${proxyTarget}/health/:path*` },
-      { source: "/openapi.yaml", destination: `${proxyTarget}/openapi.yaml` },
+      { source: "/health/:path*", destination: `${apiBaseUrl}/health/:path*` },
+      { source: "/openapi.yaml", destination: `${apiBaseUrl}/openapi.yaml` },
     ];
   },
 };

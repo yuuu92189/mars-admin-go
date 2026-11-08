@@ -916,7 +916,19 @@ paths:
       tags: [Auth]
       operationId: changePassword
       x-auth-required: true
-      responses: { "204": { description: Password changed }, "422": { $ref: "#/components/responses/Problem" } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePassword"
+      responses:
+        "204":
+          description: Password changed
+        "401":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
   /api/v1/auth/sessions:
     get:
       tags: [Auth]
@@ -1956,6 +1968,17 @@ components:
           $ref: "#/components/schemas/User"
         access:
           $ref: "#/components/schemas/Access"
+    ChangePassword:
+      type: object
+      required: [oldPassword, newPassword]
+      properties:
+        oldPassword:
+          type: string
+          format: password
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
     Access:
       type: object
       properties:
@@ -2072,6 +2095,8 @@ components:
           type: array
           items:
             type: string
+        isSuperAdmin:
+          type: boolean
         menus:
           type: array
           items:

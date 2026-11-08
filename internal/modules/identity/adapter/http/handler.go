@@ -372,7 +372,8 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpserver.WriteJSON(w, http.StatusOK, map[string]any{
-		"user": user, "roles": actor.Roles, "permissions": actor.Permissions, "menus": menus,
+		"user": user, "roles": actor.Roles, "permissions": actor.Permissions,
+		"isSuperAdmin": actor.IsSuperAdmin, "menus": menus,
 	})
 }
 
@@ -389,10 +390,11 @@ func (h *Handler) legacyMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpserver.WriteJSON(w, http.StatusOK, map[string]any{
-		"user":        legacyUser(user),
-		"roles":       actor.Roles,
-		"permissions": actor.Permissions,
-		"menus":       legacyMenus(menus),
+		"user":         legacyUser(user),
+		"roles":        actor.Roles,
+		"permissions":  actor.Permissions,
+		"isSuperAdmin": actor.IsSuperAdmin,
+		"menus":        legacyMenus(menus),
 	})
 }
 
@@ -1065,7 +1067,7 @@ func (h *Handler) setSessionCookies(w http.ResponseWriter, result identitydomain
 	})
 	http.SetCookie(w, &http.Cookie{ // #nosec G124 -- HttpOnly, Secure and SameSite are explicitly configured below.
 		Name: "mars_csrf", Value: result.CSRFToken, Path: "/", HttpOnly: false,
-		Secure: h.config.Auth.CookieSecure, SameSite: sameSite, MaxAge: maxAge,
+		Secure: h.config.Auth.CookieSecure, SameSite: sameSite, MaxAge: int(h.config.Auth.RefreshTTL.Seconds()),
 	})
 }
 

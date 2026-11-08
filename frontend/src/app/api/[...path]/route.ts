@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
+import { resolveApiBaseUrl } from "@/lib/config/api-base-url";
 
-const target = (process.env.API_PROXY_TARGET ?? "http://localhost:8080").replace(/\/$/, "");
 const BODYLESS_METHODS = new Set(["GET", "HEAD"]);
 
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
+  const target = resolveApiBaseUrl();
   const upstream = new URL(`${target}/api/${path.join("/")}`);
   upstream.search = request.nextUrl.search;
 

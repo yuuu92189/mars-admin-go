@@ -855,7 +855,7 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassw
 	}
 	valid, err := security.VerifyPassword(oldPassword, user.PasswordHash)
 	if err != nil || !valid {
-		return apperror.Unauthorized("Current password is incorrect.")
+		return apperror.Validation("oldPassword", "Current password is incorrect.")
 	}
 	hash, err := security.HashPassword(newPassword)
 	if err != nil {

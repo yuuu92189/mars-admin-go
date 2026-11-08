@@ -1749,6 +1749,12 @@ export interface components {
             user: components["schemas"]["User"];
             access: components["schemas"]["Access"];
         };
+        ChangePassword: {
+            /** Format: password */
+            oldPassword: string;
+            /** Format: password */
+            newPassword: string;
+        };
         Access: {
             roles?: string[];
             permissions?: string[];
@@ -1804,6 +1810,7 @@ export interface components {
             user?: components["schemas"]["User"];
             roles?: string[];
             permissions?: string[];
+            isSuperAdmin?: boolean;
             menus?: components["schemas"]["Menu"][];
         };
         Menu: {
@@ -3658,7 +3665,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePassword"];
+            };
+        };
         responses: {
             /** @description Password changed */
             204: {
@@ -3667,6 +3678,7 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
         };
     };

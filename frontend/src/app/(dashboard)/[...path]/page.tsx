@@ -17,8 +17,10 @@ export default async function PendingFeaturePage({
     .getAll()
     .map(({ name, value }) => `${name}=${value}`)
     .join("; ");
-  const user = await getCurrentUserFromCookie(cookieHeader);
-  if (!isVisibleMenuPath(user, pathname)) notFound();
+  const result = await getCurrentUserFromCookie(cookieHeader);
+  if (result.kind === "unauthorized") notFound();
+  if (result.kind === "error") throw new Error("Unable to validate the current session.");
+  if (!isVisibleMenuPath(result.user, pathname)) notFound();
 
   return (
     <PageContainer>

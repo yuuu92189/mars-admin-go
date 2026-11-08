@@ -2,10 +2,13 @@ package http
 
 import (
 	"encoding/json"
+	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 
 	identitydomain "mars-admin-go/internal/modules/identity/domain"
+	"mars-admin-go/internal/platform/config"
 
 	"github.com/stretchr/testify/require"
 )
@@ -44,4 +47,28 @@ func TestLoginResultJSONUsesAbsoluteExpiry(t *testing.T) {
 	require.Equal(t, "expiresAt", expiresAt.Tag.Get("json"))
 	_, hasExpiresIn := resultType.FieldByName("ExpiresIn")
 	require.False(t, hasExpiresIn)
+}
+
+func TestSessionCookiesKeepCSRFValidForRefreshLifetime(t *testing.T) {
+	handler := Handler{config: config.Config{
+		Auth: config.AuthConfig{
+			RefreshTTL:     30 * 24 * time.Hour,
+			CookieSameSite: "lax",
+		},
+	}}
+	recorder := httptest.NewRecorder()
+	handler.setSessionCookies(recorder, identitydomain.LoginResult{
+		AccessToken:  "access",
+		RefreshToken: "refresh",
+		CSRFToken:    "csrf",
+		ExpiresAt:    time.Now().Add(30 * time.Minute),
+	})
+
+	var csrfMaxAge int
+	for _, cookie := range recorder.Result().Cookies() {
+		if cookie.Name == "mars_csrf" {
+			csrfMaxAge = cookie.MaxAge
+		}
+	}
+	require.Equal(t, int((30 * 24 * time.Hour).Seconds()), csrfMaxAge)
 }
