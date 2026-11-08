@@ -36,8 +36,8 @@
 - Production cutover of the legacy data. The full dump has been imported into an isolated validation database; applying it to a production database still requires data-owner approval, secret rotation and downtime/cutover planning.
 - UniApp runtime E2E against a real WeChat toolchain.
 - Vue business-page migration into React is Phase 3+; Phase 2 intentionally ships foundation pages and explicit placeholders.
-- Phase 2.1 local verification is complete. The final pushed commit still needs its GitHub Actions
-  run recorded in the Phase 2.1 acceptance report.
+- Phase 2.1 is accepted for commit `d64f5ed`: Frontend CI run `42466214627` and Frontend E2E run
+  `42466214592` both passed.
 - SSH server credential management and web terminal were intentionally excluded as unsafe/out of scope.
 - JVM/JDBC console and server credential management are intentionally not reproduced. Go runtime and Prometheus replace JVM metrics.
 - The compatibility browser UI still stores the access token in Pinia persistence and uses the legacy WebSocket query token. New clients should migrate to HttpOnly cookies and CSRF tokens.

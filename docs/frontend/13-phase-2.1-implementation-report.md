@@ -77,6 +77,8 @@ Shell behavior, evidence-backed visual comparison, and Go-backed quality gates.
 | Shell/Dashboard Vue/React comparison | PASS for evidence capture, 8 paired scenarios                                                                   |
 | Real refresh BFF                     | PASS, expired session returned through refresh to Dashboard                                                     |
 | Real password lifecycle              | PASS, temporary user created, changed password, old password rejected, new password accepted, test user deleted |
+| GitHub Actions Frontend CI           | PASS, run `42466214627`, job `128686232041`                                                                     |
+| GitHub Actions Frontend E2E          | PASS, run `42466214592`, job `128686231984`                                                                     |
 
 The Playwright suite covers `390x844`, `768x1024`, `1024x768`, `1440x900`, `1920x1080` and the
 existing mobile matrix. Authenticated tests use only local or isolated CI test credentials.
@@ -95,7 +97,6 @@ existing mobile matrix. Authenticated tests use only local or isolated CI test c
 - Shell pixel differences remain where Vue and React intentionally render different real data or
   different fixture menu depth. Geometry, viewport, material, typography and responsive behavior
   are compared directly.
-- Remote GitHub Actions must be rerun after this work is pushed. Local results are not remote CI
-  evidence.
+- Remote GitHub Actions evidence is recorded for commit `d64f5ed`.
 - No production database, OAuth provider, secret or deployment visibility setting was changed by
   this implementation.
