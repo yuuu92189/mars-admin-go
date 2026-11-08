@@ -22,7 +22,7 @@
 | P2-16 responsive | PASS for Phase 2 pages | login at 1440/1280/1024/768/390/360; dashboard at 1440/1024/768/390 plus desktop/mobile |
 | P2-17 tests | PASS for Phase 2 scope | 19 Vitest/RTL tests; Playwright 25 passed / 11 intentionally skipped |
 | P2-18 visual regression | PASS with scope | automated baselines plus direct Vue/React login comparison and geometry |
-| P2-19 CI | PASS | remote Frontend CI run `42457068872` completed successfully; E2E workflow is active |
+| P2-19 CI | PASS | remote Frontend CI run `42457068872` and Frontend E2E run `42457202146` completed successfully |
 | P2-20 documentation | PASS | this directory |
 
 ## Conditions
