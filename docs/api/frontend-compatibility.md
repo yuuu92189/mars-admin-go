@@ -42,6 +42,17 @@ The compatibility adapter accepts the legacy raw `Authorization` value. New brow
 
 The WebSocket query-token form is retained only for compatibility. New clients should rely on the session cookie.
 
+## Phase 1 Canonical Contract
+
+- Canonical login uses `captchaId` and `captchaCode`; legacy `captchaUuid` and `captcha` are mapped only in the `/api/*` adapter.
+- Canonical login returns `expiresAt` as RFC 3339. The compatibility adapter additionally returns `expiresIn` for the old Vue client.
+- Canonical pagination is `items`, `total`, `page`, `pageSize`; legacy adapters may expose `rows`, `list` and `records`.
+- Canonical IDs are UUID strings. Frontend code must not convert them to numbers.
+- Canonical errors are RFC 9457 `application/problem+json`; legacy `/api/*` may retain the old envelope.
+- Protected OpenAPI operations declare `x-required-permission`; authenticated-only operations declare `x-auth-required`.
+- `/metrics` requires `audit:read`. Prometheus must use a dedicated read-only monitoring identity.
+- The permission mapping is maintained in [`permission-catalog.md`](permission-catalog.md).
+
 ## Compatibility Test Status
 
 The existing Vue source was run against the Go API through the Vite proxy. The following pages loaded without unresolved API errors:

@@ -110,8 +110,9 @@ type DecisionInput struct {
 }
 
 type Actor struct {
-	UserID uuid.UUID
-	Roles  []string
+	UserID    uuid.UUID
+	Roles     []string
+	DataScope string
 }
 
 type Repository interface {
@@ -120,14 +121,14 @@ type Repository interface {
 	ListDefinitions(ctx context.Context, status string, page, pageSize int) ([]Definition, int64, error)
 	PublishDefinition(ctx context.Context, id uuid.UUID) error
 	Start(ctx context.Context, definition Definition, actorID uuid.UUID, input StartInput, node Node) (Instance, Task, error)
-	GetInstance(ctx context.Context, id uuid.UUID) (Instance, error)
-	ListInstances(ctx context.Context, page, pageSize int) ([]Instance, int64, error)
+	GetInstance(ctx context.Context, id uuid.UUID, actor Actor) (Instance, error)
+	ListInstances(ctx context.Context, actor Actor, page, pageSize int) ([]Instance, int64, error)
 	Todo(ctx context.Context, actor Actor, page, pageSize int) ([]Task, int64, error)
 	Done(ctx context.Context, actor Actor, page, pageSize int) ([]Task, int64, error)
 	TaskContext(ctx context.Context, taskID uuid.UUID, actor Actor) (Task, Instance, Definition, Node, error)
 	Decide(ctx context.Context, actor Actor, input DecisionInput, decision DOMDecision) (Task, Instance, error)
 	Terminate(ctx context.Context, instanceID, actorID uuid.UUID, comment string) (Instance, error)
-	Events(ctx context.Context, instanceID uuid.UUID) ([]Event, error)
+	Events(ctx context.Context, instanceID uuid.UUID, actor Actor) ([]Event, error)
 }
 
 type DOMDecision struct {

@@ -17,11 +17,27 @@
 3. React 页面只调用新 API。
 4. 旧 `/api/*` 仅在迁移期服务旧客户端。
 
+## 1.1 Phase 1 Contract Update
+
+Current canonical OpenAPI:
+
+- 99 paths / 134 operations.
+- Every 2xx response has a content schema.
+- 110 operations declare `x-required-permission`.
+- 12 authenticated-only operations declare `x-auth-required`.
+- `/metrics` inherits bearer/cookie security and requires `audit:read`.
+- Canonical login uses `captchaId`, `captchaCode` and `expiresAt`; legacy aliases are adapter-only.
+- Canonical pagination is `items/total/page/pageSize`.
+- Group member removal, role update, mute and owner transfer are now documented.
+- Generated TypeScript types live in `frontend-api/src/schema.ts` and contain 0 `any` tokens.
+
+The canonical response shape is now stable enough for React page work, but product-scoped pages such as vulnerability and payment remain absent.
+
 ## 2. Page-to-API Matrix
 
 | 页面 | 业务能力 | Go 模块 | 当前 Vue API | 目标 Go API | 状态/缺口 |
 | --- | --- | --- | --- | --- | --- |
-| 登录 | 验证码、密码登录、当前用户、动态路由 | Identity + Access | `/auth/captcha`, `/auth/login`, `/auth/me`, `/auth/routes` | `/api/v1/auth/captcha`, `/login`, `/me`, Access menus | 字段/响应不一致；Cookie 方案未接入 |
+| 登录 | 验证码、密码登录、当前用户、动态路由 | Identity + Access | `/auth/captcha`, `/auth/login`, `/auth/me`, `/auth/routes` | `/api/v1/auth/captcha`, `/login`, `/me`, Access menus | 契约已固化；旧 Vue 仍需适配新字段/Cookie |
 | 工作台 | 统计、趋势、操作泳道、安全态势 | Monitoring + Audit + Vulnerability | `/dashboard/summary`, `/monitor/oper-logs/timeline`, `/vuln/statistics/*` | `/api/v1/admin/monitoring/dashboard`, `/api/v1/admin/audit/*`; vulnerability 新增 | Dashboard schema 和漏洞统计未完成 |
 | 用户 | 用户 CRUD、状态、密码、角色/部门/岗位选项、导出 | Identity + Organization + Access | `/system/users*`, `/system/permissions/graph` | `/api/v1/admin/users*` | UUID/数字 ID、分页、权限码、选项字段差异 |
 | 角色 | 角色 CRUD、菜单授权、数据范围、权限矩阵 | Access | `/system/roles*`, `/system/menus/tree` | `/api/v1/admin/access/roles*`, `/menus` | 旧 `system:role:*` 与新 `role:*`；矩阵批量写入需契约 |

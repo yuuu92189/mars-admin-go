@@ -786,6 +786,85 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 		require.Equal(t, 1, outboxCount)
 	})
 
+	t.Run("workflow reads enforce instance data scope", func(t *testing.T) {
+		workflowService := workflowapp.New(workflowpostgres.New(pool))
+		suffix := uuid.NewString()[:8]
+		departmentA := createTestDepartment(t, ctx, pool, "wf_dept_a_"+suffix, "wf_dept_a_"+suffix)
+		departmentB := createTestDepartment(t, ctx, pool, "wf_dept_b_"+suffix, "wf_dept_b_"+suffix)
+		passwordHash, err := security.HashPassword("identity-test-password-123")
+		require.NoError(t, err)
+		actor := createIdentityUserInDepartment(t, ctx, repo, "wf_scope_actor", passwordHash, departmentA, nil)
+		initiatorA := createIdentityUserInDepartment(t, ctx, repo, "wf_scope_a", passwordHash, departmentA, nil)
+		initiatorB := createIdentityUserInDepartment(t, ctx, repo, "wf_scope_b", passwordHash, departmentB, nil)
+		approver := createIdentityUserInDepartment(t, ctx, repo, "wf_scope_approver", passwordHash, departmentB, nil)
+		outsider := createIdentityUserInDepartment(t, ctx, repo, "wf_scope_outsider", passwordHash, departmentB, nil)
+
+		definition, err := workflowService.CreateDefinition(ctx, initiatorA.ID, workflowdomain.CreateDefinitionInput{
+			Code: "scope_" + suffix, Name: "Scope Workflow", Version: 1,
+			Document: workflowdomain.DefinitionDocument{
+				Start: "approval",
+				Nodes: []workflowdomain.Node{
+					{
+						Code: "approval", Name: "Approval", Type: "approval",
+						AssigneeID: &approver.ID, AssigneeRole: "workflow_approver", Next: "end",
+					},
+					{Code: "end", Name: "End", Type: "end"},
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.NoError(t, workflowService.Publish(ctx, definition.ID))
+		instanceA, _, err := workflowService.Start(ctx, initiatorA.ID, workflowdomain.StartInput{
+			DefinitionID: definition.ID, BusinessID: "scope-a-" + suffix,
+		})
+		require.NoError(t, err)
+		instanceB, _, err := workflowService.Start(ctx, initiatorB.ID, workflowdomain.StartInput{
+			DefinitionID: definition.ID, BusinessID: "scope-b-" + suffix,
+		})
+		require.NoError(t, err)
+
+		departmentActor := workflowdomain.Actor{UserID: actor.ID, DataScope: "department"}
+		instances, _, err := workflowService.Instances(ctx, departmentActor, 1, 20)
+		require.NoError(t, err)
+		ids := make(map[uuid.UUID]bool, len(instances))
+		for _, instance := range instances {
+			ids[instance.ID] = true
+		}
+		require.True(t, ids[instanceA.ID])
+		require.False(t, ids[instanceB.ID])
+		_, err = workflowService.Instance(ctx, departmentActor, instanceB.ID)
+		require.Error(t, err)
+		require.Equal(t, 404, apperror.HTTPStatus(err))
+		_, err = workflowService.Events(ctx, departmentActor, instanceB.ID)
+		require.Error(t, err)
+		require.Equal(t, 404, apperror.HTTPStatus(err))
+
+		assigneeActor := workflowdomain.Actor{UserID: approver.ID, DataScope: "self"}
+		visible, _, err := workflowService.Instances(ctx, assigneeActor, 1, 20)
+		require.NoError(t, err)
+		assigneeIDs := make(map[uuid.UUID]bool, len(visible))
+		for _, instance := range visible {
+			assigneeIDs[instance.ID] = true
+		}
+		require.True(t, assigneeIDs[instanceA.ID])
+		require.True(t, assigneeIDs[instanceB.ID])
+
+		roleActor := workflowdomain.Actor{UserID: outsider.ID, Roles: []string{"workflow_approver"}, DataScope: "self"}
+		roleVisible, _, err := workflowService.Instances(ctx, roleActor, 1, 20)
+		require.NoError(t, err)
+		require.Len(t, roleVisible, 2)
+
+		superActor := workflowdomain.Actor{UserID: uuid.New(), DataScope: "all"}
+		superVisible, _, err := workflowService.Instances(ctx, superActor, 1, 20)
+		require.NoError(t, err)
+		superIDs := make(map[uuid.UUID]bool, len(superVisible))
+		for _, instance := range superVisible {
+			superIDs[instance.ID] = true
+		}
+		require.True(t, superIDs[instanceA.ID])
+		require.True(t, superIDs[instanceB.ID])
+	})
+
 	t.Run("department hierarchy rejects cycles and rolls back", func(t *testing.T) {
 		organizationService := organizationapp.New(organizationpostgres.New(pool))
 		actor := requestctx.Actor{UserID: uuid.New(), IsSuperAdmin: true}

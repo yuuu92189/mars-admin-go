@@ -3,6 +3,8 @@ set -eu
 
 CGO_ENABLED=0 go tool sqlc generate
 CGO_ENABLED=0 go tool oapi-codegen -config api/oapi-codegen.yaml api/openapi/v1/openapi.yaml
+npm --prefix frontend-api ci
+npm --prefix frontend-api run check
 gofmt -w .
 go vet ./...
 go test ./...

@@ -15,7 +15,7 @@
 | 阶段 | 状态 | 交付 |
 | --- | --- | --- |
 | Phase 0 审计 | 已完成 | 本目录 11 份审计文档、Go 既有专题报告 |
-| Phase 1 契约基线 | 未开始 | OpenAPI/权限/ID/分页/错误统一 |
+| Phase 1 契约基线 | 已完成已确认技术范围；P1-07/P1-08 待产品决策 | OpenAPI/权限/ID/分页/错误统一、Go 治理、TypeScript 生成 |
 | Phase 2 前端基础 | 未开始 | Next.js、Tailwind、CSS 令牌、UI 原语 |
 | Phase 3 认证与外壳 | 未开始 | 登录、Cookie/CSRF、动态菜单、Admin layout |
 | Phase 4 核心系统页 | 未开始 | 工作台、用户、角色、菜单、部门、岗位、字典、配置、通知 |
@@ -26,6 +26,25 @@
 | Phase 9 部署/迁移 | 未开始 | 生产部署、数据切换、Provider 认证 |
 
 ## 3. Phase 1: Contract Baseline
+
+### Phase 1 Actual Status
+
+| Task | Status | Evidence |
+| --- | --- | --- |
+| P1-01 Metrics security | 已实现、已测试、已验证 | OpenAPI + integration test |
+| P1-02 Login contract | 已实现、已测试 | canonical DTO + legacy adapter tests |
+| P1-03 Permission catalog | 已实现、已测试 | permission catalog + route/seed tests |
+| P1-04 UUID/pagination/error | 已实现、已测试 | HTTP boundary tests |
+| P1-05 OpenAPI schema | 已实现关键契约；所有 2xx 有 content | 99 paths / 134 operations |
+| P1-06 Group management | 已实现、已测试 | OpenAPI + contract test |
+| P1-07 Vulnerability API | 待产品决策 | no domain module |
+| P1-08 AI assistant API | 待产品决策 | no provider decision |
+| Cross-module sqlc | 已完成已知两项 | dependency test |
+| Workflow Data Scope | 已实现、已测试 | PostgreSQL integration test |
+| SQLSTATE | 已实现、已测试 | HTTP error tests |
+| Repository interfaces | Access/Workflow 已拆分；Identity/Notification 待后续 | application interfaces |
+| Legacy stubs | 已处理已确认项 | 501 Problem or real statistics |
+| TypeScript generation | 已实现、已测试 | `frontend-api` + 0 `any` |
 
 ### Tasks
 

@@ -178,52 +178,6 @@ func (q *Queries) GetRole(ctx context.Context, id pgtype.UUID) (AccessRole, erro
 	return i, err
 }
 
-const getUserAccess = `-- name: GetUserAccess :many
-SELECT
-    r.code AS role_code,
-    r.is_super_admin,
-    r.data_scope,
-    COALESCE(p.code, '') AS permission_code
-FROM access_user_roles ur
-JOIN access_roles r ON r.id = ur.role_id
-LEFT JOIN access_role_permissions rp ON rp.role_id = r.id
-LEFT JOIN access_permissions p ON p.id = rp.permission_id
-WHERE ur.user_id = $1 AND r.status = 'active' AND r.deleted_at IS NULL
-ORDER BY r.code, p.code
-`
-
-type GetUserAccessRow struct {
-	RoleCode       string `json:"role_code"`
-	IsSuperAdmin   bool   `json:"is_super_admin"`
-	DataScope      string `json:"data_scope"`
-	PermissionCode string `json:"permission_code"`
-}
-
-func (q *Queries) GetUserAccess(ctx context.Context, userID pgtype.UUID) ([]GetUserAccessRow, error) {
-	rows, err := q.db.Query(ctx, getUserAccess, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GetUserAccessRow{}
-	for rows.Next() {
-		var i GetUserAccessRow
-		if err := rows.Scan(
-			&i.RoleCode,
-			&i.IsSuperAdmin,
-			&i.DataScope,
-			&i.PermissionCode,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listAllMenus = `-- name: ListAllMenus :many
 SELECT id, parent_id, name, menu_type, route_path, component, permission_code, icon, sort_order, visible, external_url, status, created_at, updated_at FROM access_menus
 WHERE status = 'active' AND visible = true

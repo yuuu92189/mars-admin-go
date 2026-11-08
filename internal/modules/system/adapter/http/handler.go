@@ -718,12 +718,20 @@ func (h *Handler) legacyFileConfigSave(w http.ResponseWriter, r *http.Request) {
 	httpserver.WriteJSON(w, http.StatusOK, item)
 }
 
-func (h *Handler) legacyFileConfigDelete(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusNoContent)
+func (h *Handler) legacyFileConfigDelete(w http.ResponseWriter, r *http.Request) {
+	httpserver.WriteError(w, r, h.logger, apperror.New(
+		apperror.KindNotConfigured,
+		"legacy_file_config_delete_not_supported",
+		"Deleting the single storage configuration is not supported. Update the storage settings instead.",
+	))
 }
 
-func (h *Handler) legacyFileConfigSetMaster(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusNoContent)
+func (h *Handler) legacyFileConfigSetMaster(w http.ResponseWriter, r *http.Request) {
+	httpserver.WriteError(w, r, h.logger, apperror.New(
+		apperror.KindNotConfigured,
+		"legacy_file_config_master_not_supported",
+		"Multiple storage configurations are not supported.",
+	))
 }
 
 func (h *Handler) legacyFileConfigTest(w http.ResponseWriter, r *http.Request) {
@@ -734,20 +742,20 @@ func (h *Handler) legacyFileConfigTest(w http.ResponseWriter, r *http.Request) {
 	))
 }
 
-func (h *Handler) legacyEmptySMSLogs(w http.ResponseWriter, _ *http.Request) {
-	httpserver.WriteJSON(w, http.StatusOK, []map[string]any{})
+func (h *Handler) legacyEmptySMSLogs(w http.ResponseWriter, r *http.Request) {
+	httpserver.WriteError(w, r, h.logger, apperror.New(
+		apperror.KindNotConfigured,
+		"legacy_sms_logs_not_supported",
+		"SMS delivery log compatibility is not configured.",
+	))
 }
 
 func (h *Handler) legacyEmptySMSLogsPage(w http.ResponseWriter, r *http.Request) {
-	page, pageSize, err := httpserver.ParsePagination(r, 100)
-	if err != nil {
-		httpserver.WriteError(w, r, h.logger, err)
-		return
-	}
-	httpserver.WriteJSON(w, http.StatusOK, map[string]any{
-		"records": []map[string]any{}, "list": []map[string]any{},
-		"total": 0, "pages": 0, "page": page, "pageSize": pageSize,
-	})
+	httpserver.WriteError(w, r, h.logger, apperror.New(
+		apperror.KindNotConfigured,
+		"legacy_sms_logs_not_supported",
+		"SMS delivery log compatibility is not configured.",
+	))
 }
 
 func (h *Handler) legacyPublicSettings(w http.ResponseWriter, r *http.Request) {

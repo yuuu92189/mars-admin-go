@@ -11,6 +11,7 @@ import (
 
 	"mars-admin-go/internal/modules/codegen/application"
 	"mars-admin-go/internal/modules/codegen/domain"
+	"mars-admin-go/internal/platform/apperror"
 	"mars-admin-go/internal/platform/httpserver"
 
 	"github.com/go-chi/chi/v5"
@@ -251,8 +252,12 @@ func (h *Handler) writePreviewFiles(w http.ResponseWriter, r *http.Request) {
 	httpserver.WriteJSON(w, http.StatusOK, files)
 }
 
-func (h *Handler) legacyNoFiles(w http.ResponseWriter, _ *http.Request) {
-	httpserver.WriteJSON(w, http.StatusOK, []string{})
+func (h *Handler) legacyNoFiles(w http.ResponseWriter, r *http.Request) {
+	httpserver.WriteError(w, r, h.logger, apperror.New(
+		apperror.KindNotConfigured,
+		"legacy_codegen_files_not_supported",
+		"Legacy generated-file inspection and deletion are not supported. Use the imported table preview and delete endpoints.",
+	))
 }
 
 func (h *Handler) legacySync(w http.ResponseWriter, r *http.Request) {

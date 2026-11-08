@@ -138,7 +138,7 @@ func (r *Repository) Start(ctx context.Context, definition domain.Definition, ac
 	return mapInstance(instanceRow, definition.Name), task, nil
 }
 
-func (r *Repository) GetInstance(ctx context.Context, id uuid.UUID) (domain.Instance, error) {
+func (r *Repository) GetInstance(ctx context.Context, id uuid.UUID, actor domain.Actor) (domain.Instance, error) {
 	var row sqlc.WorkflowInstance
 	var name string
 	err := r.pool.QueryRow(ctx, `
@@ -146,7 +146,8 @@ func (r *Repository) GetInstance(ctx context.Context, id uuid.UUID) (domain.Inst
 		       i.current_node_code, i.variables, i.started_at, i.finished_at, d.name
 		FROM workflow_instances i
 		JOIN workflow_definitions d ON d.id = i.definition_id
-		WHERE i.id = $1`, id).Scan(
+		WHERE i.id = $1
+		  AND `+visibilitySQL(2, 3, 4), id, actor.UserID, actor.Roles, normalizedScope(actor.DataScope)).Scan(
 		&row.ID, &row.DefinitionID, &row.BusinessID, &row.InitiatorID, &row.Status,
 		&row.CurrentNodeCode, &row.Variables, &row.StartedAt, &row.FinishedAt, &name,
 	)
@@ -156,15 +157,16 @@ func (r *Repository) GetInstance(ctx context.Context, id uuid.UUID) (domain.Inst
 	return mapInstance(row, name), nil
 }
 
-func (r *Repository) ListInstances(ctx context.Context, page, pageSize int) ([]domain.Instance, int64, error) {
+func (r *Repository) ListInstances(ctx context.Context, actor domain.Actor, page, pageSize int) ([]domain.Instance, int64, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT i.id, i.definition_id, i.business_id, i.initiator_id, i.status,
 		       i.current_node_code, i.variables, i.started_at, i.finished_at, d.name,
 		       count(*) OVER()
 		FROM workflow_instances i
 		JOIN workflow_definitions d ON d.id = i.definition_id
+		WHERE `+visibilitySQL(1, 2, 3)+`
 		ORDER BY i.started_at DESC
-		LIMIT $1 OFFSET $2`, pageSize, (page-1)*pageSize)
+		LIMIT $4 OFFSET $5`, actor.UserID, actor.Roles, normalizedScope(actor.DataScope), pageSize, (page-1)*pageSize)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -531,7 +533,10 @@ func (r *Repository) Terminate(ctx context.Context, instanceID, actorID uuid.UUI
 	return mapInstance(row, ""), nil
 }
 
-func (r *Repository) Events(ctx context.Context, instanceID uuid.UUID) ([]domain.Event, error) {
+func (r *Repository) Events(ctx context.Context, instanceID uuid.UUID, actor domain.Actor) ([]domain.Event, error) {
+	if _, err := r.GetInstance(ctx, instanceID, actor); err != nil {
+		return nil, err
+	}
 	rows, err := sqlc.New(r.pool).ListWorkflowEvents(ctx, pgUUID(instanceID))
 	if err != nil {
 		return nil, err
@@ -555,6 +560,56 @@ func (r *Repository) Events(ctx context.Context, instanceID uuid.UUID) ([]domain
 		events = append(events, event)
 	}
 	return events, nil
+}
+
+func visibilitySQL(actorParam, rolesParam, scopeParam int) string {
+	return fmt.Sprintf(`(
+	$%d::text = 'all'
+	OR i.initiator_id = $%d
+	OR EXISTS (
+		SELECT 1
+		FROM workflow_tasks visible_task
+		WHERE visible_task.instance_id = i.id
+		  AND (visible_task.assignee_id = $%d OR visible_task.assignee_role = ANY($%d::text[]))
+	)
+	OR (
+		$%d::text = 'department'
+		AND EXISTS (
+			SELECT 1
+			FROM organization_memberships mine
+			JOIN organization_memberships target ON target.department_id = mine.department_id
+			WHERE mine.user_id = $%d AND target.user_id = i.initiator_id
+		)
+	)
+	OR (
+		$%d::text = 'department_tree'
+		AND EXISTS (
+			SELECT 1
+			FROM organization_memberships mine
+			JOIN organization_departments my_dept ON my_dept.id = mine.department_id
+			JOIN organization_memberships target ON target.user_id = i.initiator_id
+			JOIN organization_departments target_dept ON target_dept.id = target.department_id
+			WHERE mine.user_id = $%d AND target_dept.path <@ my_dept.path
+		)
+	)
+	OR (
+		$%d::text = 'custom'
+		AND EXISTS (
+			SELECT 1
+			FROM access_user_roles actor_role
+			JOIN access_role_departments allowed ON allowed.role_id = actor_role.role_id
+			JOIN organization_memberships target ON target.department_id = allowed.department_id
+			WHERE actor_role.user_id = $%d AND target.user_id = i.initiator_id
+		)
+	)
+)`, scopeParam, actorParam, actorParam, rolesParam, scopeParam, actorParam, scopeParam, actorParam, scopeParam, actorParam)
+}
+
+func normalizedScope(scope string) string {
+	if scope == "" {
+		return "self"
+	}
+	return scope
 }
 
 func mapDefinition(row sqlc.WorkflowDefinition) domain.Definition {

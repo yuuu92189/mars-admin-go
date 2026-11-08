@@ -2,6 +2,8 @@
 
 ## Implemented
 
+- Phase 1 contract baseline: canonical login fields, metrics authorization, UUID/pagination/error rules, permission metadata, group management OpenAPI, generated TypeScript types and all 2xx OpenAPI response content.
+- Phase 1 Go governance: Workflow instance Data Scope, SQLSTATE mapping, Identity/Notification sqlc boundary cleanup, Access/Workflow use-case interfaces and explicit Legacy Stub handling.
 - Independent Go module targeting Go 1.27.3.
 - Explicit dependency injection and modular monolith boundaries.
 - PostgreSQL schema, Goose migrations, sqlc-generated data access and UUIDv7 identifiers.

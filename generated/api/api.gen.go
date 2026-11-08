@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/flate"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -50,16 +51,91 @@ func (e CreateRoleDataScope) Valid() bool {
 
 // Defines values for DepartmentInputStatus.
 const (
-	Active   DepartmentInputStatus = "active"
-	Disabled DepartmentInputStatus = "disabled"
+	DepartmentInputStatusActive   DepartmentInputStatus = "active"
+	DepartmentInputStatusDisabled DepartmentInputStatus = "disabled"
 )
 
 // Valid indicates whether the value is a known member of the DepartmentInputStatus enum.
 func (e DepartmentInputStatus) Valid() bool {
 	switch e {
-	case Active:
+	case DepartmentInputStatusActive:
 		return true
-	case Disabled:
+	case DepartmentInputStatusDisabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DictionaryItemStatus.
+const (
+	DictionaryItemStatusActive   DictionaryItemStatus = "active"
+	DictionaryItemStatusDisabled DictionaryItemStatus = "disabled"
+)
+
+// Valid indicates whether the value is a known member of the DictionaryItemStatus enum.
+func (e DictionaryItemStatus) Valid() bool {
+	switch e {
+	case DictionaryItemStatusActive:
+		return true
+	case DictionaryItemStatusDisabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DictionaryTypeStatus.
+const (
+	DictionaryTypeStatusActive   DictionaryTypeStatus = "active"
+	DictionaryTypeStatusDisabled DictionaryTypeStatus = "disabled"
+)
+
+// Valid indicates whether the value is a known member of the DictionaryTypeStatus enum.
+func (e DictionaryTypeStatus) Valid() bool {
+	switch e {
+	case DictionaryTypeStatusActive:
+		return true
+	case DictionaryTypeStatusDisabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GroupStatus.
+const (
+	GroupStatusActive    GroupStatus = "active"
+	GroupStatusDissolved GroupStatus = "dissolved"
+)
+
+// Valid indicates whether the value is a known member of the GroupStatus enum.
+func (e GroupStatus) Valid() bool {
+	switch e {
+	case GroupStatusActive:
+		return true
+	case GroupStatusDissolved:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GroupMemberRole.
+const (
+	GroupMemberRoleAdmin  GroupMemberRole = "admin"
+	GroupMemberRoleMember GroupMemberRole = "member"
+	GroupMemberRoleOwner  GroupMemberRole = "owner"
+)
+
+// Valid indicates whether the value is a known member of the GroupMemberRole enum.
+func (e GroupMemberRole) Valid() bool {
+	switch e {
+	case GroupMemberRoleAdmin:
+		return true
+	case GroupMemberRoleMember:
+		return true
+	case GroupMemberRoleOwner:
 		return true
 	default:
 		return false
@@ -68,19 +144,109 @@ func (e DepartmentInputStatus) Valid() bool {
 
 // Defines values for LoginRequestClientType.
 const (
-	Admin LoginRequestClientType = "admin"
-	App   LoginRequestClientType = "app"
-	Web   LoginRequestClientType = "web"
+	LoginRequestClientTypeAdmin LoginRequestClientType = "admin"
+	LoginRequestClientTypeApp   LoginRequestClientType = "app"
+	LoginRequestClientTypeWeb   LoginRequestClientType = "web"
 )
 
 // Valid indicates whether the value is a known member of the LoginRequestClientType enum.
 func (e LoginRequestClientType) Valid() bool {
 	switch e {
-	case Admin:
+	case LoginRequestClientTypeAdmin:
 		return true
-	case App:
+	case LoginRequestClientTypeApp:
 		return true
-	case Web:
+	case LoginRequestClientTypeWeb:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LoginRequestLoginType.
+const (
+	MINIPROGRAM        LoginRequestLoginType = "MINIPROGRAM"
+	PASSWORD           LoginRequestLoginType = "PASSWORD"
+	SMS                LoginRequestLoginType = "SMS"
+	SOCIAL             LoginRequestLoginType = "SOCIAL"
+	WECHATMINIPROGRAM  LoginRequestLoginType = "WECHAT_MINIPROGRAM"
+	WECHATMINIPROGRAM1 LoginRequestLoginType = "WECHAT_MINI_PROGRAM"
+)
+
+// Valid indicates whether the value is a known member of the LoginRequestLoginType enum.
+func (e LoginRequestLoginType) Valid() bool {
+	switch e {
+	case MINIPROGRAM:
+		return true
+	case PASSWORD:
+		return true
+	case SMS:
+		return true
+	case SOCIAL:
+		return true
+	case WECHATMINIPROGRAM:
+		return true
+	case WECHATMINIPROGRAM1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MenuType.
+const (
+	N1 MenuType = 1
+	N2 MenuType = 2
+	N3 MenuType = 3
+)
+
+// Valid indicates whether the value is a known member of the MenuType enum.
+func (e MenuType) Valid() bool {
+	switch e {
+	case N1:
+		return true
+	case N2:
+		return true
+	case N3:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NoticeStatus.
+const (
+	Draft     NoticeStatus = "draft"
+	Published NoticeStatus = "published"
+	Withdrawn NoticeStatus = "withdrawn"
+)
+
+// Valid indicates whether the value is a known member of the NoticeStatus enum.
+func (e NoticeStatus) Valid() bool {
+	switch e {
+	case Draft:
+		return true
+	case Published:
+		return true
+	case Withdrawn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PositionStatus.
+const (
+	PositionStatusActive   PositionStatus = "active"
+	PositionStatusDisabled PositionStatus = "disabled"
+)
+
+// Valid indicates whether the value is a known member of the PositionStatus enum.
+func (e PositionStatus) Valid() bool {
+	switch e {
+	case PositionStatusActive:
+		return true
+	case PositionStatusDisabled:
 		return true
 	default:
 		return false
@@ -126,10 +292,79 @@ func (e IssueCaptchaParamsType) Valid() bool {
 	}
 }
 
+// Defines values for UpdateGroupMemberRoleJSONBodyRole.
+const (
+	UpdateGroupMemberRoleJSONBodyRoleAdmin  UpdateGroupMemberRoleJSONBodyRole = "admin"
+	UpdateGroupMemberRoleJSONBodyRoleMember UpdateGroupMemberRoleJSONBodyRole = "member"
+)
+
+// Valid indicates whether the value is a known member of the UpdateGroupMemberRoleJSONBodyRole enum.
+func (e UpdateGroupMemberRoleJSONBodyRole) Valid() bool {
+	switch e {
+	case UpdateGroupMemberRoleJSONBodyRoleAdmin:
+		return true
+	case UpdateGroupMemberRoleJSONBodyRoleMember:
+		return true
+	default:
+		return false
+	}
+}
+
 // Access defines model for Access.
 type Access struct {
 	Permissions *[]string `json:"permissions,omitempty"`
 	Roles       *[]string `json:"roles,omitempty"`
+}
+
+// AuditEvent defines model for AuditEvent.
+type AuditEvent struct {
+	Action      *string             `json:"action,omitempty"`
+	ActorName   *string             `json:"actorName,omitempty"`
+	ActorUserId *openapi_types.UUID `json:"actorUserId,omitempty"`
+	Id          *openapi_types.UUID `json:"id,omitempty"`
+	IpAddress   *string             `json:"ipAddress,omitempty"`
+
+	// Metadata Redacted audit metadata.
+	Metadata     *map[string]interface{} `json:"metadata,omitempty"`
+	OccurredAt   *time.Time              `json:"occurredAt,omitempty"`
+	Outcome      *string                 `json:"outcome,omitempty"`
+	RequestId    *string                 `json:"requestId,omitempty"`
+	ResourceId   *string                 `json:"resourceId,omitempty"`
+	ResourceType *string                 `json:"resourceType,omitempty"`
+	TraceId      *string                 `json:"traceId,omitempty"`
+	UserAgent    *string                 `json:"userAgent,omitempty"`
+}
+
+// AuditEventPage defines model for AuditEventPage.
+type AuditEventPage struct {
+	Items    []AuditEvent `json:"items"`
+	Page     int          `json:"page"`
+	PageSize int          `json:"pageSize"`
+	Total    int64        `json:"total"`
+}
+
+// ChatUser defines model for ChatUser.
+type ChatUser struct {
+	AvatarUrl   *string            `json:"avatarUrl,omitempty"`
+	DisplayName string             `json:"displayName"`
+	Id          openapi_types.UUID `json:"id"`
+	Online      bool               `json:"online"`
+	Username    string             `json:"username"`
+}
+
+// CodegenTable defines model for CodegenTable.
+type CodegenTable struct {
+	Comment *string `json:"comment,omitempty"`
+	Name    *string `json:"name,omitempty"`
+	Schema  *string `json:"schema,omitempty"`
+}
+
+// CodegenTablePage defines model for CodegenTablePage.
+type CodegenTablePage struct {
+	Items    []CodegenTable `json:"items"`
+	Page     int            `json:"page"`
+	PageSize int            `json:"pageSize"`
+	Total    int64          `json:"total"`
 }
 
 // CreateRole defines model for CreateRole.
@@ -159,10 +394,10 @@ type CreateUser struct {
 
 // CurrentUser defines model for CurrentUser.
 type CurrentUser struct {
-	Menus       *[]map[string]interface{} `json:"menus,omitempty"`
-	Permissions *[]string                 `json:"permissions,omitempty"`
-	Roles       *[]string                 `json:"roles,omitempty"`
-	User        *User                     `json:"user,omitempty"`
+	Menus       *[]Menu   `json:"menus,omitempty"`
+	Permissions *[]string `json:"permissions,omitempty"`
+	Roles       *[]string `json:"roles,omitempty"`
+	User        *User     `json:"user,omitempty"`
 }
 
 // Department defines model for Department.
@@ -190,28 +425,210 @@ type DepartmentInput struct {
 // DepartmentInputStatus defines model for DepartmentInput.Status.
 type DepartmentInputStatus string
 
-// LoginRequest defines model for LoginRequest.
+// DepartmentPage defines model for DepartmentPage.
+type DepartmentPage struct {
+	Items    []Department `json:"items"`
+	Page     int          `json:"page"`
+	PageSize int          `json:"pageSize"`
+	Total    int64        `json:"total"`
+}
+
+// DictionaryItem defines model for DictionaryItem.
+type DictionaryItem struct {
+	Id        openapi_types.UUID   `json:"id"`
+	IsDefault bool                 `json:"isDefault"`
+	Label     string               `json:"label"`
+	Sort      int                  `json:"sort"`
+	Status    DictionaryItemStatus `json:"status"`
+	TagStyle  *string              `json:"tagStyle,omitempty"`
+	TypeId    openapi_types.UUID   `json:"typeId"`
+	Value     string               `json:"value"`
+}
+
+// DictionaryItemStatus defines model for DictionaryItem.Status.
+type DictionaryItemStatus string
+
+// DictionaryType defines model for DictionaryType.
+type DictionaryType struct {
+	Code        string               `json:"code"`
+	CreatedAt   time.Time            `json:"createdAt"`
+	Description *string              `json:"description,omitempty"`
+	Id          openapi_types.UUID   `json:"id"`
+	ItemCount   int64                `json:"itemCount"`
+	Name        string               `json:"name"`
+	Status      DictionaryTypeStatus `json:"status"`
+}
+
+// DictionaryTypeStatus defines model for DictionaryType.Status.
+type DictionaryTypeStatus string
+
+// DictionaryTypePage defines model for DictionaryTypePage.
+type DictionaryTypePage struct {
+	Items    []DictionaryType `json:"items"`
+	Page     int              `json:"page"`
+	PageSize int              `json:"pageSize"`
+	Total    int64            `json:"total"`
+}
+
+// File defines model for File.
+type File struct {
+	ContentType     string              `json:"contentType"`
+	CreatedAt       time.Time           `json:"createdAt"`
+	GroupId         *openapi_types.UUID `json:"groupId,omitempty"`
+	Id              openapi_types.UUID  `json:"id"`
+	OriginalName    string              `json:"originalName"`
+	OwnerUserId     *openapi_types.UUID `json:"ownerUserId,omitempty"`
+	Sha256          string              `json:"sha256"`
+	SizeBytes       int64               `json:"sizeBytes"`
+	Status          string              `json:"status"`
+	StorageProvider string              `json:"storageProvider"`
+	Visibility      string              `json:"visibility"`
+}
+
+// FilePage defines model for FilePage.
+type FilePage struct {
+	Items    []File `json:"items"`
+	Page     int    `json:"page"`
+	PageSize int    `json:"pageSize"`
+	Total    int64  `json:"total"`
+}
+
+// Group defines model for Group.
+type Group struct {
+	AvatarUrl *string            `json:"avatarUrl,omitempty"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
+	Name      string             `json:"name"`
+	OwnerId   openapi_types.UUID `json:"ownerId"`
+	Status    GroupStatus        `json:"status"`
+	UpdatedAt time.Time          `json:"updatedAt"`
+}
+
+// GroupStatus defines model for Group.Status.
+type GroupStatus string
+
+// GroupMember defines model for GroupMember.
+type GroupMember struct {
+	AvatarUrl   *string            `json:"avatarUrl,omitempty"`
+	DisplayName string             `json:"displayName"`
+	GroupId     openapi_types.UUID `json:"groupId"`
+	JoinedAt    time.Time          `json:"joinedAt"`
+	MutedUntil  *time.Time         `json:"mutedUntil,omitempty"`
+	Role        GroupMemberRole    `json:"role"`
+	UserId      openapi_types.UUID `json:"userId"`
+	Username    string             `json:"username"`
+}
+
+// GroupMemberRole defines model for GroupMember.Role.
+type GroupMemberRole string
+
+// HealthStatus defines model for HealthStatus.
+type HealthStatus struct {
+	Database *string `json:"database,omitempty"`
+	Redis    *string `json:"redis,omitempty"`
+	Status   string  `json:"status"`
+}
+
+// IntegrationProviderStatus defines model for IntegrationProviderStatus.
+type IntegrationProviderStatus struct {
+	Configured *bool   `json:"configured,omitempty"`
+	Kind       *string `json:"kind,omitempty"`
+	Name       *string `json:"name,omitempty"`
+}
+
+// LoginEvent defines model for LoginEvent.
+type LoginEvent struct {
+	ClientType    *string             `json:"clientType,omitempty"`
+	FailureReason *string             `json:"failureReason,omitempty"`
+	Id            *openapi_types.UUID `json:"id,omitempty"`
+	IpAddress     *string             `json:"ipAddress,omitempty"`
+	OccurredAt    *time.Time          `json:"occurredAt,omitempty"`
+	Outcome       *string             `json:"outcome,omitempty"`
+	UserAgent     *string             `json:"userAgent,omitempty"`
+	UserId        *openapi_types.UUID `json:"userId,omitempty"`
+	Username      *string             `json:"username,omitempty"`
+}
+
+// LoginEventPage defines model for LoginEventPage.
+type LoginEventPage struct {
+	Items    []LoginEvent `json:"items"`
+	Page     int          `json:"page"`
+	PageSize int          `json:"pageSize"`
+	Total    int64        `json:"total"`
+}
+
+// LoginRequest Password login is the default. SMS and social login use the optional loginType and provider fields.
 type LoginRequest struct {
-	ClientType *LoginRequestClientType `json:"clientType,omitempty"`
-	DeviceName *string                 `json:"deviceName,omitempty"`
-	MfaCode    *string                 `json:"mfaCode,omitempty"`
-	Password   string                  `json:"password"`
-	RememberMe *bool                   `json:"rememberMe,omitempty"`
-	Username   string                  `json:"username"`
+	AuthCode    *string                 `json:"authCode,omitempty"`
+	CaptchaCode *string                 `json:"captchaCode,omitempty"`
+	CaptchaId   *openapi_types.UUID     `json:"captchaId,omitempty"`
+	ClientType  *LoginRequestClientType `json:"clientType,omitempty"`
+	DeviceName  *string                 `json:"deviceName,omitempty"`
+	LoginType   *LoginRequestLoginType  `json:"loginType,omitempty"`
+	MfaCode     *string                 `json:"mfaCode,omitempty"`
+	Password    *string                 `json:"password,omitempty"`
+	Phone       *string                 `json:"phone,omitempty"`
+	Platform    *string                 `json:"platform,omitempty"`
+	RememberMe  *bool                   `json:"rememberMe,omitempty"`
+	SmsCode     *string                 `json:"smsCode,omitempty"`
+	Username    *string                 `json:"username,omitempty"`
+	WxCode      *string                 `json:"wxCode,omitempty"`
+	union       json.RawMessage
 }
 
 // LoginRequestClientType defines model for LoginRequest.ClientType.
 type LoginRequestClientType string
 
+// LoginRequestLoginType defines model for LoginRequest.LoginType.
+type LoginRequestLoginType string
+
+// LoginRequest0 defines model for LoginRequest.0.
+type LoginRequest0 = interface{}
+
+// LoginRequest1 defines model for LoginRequest.1.
+type LoginRequest1 = interface{}
+
+// LoginRequest2 defines model for LoginRequest.2.
+type LoginRequest2 = interface{}
+
+// LoginRequest3 defines model for LoginRequest.3.
+type LoginRequest3 = interface{}
+
 // LoginResult defines model for LoginResult.
 type LoginResult struct {
-	Access       *Access    `json:"access,omitempty"`
-	CsrfToken    *string    `json:"csrfToken,omitempty"`
-	ExpiresAt    *time.Time `json:"expiresAt,omitempty"`
-	RefreshToken *string    `json:"refreshToken,omitempty"`
-	Token        string     `json:"token"`
-	User         User       `json:"user"`
+	Access       Access             `json:"access"`
+	CsrfToken    *string            `json:"csrfToken,omitempty"`
+	ExpiresAt    time.Time          `json:"expiresAt"`
+	RefreshToken *string            `json:"refreshToken,omitempty"`
+	SessionId    openapi_types.UUID `json:"sessionId"`
+	Token        string             `json:"token"`
+	User         User               `json:"user"`
 }
+
+// MFASetup defines model for MFASetup.
+type MFASetup struct {
+	Secret string `json:"secret"`
+	Url    string `json:"url"`
+}
+
+// Menu defines model for Menu.
+type Menu struct {
+	Children   *[]Menu             `json:"children,omitempty"`
+	Component  *string             `json:"component,omitempty"`
+	Icon       *string             `json:"icon,omitempty"`
+	Id         openapi_types.UUID  `json:"id"`
+	IsFrame    bool                `json:"isFrame"`
+	Name       string              `json:"name"`
+	ParentId   *openapi_types.UUID `json:"parentId,omitempty"`
+	Path       *string             `json:"path,omitempty"`
+	Permission *string             `json:"permission,omitempty"`
+	Sort       int                 `json:"sort"`
+	Type       MenuType            `json:"type"`
+	Visible    bool                `json:"visible"`
+}
+
+// MenuType defines model for Menu.Type.
+type MenuType int
 
 // Message defines model for Message.
 type Message struct {
@@ -220,9 +637,91 @@ type Message struct {
 	GroupId     *openapi_types.UUID `json:"groupId,omitempty"`
 	Id          *openapi_types.UUID `json:"id,omitempty"`
 	MessageType *string             `json:"messageType,omitempty"`
-	ReceiverId  *openapi_types.UUID `json:"receiverId,omitempty"`
-	SenderId    *openapi_types.UUID `json:"senderId,omitempty"`
-	Sequence    *int64              `json:"sequence,omitempty"`
+
+	// Metadata Provider/business-specific message metadata.
+	Metadata   *map[string]interface{} `json:"metadata,omitempty"`
+	Read       *bool                   `json:"read,omitempty"`
+	ReceiverId *openapi_types.UUID     `json:"receiverId,omitempty"`
+	SenderId   *openapi_types.UUID     `json:"senderId,omitempty"`
+	Sequence   *int64                  `json:"sequence,omitempty"`
+}
+
+// MonitoringSnapshot defines model for MonitoringSnapshot.
+type MonitoringSnapshot struct {
+	Database       *map[string]interface{} `json:"database,omitempty"`
+	GoVersion      *string                 `json:"goVersion,omitempty"`
+	Goroutines     *int                    `json:"goroutines,omitempty"`
+	HeapAllocBytes *int64                  `json:"heapAllocBytes,omitempty"`
+	Redis          *map[string]interface{} `json:"redis,omitempty"`
+	UptimeSeconds  *int64                  `json:"uptimeSeconds,omitempty"`
+}
+
+// Notice defines model for Notice.
+type Notice struct {
+	Channels    []string             `json:"channels"`
+	Content     string               `json:"content"`
+	CreatedAt   time.Time            `json:"createdAt"`
+	CreatedBy   *openapi_types.UUID  `json:"createdBy,omitempty"`
+	Id          openapi_types.UUID   `json:"id"`
+	NoticeType  int                  `json:"noticeType"`
+	PublishedAt *time.Time           `json:"publishedAt,omitempty"`
+	ReadAt      *time.Time           `json:"readAt,omitempty"`
+	Status      NoticeStatus         `json:"status"`
+	TargetIds   []openapi_types.UUID `json:"targetIds"`
+	TargetType  string               `json:"targetType"`
+	Title       string               `json:"title"`
+	UpdatedAt   time.Time            `json:"updatedAt"`
+}
+
+// NoticeStatus defines model for Notice.Status.
+type NoticeStatus string
+
+// NoticePage defines model for NoticePage.
+type NoticePage struct {
+	Items    []Notice `json:"items"`
+	Page     int      `json:"page"`
+	PageSize int      `json:"pageSize"`
+	Total    int64    `json:"total"`
+}
+
+// PaymentSession defines model for PaymentSession.
+type PaymentSession struct {
+	ExpiresAt  *time.Time `json:"expiresAt,omitempty"`
+	OrderId    *string    `json:"orderId,omitempty"`
+	PaymentUrl *string    `json:"paymentUrl,omitempty"`
+	Provider   *string    `json:"provider,omitempty"`
+}
+
+// Permission defines model for Permission.
+type Permission struct {
+	Code        *string             `json:"code,omitempty"`
+	Description *string             `json:"description,omitempty"`
+	Id          *openapi_types.UUID `json:"id,omitempty"`
+	Module      *string             `json:"module,omitempty"`
+	Name        *string             `json:"name,omitempty"`
+}
+
+// Position defines model for Position.
+type Position struct {
+	Code        *string             `json:"code,omitempty"`
+	CreatedAt   *time.Time          `json:"createdAt,omitempty"`
+	Description *string             `json:"description,omitempty"`
+	Id          *openapi_types.UUID `json:"id,omitempty"`
+	Name        *string             `json:"name,omitempty"`
+	ParentId    *openapi_types.UUID `json:"parentId,omitempty"`
+	Sort        *int                `json:"sort,omitempty"`
+	Status      *PositionStatus     `json:"status,omitempty"`
+}
+
+// PositionStatus defines model for Position.Status.
+type PositionStatus string
+
+// PositionPage defines model for PositionPage.
+type PositionPage struct {
+	Items    []Position `json:"items"`
+	Page     int        `json:"page"`
+	PageSize int        `json:"pageSize"`
+	Total    int64      `json:"total"`
 }
 
 // Problem defines model for Problem.
@@ -238,17 +737,82 @@ type Problem struct {
 
 // Role defines model for Role.
 type Role struct {
-	Code      *string             `json:"code,omitempty"`
-	DataScope *string             `json:"dataScope,omitempty"`
-	Id        *openapi_types.UUID `json:"id,omitempty"`
-	Name      *string             `json:"name,omitempty"`
-	Status    *string             `json:"status,omitempty"`
+	Code         *string             `json:"code,omitempty"`
+	CreatedAt    *time.Time          `json:"createdAt,omitempty"`
+	DataScope    *string             `json:"dataScope,omitempty"`
+	Description  *string             `json:"description,omitempty"`
+	Id           *openapi_types.UUID `json:"id,omitempty"`
+	IsSuperAdmin *bool               `json:"isSuperAdmin,omitempty"`
+	Name         *string             `json:"name,omitempty"`
+	Status       *string             `json:"status,omitempty"`
+	UserCount    *int64              `json:"userCount,omitempty"`
+	Version      *int64              `json:"version,omitempty"`
+}
+
+// RoleMenuIDs defines model for RoleMenuIDs.
+type RoleMenuIDs struct {
+	MenuIds []openapi_types.UUID `json:"menuIds"`
 }
 
 // RolePage defines model for RolePage.
 type RolePage struct {
-	Items *[]Role `json:"items,omitempty"`
-	Total *int64  `json:"total,omitempty"`
+	Items    []Role `json:"items"`
+	Page     int    `json:"page"`
+	PageSize int    `json:"pageSize"`
+	Total    int64  `json:"total"`
+}
+
+// SMSCodeResult defines model for SMSCodeResult.
+type SMSCodeResult struct {
+	Status string `json:"status"`
+}
+
+// ScheduledJob defines model for ScheduledJob.
+type ScheduledJob struct {
+	ConcurrencyKey *string                 `json:"concurrencyKey,omitempty"`
+	CreatedAt      *time.Time              `json:"createdAt,omitempty"`
+	CreatedBy      *openapi_types.UUID     `json:"createdBy,omitempty"`
+	CronExpression *string                 `json:"cronExpression,omitempty"`
+	Handler        *string                 `json:"handler,omitempty"`
+	Id             *openapi_types.UUID     `json:"id,omitempty"`
+	LastEnqueuedAt *time.Time              `json:"lastEnqueuedAt,omitempty"`
+	MaxAttempts    *int                    `json:"maxAttempts,omitempty"`
+	Name           *string                 `json:"name,omitempty"`
+	NextRunAt      *time.Time              `json:"nextRunAt,omitempty"`
+	Payload        *map[string]interface{} `json:"payload,omitempty"`
+	Status         *string                 `json:"status,omitempty"`
+	TimeoutSeconds *int                    `json:"timeoutSeconds,omitempty"`
+	UpdatedAt      *time.Time              `json:"updatedAt,omitempty"`
+}
+
+// ScheduledJobPage defines model for ScheduledJobPage.
+type ScheduledJobPage struct {
+	Items    []ScheduledJob `json:"items"`
+	Page     int            `json:"page"`
+	PageSize int            `json:"pageSize"`
+	Total    int64          `json:"total"`
+}
+
+// ScheduledJobRun defines model for ScheduledJobRun.
+type ScheduledJobRun struct {
+	Attempt      *int                `json:"attempt,omitempty"`
+	CreatedAt    *time.Time          `json:"createdAt,omitempty"`
+	DurationMs   *int64              `json:"durationMs,omitempty"`
+	ErrorMessage *string             `json:"errorMessage,omitempty"`
+	FinishedAt   *time.Time          `json:"finishedAt,omitempty"`
+	Id           *openapi_types.UUID `json:"id,omitempty"`
+	JobId        *openapi_types.UUID `json:"jobId,omitempty"`
+	RiverJobId   *int64              `json:"riverJobId,omitempty"`
+	StartedAt    *time.Time          `json:"startedAt,omitempty"`
+	Status       *string             `json:"status,omitempty"`
+}
+
+// ScheduledJobRunPage defines model for ScheduledJobRunPage.
+type ScheduledJobRunPage struct {
+	Items    []ScheduledJobRun `json:"items"`
+	Page     int               `json:"page"`
+	PageSize int               `json:"pageSize"`
+	Total    int64             `json:"total"`
 }
 
 // SendMessage defines model for SendMessage.
@@ -262,6 +826,53 @@ type SendMessage struct {
 
 // SendMessageMessageType defines model for SendMessage.MessageType.
 type SendMessageMessageType string
+
+// Session defines model for Session.
+type Session struct {
+	ClientType       string             `json:"clientType"`
+	CreatedAt        time.Time          `json:"createdAt"`
+	DeviceName       *string            `json:"deviceName,omitempty"`
+	ExpiresAt        time.Time          `json:"expiresAt"`
+	Id               openapi_types.UUID `json:"id"`
+	IpAddress        *string            `json:"ipAddress,omitempty"`
+	LastSeenAt       time.Time          `json:"lastSeenAt"`
+	RefreshExpiresAt time.Time          `json:"refreshExpiresAt"`
+	UserAgent        *string            `json:"userAgent,omitempty"`
+	UserId           openapi_types.UUID `json:"userId"`
+}
+
+// Setting defines model for Setting.
+type Setting struct {
+	Id        openapi_types.UUID `json:"id"`
+	Key       string             `json:"key"`
+	Sensitive bool               `json:"sensitive"`
+	UpdatedAt time.Time          `json:"updatedAt"`
+
+	// Value Value may be string, number, boolean, array, or object according to valueType.
+	Value     interface{} `json:"value,omitempty"`
+	ValueType string      `json:"valueType"`
+	Version   int64       `json:"version"`
+}
+
+// SettingGroup defines model for SettingGroup.
+type SettingGroup struct {
+	Code         string             `json:"code"`
+	Description  *string            `json:"description,omitempty"`
+	Id           openapi_types.UUID `json:"id"`
+	Name         string             `json:"name"`
+	SettingCount *int64             `json:"settingCount,omitempty"`
+	Settings     *[]Setting         `json:"settings,omitempty"`
+	Sort         int                `json:"sort"`
+	Status       string             `json:"status"`
+
+	// Values Public/group values keyed by setting key.
+	Values *map[string]interface{} `json:"values,omitempty"`
+}
+
+// TemporaryPassword defines model for TemporaryPassword.
+type TemporaryPassword struct {
+	TemporaryPassword string `json:"temporaryPassword"`
+}
 
 // UpdateUser defines model for UpdateUser.
 type UpdateUser struct {
@@ -296,6 +907,92 @@ type UserPage struct {
 	Page     *int    `json:"page,omitempty"`
 	PageSize *int    `json:"pageSize,omitempty"`
 	Total    *int64  `json:"total,omitempty"`
+}
+
+// WorkflowDefinition defines model for WorkflowDefinition.
+type WorkflowDefinition struct {
+	Code        string                 `json:"code"`
+	CreatedAt   time.Time              `json:"createdAt"`
+	CreatedBy   *openapi_types.UUID    `json:"createdBy,omitempty"`
+	Definition  map[string]interface{} `json:"definition"`
+	Description *string                `json:"description,omitempty"`
+	Id          openapi_types.UUID     `json:"id"`
+	Name        string                 `json:"name"`
+	PublishedAt *time.Time             `json:"publishedAt,omitempty"`
+	Status      string                 `json:"status"`
+	UpdatedAt   time.Time              `json:"updatedAt"`
+	Version     int                    `json:"version"`
+}
+
+// WorkflowDefinitionPage defines model for WorkflowDefinitionPage.
+type WorkflowDefinitionPage struct {
+	Items    []WorkflowDefinition `json:"items"`
+	Page     int                  `json:"page"`
+	PageSize int                  `json:"pageSize"`
+	Total    int64                `json:"total"`
+}
+
+// WorkflowEvent defines model for WorkflowEvent.
+type WorkflowEvent struct {
+	ActorUserId *openapi_types.UUID     `json:"actorUserId,omitempty"`
+	Comment     *string                 `json:"comment,omitempty"`
+	CreatedAt   *time.Time              `json:"createdAt,omitempty"`
+	FromNode    *string                 `json:"fromNode,omitempty"`
+	Id          *openapi_types.UUID     `json:"id,omitempty"`
+	InstanceId  *openapi_types.UUID     `json:"instanceId,omitempty"`
+	Metadata    *map[string]interface{} `json:"metadata,omitempty"`
+	TaskId      *openapi_types.UUID     `json:"taskId,omitempty"`
+	ToNode      *string                 `json:"toNode,omitempty"`
+	Type        *string                 `json:"type,omitempty"`
+}
+
+// WorkflowInstance defines model for WorkflowInstance.
+type WorkflowInstance struct {
+	BusinessId      *string                 `json:"businessId,omitempty"`
+	CurrentNodeCode *string                 `json:"currentNodeCode,omitempty"`
+	DefinitionId    *openapi_types.UUID     `json:"definitionId,omitempty"`
+	DefinitionName  *string                 `json:"definitionName,omitempty"`
+	FinishedAt      *time.Time              `json:"finishedAt,omitempty"`
+	Id              *openapi_types.UUID     `json:"id,omitempty"`
+	InitiatorId     *openapi_types.UUID     `json:"initiatorId,omitempty"`
+	StartedAt       *time.Time              `json:"startedAt,omitempty"`
+	Status          *string                 `json:"status,omitempty"`
+	Variables       *map[string]interface{} `json:"variables,omitempty"`
+}
+
+// WorkflowInstancePage defines model for WorkflowInstancePage.
+type WorkflowInstancePage struct {
+	Items    []WorkflowInstance `json:"items"`
+	Page     int                `json:"page"`
+	PageSize int                `json:"pageSize"`
+	Total    int64              `json:"total"`
+}
+
+// WorkflowTask defines model for WorkflowTask.
+type WorkflowTask struct {
+	AssigneeId     *openapi_types.UUID `json:"assigneeId,omitempty"`
+	AssigneeRole   *string             `json:"assigneeRole,omitempty"`
+	BusinessId     *string             `json:"businessId,omitempty"`
+	Comment        *string             `json:"comment,omitempty"`
+	CompletedAt    *time.Time          `json:"completedAt,omitempty"`
+	CreatedAt      *time.Time          `json:"createdAt,omitempty"`
+	Decision       *string             `json:"decision,omitempty"`
+	DefinitionId   *openapi_types.UUID `json:"definitionId,omitempty"`
+	DefinitionName *string             `json:"definitionName,omitempty"`
+	DueAt          *time.Time          `json:"dueAt,omitempty"`
+	Id             *openapi_types.UUID `json:"id,omitempty"`
+	InstanceId     *openapi_types.UUID `json:"instanceId,omitempty"`
+	NodeCode       *string             `json:"nodeCode,omitempty"`
+	NodeName       *string             `json:"nodeName,omitempty"`
+	Status         *string             `json:"status,omitempty"`
+}
+
+// WorkflowTaskPage defines model for WorkflowTaskPage.
+type WorkflowTaskPage struct {
+	Items    []WorkflowTask `json:"items"`
+	Page     int            `json:"page"`
+	PageSize int            `json:"pageSize"`
+	Total    int64          `json:"total"`
 }
 
 // Id defines model for Id.
@@ -348,6 +1045,25 @@ type UploadFileMultipartBody struct {
 	GroupId *openapi_types.UUID `json:"groupId,omitempty"`
 }
 
+// AddGroupMembersJSONBody defines parameters for AddGroupMembers.
+type AddGroupMembersJSONBody struct {
+	UserIds []openapi_types.UUID `json:"userIds"`
+}
+
+// MuteGroupMemberJSONBody defines parameters for MuteGroupMember.
+type MuteGroupMemberJSONBody struct {
+	Muted bool `json:"muted"`
+}
+
+// UpdateGroupMemberRoleJSONBody defines parameters for UpdateGroupMemberRole.
+type UpdateGroupMemberRoleJSONBody struct {
+	IsAdmin *bool                              `json:"isAdmin,omitempty"`
+	Role    *UpdateGroupMemberRoleJSONBodyRole `json:"role,omitempty"`
+}
+
+// UpdateGroupMemberRoleJSONBodyRole defines parameters for UpdateGroupMemberRole.
+type UpdateGroupMemberRoleJSONBodyRole string
+
 // DirectMessageHistoryParams defines parameters for DirectMessageHistory.
 type DirectMessageHistoryParams struct {
 	Before *int64 `form:"before,omitempty" json:"before,omitempty"`
@@ -390,11 +1106,350 @@ type UnbindSocialIdentityJSONRequestBody UnbindSocialIdentityJSONBody
 // UploadFileMultipartRequestBody defines body for UploadFile for multipart/form-data ContentType.
 type UploadFileMultipartRequestBody UploadFileMultipartBody
 
+// AddGroupMembersJSONRequestBody defines body for AddGroupMembers for application/json ContentType.
+type AddGroupMembersJSONRequestBody AddGroupMembersJSONBody
+
+// MuteGroupMemberJSONRequestBody defines body for MuteGroupMember for application/json ContentType.
+type MuteGroupMemberJSONRequestBody MuteGroupMemberJSONBody
+
+// UpdateGroupMemberRoleJSONRequestBody defines body for UpdateGroupMemberRole for application/json ContentType.
+type UpdateGroupMemberRoleJSONRequestBody UpdateGroupMemberRoleJSONBody
+
 // SendDirectMessageJSONRequestBody defines body for SendDirectMessage for application/json ContentType.
 type SendDirectMessageJSONRequestBody = SendMessage
 
 // DecideWorkflowTaskJSONRequestBody defines body for DecideWorkflowTask for application/json ContentType.
 type DecideWorkflowTaskJSONRequestBody DecideWorkflowTaskJSONBody
+
+// AsLoginRequest0 returns the union data inside the LoginRequest as a LoginRequest0
+func (t LoginRequest) AsLoginRequest0() (LoginRequest0, error) {
+	var body LoginRequest0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLoginRequest0 overwrites any union data inside the LoginRequest as the provided LoginRequest0
+func (t *LoginRequest) FromLoginRequest0(v LoginRequest0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLoginRequest0 performs a merge with any union data inside the LoginRequest, using the provided LoginRequest0
+func (t *LoginRequest) MergeLoginRequest0(v LoginRequest0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLoginRequest1 returns the union data inside the LoginRequest as a LoginRequest1
+func (t LoginRequest) AsLoginRequest1() (LoginRequest1, error) {
+	var body LoginRequest1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLoginRequest1 overwrites any union data inside the LoginRequest as the provided LoginRequest1
+func (t *LoginRequest) FromLoginRequest1(v LoginRequest1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLoginRequest1 performs a merge with any union data inside the LoginRequest, using the provided LoginRequest1
+func (t *LoginRequest) MergeLoginRequest1(v LoginRequest1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLoginRequest2 returns the union data inside the LoginRequest as a LoginRequest2
+func (t LoginRequest) AsLoginRequest2() (LoginRequest2, error) {
+	var body LoginRequest2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLoginRequest2 overwrites any union data inside the LoginRequest as the provided LoginRequest2
+func (t *LoginRequest) FromLoginRequest2(v LoginRequest2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLoginRequest2 performs a merge with any union data inside the LoginRequest, using the provided LoginRequest2
+func (t *LoginRequest) MergeLoginRequest2(v LoginRequest2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsLoginRequest3 returns the union data inside the LoginRequest as a LoginRequest3
+func (t LoginRequest) AsLoginRequest3() (LoginRequest3, error) {
+	var body LoginRequest3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromLoginRequest3 overwrites any union data inside the LoginRequest as the provided LoginRequest3
+func (t *LoginRequest) FromLoginRequest3(v LoginRequest3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeLoginRequest3 performs a merge with any union data inside the LoginRequest, using the provided LoginRequest3
+func (t *LoginRequest) MergeLoginRequest3(v LoginRequest3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t LoginRequest) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.AuthCode != nil {
+		object["authCode"], err = json.Marshal(t.AuthCode)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'authCode': %w", err)
+		}
+	}
+
+	if t.CaptchaCode != nil {
+		object["captchaCode"], err = json.Marshal(t.CaptchaCode)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'captchaCode': %w", err)
+		}
+	}
+
+	if t.CaptchaId != nil {
+		object["captchaId"], err = json.Marshal(t.CaptchaId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'captchaId': %w", err)
+		}
+	}
+
+	if t.ClientType != nil {
+		object["clientType"], err = json.Marshal(t.ClientType)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'clientType': %w", err)
+		}
+	}
+
+	if t.DeviceName != nil {
+		object["deviceName"], err = json.Marshal(t.DeviceName)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'deviceName': %w", err)
+		}
+	}
+
+	if t.LoginType != nil {
+		object["loginType"], err = json.Marshal(t.LoginType)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'loginType': %w", err)
+		}
+	}
+
+	if t.MfaCode != nil {
+		object["mfaCode"], err = json.Marshal(t.MfaCode)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'mfaCode': %w", err)
+		}
+	}
+
+	if t.Password != nil {
+		object["password"], err = json.Marshal(t.Password)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'password': %w", err)
+		}
+	}
+
+	if t.Phone != nil {
+		object["phone"], err = json.Marshal(t.Phone)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'phone': %w", err)
+		}
+	}
+
+	if t.Platform != nil {
+		object["platform"], err = json.Marshal(t.Platform)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'platform': %w", err)
+		}
+	}
+
+	if t.RememberMe != nil {
+		object["rememberMe"], err = json.Marshal(t.RememberMe)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'rememberMe': %w", err)
+		}
+	}
+
+	if t.SmsCode != nil {
+		object["smsCode"], err = json.Marshal(t.SmsCode)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'smsCode': %w", err)
+		}
+	}
+
+	if t.Username != nil {
+		object["username"], err = json.Marshal(t.Username)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'username': %w", err)
+		}
+	}
+
+	if t.WxCode != nil {
+		object["wxCode"], err = json.Marshal(t.WxCode)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'wxCode': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *LoginRequest) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["authCode"]; found {
+		err = json.Unmarshal(raw, &t.AuthCode)
+		if err != nil {
+			return fmt.Errorf("error reading 'authCode': %w", err)
+		}
+	}
+
+	if raw, found := object["captchaCode"]; found {
+		err = json.Unmarshal(raw, &t.CaptchaCode)
+		if err != nil {
+			return fmt.Errorf("error reading 'captchaCode': %w", err)
+		}
+	}
+
+	if raw, found := object["captchaId"]; found {
+		err = json.Unmarshal(raw, &t.CaptchaId)
+		if err != nil {
+			return fmt.Errorf("error reading 'captchaId': %w", err)
+		}
+	}
+
+	if raw, found := object["clientType"]; found {
+		err = json.Unmarshal(raw, &t.ClientType)
+		if err != nil {
+			return fmt.Errorf("error reading 'clientType': %w", err)
+		}
+	}
+
+	if raw, found := object["deviceName"]; found {
+		err = json.Unmarshal(raw, &t.DeviceName)
+		if err != nil {
+			return fmt.Errorf("error reading 'deviceName': %w", err)
+		}
+	}
+
+	if raw, found := object["loginType"]; found {
+		err = json.Unmarshal(raw, &t.LoginType)
+		if err != nil {
+			return fmt.Errorf("error reading 'loginType': %w", err)
+		}
+	}
+
+	if raw, found := object["mfaCode"]; found {
+		err = json.Unmarshal(raw, &t.MfaCode)
+		if err != nil {
+			return fmt.Errorf("error reading 'mfaCode': %w", err)
+		}
+	}
+
+	if raw, found := object["password"]; found {
+		err = json.Unmarshal(raw, &t.Password)
+		if err != nil {
+			return fmt.Errorf("error reading 'password': %w", err)
+		}
+	}
+
+	if raw, found := object["phone"]; found {
+		err = json.Unmarshal(raw, &t.Phone)
+		if err != nil {
+			return fmt.Errorf("error reading 'phone': %w", err)
+		}
+	}
+
+	if raw, found := object["platform"]; found {
+		err = json.Unmarshal(raw, &t.Platform)
+		if err != nil {
+			return fmt.Errorf("error reading 'platform': %w", err)
+		}
+	}
+
+	if raw, found := object["rememberMe"]; found {
+		err = json.Unmarshal(raw, &t.RememberMe)
+		if err != nil {
+			return fmt.Errorf("error reading 'rememberMe': %w", err)
+		}
+	}
+
+	if raw, found := object["smsCode"]; found {
+		err = json.Unmarshal(raw, &t.SmsCode)
+		if err != nil {
+			return fmt.Errorf("error reading 'smsCode': %w", err)
+		}
+	}
+
+	if raw, found := object["username"]; found {
+		err = json.Unmarshal(raw, &t.Username)
+		if err != nil {
+			return fmt.Errorf("error reading 'username': %w", err)
+		}
+	}
+
+	if raw, found := object["wxCode"]; found {
+		err = json.Unmarshal(raw, &t.WxCode)
+		if err != nil {
+			return fmt.Errorf("error reading 'wxCode': %w", err)
+		}
+	}
+
+	return err
+}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -681,6 +1736,15 @@ type ServerInterface interface {
 	// (POST /api/v1/groups/{groupId}/members)
 	AddGroupMembers(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID)
 
+	// (DELETE /api/v1/groups/{groupId}/members/{memberId})
+	RemoveGroupMember(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID, memberId openapi_types.UUID)
+
+	// (POST /api/v1/groups/{groupId}/members/{memberId}/mute)
+	MuteGroupMember(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID, memberId openapi_types.UUID)
+
+	// (POST /api/v1/groups/{groupId}/members/{memberId}/role)
+	UpdateGroupMemberRole(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID, memberId openapi_types.UUID)
+
 	// (GET /api/v1/groups/{groupId}/messages)
 	ListGroupMessages(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID)
 
@@ -689,6 +1753,9 @@ type ServerInterface interface {
 
 	// (POST /api/v1/groups/{groupId}/quit)
 	QuitGroup(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID)
+
+	// (POST /api/v1/groups/{groupId}/transfer/{newOwnerId})
+	TransferGroupOwner(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID, newOwnerId openapi_types.UUID)
 
 	// (POST /api/v1/messages)
 	SendDirectMessage(w http.ResponseWriter, r *http.Request)
@@ -1264,6 +2331,21 @@ func (_ Unimplemented) AddGroupMembers(w http.ResponseWriter, r *http.Request, g
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// (DELETE /api/v1/groups/{groupId}/members/{memberId})
+func (_ Unimplemented) RemoveGroupMember(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID, memberId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /api/v1/groups/{groupId}/members/{memberId}/mute)
+func (_ Unimplemented) MuteGroupMember(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID, memberId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /api/v1/groups/{groupId}/members/{memberId}/role)
+func (_ Unimplemented) UpdateGroupMemberRole(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID, memberId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // (GET /api/v1/groups/{groupId}/messages)
 func (_ Unimplemented) ListGroupMessages(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -1276,6 +2358,11 @@ func (_ Unimplemented) SendGroupMessage(w http.ResponseWriter, r *http.Request, 
 
 // (POST /api/v1/groups/{groupId}/quit)
 func (_ Unimplemented) QuitGroup(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /api/v1/groups/{groupId}/transfer/{newOwnerId})
+func (_ Unimplemented) TransferGroupOwner(w http.ResponseWriter, r *http.Request, groupId openapi_types.UUID, newOwnerId openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3398,6 +4485,111 @@ func (siw *ServerInterfaceWrapper) AddGroupMembers(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// RemoveGroupMember operation middleware
+func (siw *ServerInterfaceWrapper) RemoveGroupMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "memberId" -------------
+	var memberId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "memberId", chi.URLParam(r, "memberId"), &memberId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "memberId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveGroupMember(w, r, groupId, memberId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MuteGroupMember operation middleware
+func (siw *ServerInterfaceWrapper) MuteGroupMember(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "memberId" -------------
+	var memberId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "memberId", chi.URLParam(r, "memberId"), &memberId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "memberId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MuteGroupMember(w, r, groupId, memberId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateGroupMemberRole operation middleware
+func (siw *ServerInterfaceWrapper) UpdateGroupMemberRole(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "memberId" -------------
+	var memberId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "memberId", chi.URLParam(r, "memberId"), &memberId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "memberId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateGroupMemberRole(w, r, groupId, memberId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListGroupMessages operation middleware
 func (siw *ServerInterfaceWrapper) ListGroupMessages(w http.ResponseWriter, r *http.Request) {
 
@@ -3467,6 +4659,41 @@ func (siw *ServerInterfaceWrapper) QuitGroup(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.QuitGroup(w, r, groupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TransferGroupOwner operation middleware
+func (siw *ServerInterfaceWrapper) TransferGroupOwner(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "newOwnerId" -------------
+	var newOwnerId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "newOwnerId", chi.URLParam(r, "newOwnerId"), &newOwnerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "newOwnerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TransferGroupOwner(w, r, groupId, newOwnerId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4551,6 +5778,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/v1/groups/{groupId}/members", wrapper.AddGroupMembers)
 	})
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/groups/{groupId}/members/{memberId}", wrapper.RemoveGroupMember)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/groups/{groupId}/members/{memberId}/role", wrapper.UpdateGroupMemberRole)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/groups/{groupId}/members/{memberId}/mute", wrapper.MuteGroupMember)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/groups/{groupId}/transfer/{newOwnerId}", wrapper.TransferGroupOwner)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/groups/{groupId}/messages", wrapper.ListGroupMessages)
 	})
 	r.Group(func(r chi.Router) {
@@ -4658,82 +5897,126 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"vmv7tP3/AQA=",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

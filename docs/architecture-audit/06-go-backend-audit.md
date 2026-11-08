@@ -39,7 +39,7 @@ cmd/*
 ### Scale
 
 - OpenAPI 3.1 文件：`api/openapi/v1/openapi.yaml`。
-- 95 paths，130 operations。
+- Phase 1 后为 99 paths，134 operations；所有 2xx response 都有 content schema。
 - `api/openapi_test.go` 验证 OpenAPI 文档可加载、operationId 唯一。
 - 规范 API 前缀：`/api/v1/*`。
 - 旧 API：`/api/*`，由 `internal/platform/compat` 包装。
@@ -159,12 +159,12 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 
 | ID | 问题 | 级别 | 证据/建议 |
 | --- | --- | --- | --- |
-| GO-ARCH-001 | Identity PostgreSQL adapter 直接依赖 Access sqlc | P2 | `internal/modules/identity/adapter/postgres/repository.go`；改为使用方定义的 AccessReader |
-| GO-ARCH-002 | Notification adapter 直接依赖 Messaging sqlc | P2 | `notification/adapter/postgres/repository.go`、`notification/adapter/river/backend.go`；拆 notification-owned queries |
+| GO-ARCH-001 | Identity PostgreSQL adapter 直接依赖 Access sqlc | 已修复 | `db/queries/identity/users.sql` + identity-owned sqlc |
+| GO-ARCH-002 | Notification adapter 直接依赖 Messaging sqlc | 已修复 | `db/queries/notification/notification.sql` + notification-owned sqlc |
 | GO-ARCH-003 | Domain Repository 接口过大 | P2 | Identity/Access/Messaging；按用例拆分 reader/store |
 | GO-ARCH-004 | Monitoring 直接读多模块表 | P2 | 标记为 read model；长期使用 view/独立 dashboard query |
-| GO-ARCH-005 | Workflow 实例级 Data Scope 缺失 | P1/P2 | 读 API 当前只检查 `workflow:read` |
-| GO-ARCH-006 | Legacy stubs 返回固定成功/空数据 | P2 | `legacySchedulerStatistics`、`legacyCleanLogs`、`legacyNoFiles` 等；应明确 not-configured 或实现真实能力 |
+| GO-ARCH-005 | Workflow 实例级 Data Scope 缺失 | 已修复 | 实例/详情/事件 SQL 使用统一 visibility predicate |
+| GO-ARCH-006 | Legacy stubs 返回固定成功/空数据 | 已处理已确认项 | 调度统计读取真实 run；无能力接口返回 501 Problem |
 
 ## 8. Verification Status
 
@@ -181,3 +181,27 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 - `docs/audit-final/final-verification.md`：最终运行态。
 
 结论：Go 后端已达到较强的工程基础，但不是“生产就绪”证明；支付、Workflow Data Scope、Provider 认证、OpenAPI 完整性和覆盖率缺口仍是明确风险。
+
+## 9. Phase 1 Remediation Update
+
+### Resolved
+
+- `GO-API-001`：`/metrics` 保持 `audit:read`，OpenAPI 继承安全方案并声明权限、401/403/500。
+- `GO-API-002`：新登录 API 使用 `captchaId`/`captchaCode`、`expiresAt`；旧字段和 `expiresIn` 只存在于 legacy adapter。
+- `GO-API-003`：新 API 分页固定为 `items/total/page/pageSize`；旧别名只在兼容边界保留。
+- `GO-API-004`：OpenAPI 当前所有 2xx response 都有 content schema；动态 metadata/settings/variables 保留明确说明。
+- `GO-API-005`：群组成员删除、角色、禁言和群主转让已进入 OpenAPI。
+- `GO-ARCH-001`：Identity 不再直接导入 Access sqlc。
+- `GO-ARCH-002`：Notification 不再直接导入 Messaging sqlc。
+- `GO-ARCH-005`：Workflow 实例、详情和事件读取执行实例级 Data Scope。
+- `GO-ARCH-006`：已确认的 Legacy Stub 已改为真实统计或显式 501 Problem。
+- PostgreSQL SQLSTATE 在 `internal/platform/httpserver/json.go` 统一映射，包含唯一、外键、非空、检查、序列化、死锁和取消。
+- Access 的 Role/Menu Repository 和 Workflow 的 Definition/Runtime Repository 已按使用方拆分。
+
+### Remaining
+
+- Identity 和 Notification 的 Repository 仍然偏大，未做无收益的全量重写。
+- 漏洞资产、漏洞和修复工单没有 Go 领域模块，属于产品决策后的 Phase 6。
+- 支付没有订单状态账本和回调 replay ledger；本轮没有虚构支付结算。
+- 外部 Provider 仍然只保证至少一次投递和显式 not-configured。
+- 生产数据切换、Provider 认证、真实对象存储测试和 React 视觉回归未执行。

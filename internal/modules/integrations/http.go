@@ -25,7 +25,7 @@ func NewHandler(registry *Registry, auth func(http.Handler) http.Handler, logger
 func (h *Handler) Routes() chi.Router {
 	router := chi.NewRouter()
 	router.Use(h.auth)
-	router.Get("/", h.statuses)
+	router.With(httpserver.RequirePermission("settings:read")).Get("/", h.statuses)
 	router.With(httpserver.RequirePermission("settings:manage")).Post("/payments/{provider}", h.createPayment)
 	return router
 }

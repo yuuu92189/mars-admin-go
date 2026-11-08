@@ -52,6 +52,16 @@ sql:
         emit_empty_slices: true
   - engine: postgresql
     schema: db/migrations
+    queries: db/queries/notification
+    gen:
+      go:
+        package: notificationsqlc
+        out: internal/modules/notification/adapter/postgres/sqlc
+        sql_package: pgx/v5
+        emit_json_tags: true
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: db/migrations
     queries: db/queries/storage
     gen:
       go:

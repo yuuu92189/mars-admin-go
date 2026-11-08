@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"mars-admin-go/internal/modules/integrations"
-	messagingsqlc "mars-admin-go/internal/modules/messaging/adapter/postgres/sqlc"
+	notificationsqlc "mars-admin-go/internal/modules/notification/adapter/postgres/sqlc"
 	"mars-admin-go/internal/platform/apperror"
 
 	"github.com/google/uuid"
@@ -130,7 +130,7 @@ func (w *dispatchWorker) Timeout(*river.Job[DispatchArgs]) time.Duration {
 }
 
 func (w *dispatchWorker) Work(ctx context.Context, job *river.Job[DispatchArgs]) error {
-	q := messagingsqlc.New(w.pool)
+	q := notificationsqlc.New(w.pool)
 	notice, err := q.GetNotice(ctx, pgUUID(job.Args.NoticeID))
 	if err != nil {
 		return err
@@ -198,7 +198,7 @@ func (w *dispatchWorker) Work(ctx context.Context, job *river.Job[DispatchArgs])
 			errorMessage = errorMessage[:500]
 		}
 	}
-	if err := q.InsertNoticeSendLog(ctx, messagingsqlc.InsertNoticeSendLogParams{
+	if err := q.InsertNoticeSendLog(ctx, notificationsqlc.InsertNoticeSendLogParams{
 		ID: pgUUID(mustID()), NoticeID: pgUUID(job.Args.NoticeID), Channel: job.Args.Channel,
 		Status: status, TargetCount: targetCount, SuccessCount: successCount, ErrorMessage: errorMessage,
 	}); err != nil {
@@ -214,7 +214,7 @@ func (w *dispatchWorker) Work(ctx context.Context, job *river.Job[DispatchArgs])
 func sendSMSCampaign(
 	ctx context.Context,
 	provider integrations.SMSProvider,
-	contacts []messagingsqlc.ListNoticeRecipientContactsRow,
+	contacts []notificationsqlc.ListNoticeRecipientContactsRow,
 	title, content string,
 ) (int32, error) {
 	successCount := int32(0)

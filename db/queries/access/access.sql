@@ -1,16 +1,3 @@
--- name: GetUserAccess :many
-SELECT
-    r.code AS role_code,
-    r.is_super_admin,
-    r.data_scope,
-    COALESCE(p.code, '') AS permission_code
-FROM access_user_roles ur
-JOIN access_roles r ON r.id = ur.role_id
-LEFT JOIN access_role_permissions rp ON rp.role_id = r.id
-LEFT JOIN access_permissions p ON p.id = rp.permission_id
-WHERE ur.user_id = $1 AND r.status = 'active' AND r.deleted_at IS NULL
-ORDER BY r.code, p.code;
-
 -- name: ListMenusForUser :many
 SELECT DISTINCT m.*
 FROM access_menus m

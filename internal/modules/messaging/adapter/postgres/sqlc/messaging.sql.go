@@ -33,17 +33,6 @@ func (q *Queries) AddGroupMember(ctx context.Context, arg AddGroupMemberParams) 
 	return err
 }
 
-const addNoticeRecipient = `-- name: AddNoticeRecipient :exec
-INSERT INTO notification_recipients (notice_id, user_id)
-SELECT $1, id FROM identity_users WHERE deleted_at IS NULL
-ON CONFLICT DO NOTHING
-`
-
-func (q *Queries) AddNoticeRecipient(ctx context.Context, noticeID pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, addNoticeRecipient, noticeID)
-	return err
-}
-
 const blockUser = `-- name: BlockUser :exec
 INSERT INTO messaging_user_blocks (user_id, blocked_user_id)
 VALUES ($1, $2) ON CONFLICT DO NOTHING
@@ -94,43 +83,6 @@ func (q *Queries) CountDirectUnread(ctx context.Context, receiverID pgtype.UUID)
 	return count, err
 }
 
-const countMyNotices = `-- name: CountMyNotices :one
-SELECT count(*)
-FROM notification_notices n
-JOIN notification_recipients r ON r.notice_id = n.id
-WHERE r.user_id = $1 AND n.status = 'published'
-`
-
-func (q *Queries) CountMyNotices(ctx context.Context, userID pgtype.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countMyNotices, userID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countNotices = `-- name: CountNotices :one
-SELECT count(*) FROM notification_notices WHERE ($1::text = '' OR status = $1)
-`
-
-func (q *Queries) CountNotices(ctx context.Context, dollar_1 string) (int64, error) {
-	row := q.db.QueryRow(ctx, countNotices, dollar_1)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countUnreadNotices = `-- name: CountUnreadNotices :one
-SELECT count(*) FROM notification_recipients
-WHERE user_id = $1 AND read_at IS NULL
-`
-
-func (q *Queries) CountUnreadNotices(ctx context.Context, userID pgtype.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countUnreadNotices, userID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createGroup = `-- name: CreateGroup :one
 INSERT INTO messaging_groups (id, name, avatar_url, owner_id)
 VALUES ($1, $2, $3, $4)
@@ -161,56 +113,6 @@ func (q *Queries) CreateGroup(ctx context.Context, arg CreateGroupParams) (Messa
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DissolvedAt,
-	)
-	return i, err
-}
-
-const createNotice = `-- name: CreateNotice :one
-INSERT INTO notification_notices (
-    id, title, content, notice_type, channels, target_type, target_ids, status, created_by
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, title, content, notice_type, channels, target_type, target_ids, status, created_by, created_at, updated_at, published_at, withdrawn_at
-`
-
-type CreateNoticeParams struct {
-	ID         pgtype.UUID `json:"id"`
-	Title      string      `json:"title"`
-	Content    string      `json:"content"`
-	NoticeType int16       `json:"notice_type"`
-	Channels   []byte      `json:"channels"`
-	TargetType string      `json:"target_type"`
-	TargetIds  []byte      `json:"target_ids"`
-	Status     string      `json:"status"`
-	CreatedBy  pgtype.UUID `json:"created_by"`
-}
-
-func (q *Queries) CreateNotice(ctx context.Context, arg CreateNoticeParams) (NotificationNotice, error) {
-	row := q.db.QueryRow(ctx, createNotice,
-		arg.ID,
-		arg.Title,
-		arg.Content,
-		arg.NoticeType,
-		arg.Channels,
-		arg.TargetType,
-		arg.TargetIds,
-		arg.Status,
-		arg.CreatedBy,
-	)
-	var i NotificationNotice
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Content,
-		&i.NoticeType,
-		&i.Channels,
-		&i.TargetType,
-		&i.TargetIds,
-		&i.Status,
-		&i.CreatedBy,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.PublishedAt,
-		&i.WithdrawnAt,
 	)
 	return i, err
 }
@@ -274,82 +176,6 @@ func (q *Queries) GetMessage(ctx context.Context, id pgtype.UUID) (MessagingMess
 		&i.EditedAt,
 		&i.RecalledAt,
 		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getMyNotice = `-- name: GetMyNotice :one
-SELECT n.id, n.title, n.content, n.notice_type, n.channels, n.target_type, n.target_ids, n.status, n.created_by, n.created_at, n.updated_at, n.published_at, n.withdrawn_at, r.read_at
-FROM notification_notices n
-JOIN notification_recipients r ON r.notice_id = n.id
-WHERE n.id = $1 AND r.user_id = $2 AND n.status = 'published'
-`
-
-type GetMyNoticeParams struct {
-	ID     pgtype.UUID `json:"id"`
-	UserID pgtype.UUID `json:"user_id"`
-}
-
-type GetMyNoticeRow struct {
-	ID          pgtype.UUID        `json:"id"`
-	Title       string             `json:"title"`
-	Content     string             `json:"content"`
-	NoticeType  int16              `json:"notice_type"`
-	Channels    []byte             `json:"channels"`
-	TargetType  string             `json:"target_type"`
-	TargetIds   []byte             `json:"target_ids"`
-	Status      string             `json:"status"`
-	CreatedBy   pgtype.UUID        `json:"created_by"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	PublishedAt pgtype.Timestamptz `json:"published_at"`
-	WithdrawnAt pgtype.Timestamptz `json:"withdrawn_at"`
-	ReadAt      pgtype.Timestamptz `json:"read_at"`
-}
-
-func (q *Queries) GetMyNotice(ctx context.Context, arg GetMyNoticeParams) (GetMyNoticeRow, error) {
-	row := q.db.QueryRow(ctx, getMyNotice, arg.ID, arg.UserID)
-	var i GetMyNoticeRow
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Content,
-		&i.NoticeType,
-		&i.Channels,
-		&i.TargetType,
-		&i.TargetIds,
-		&i.Status,
-		&i.CreatedBy,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.PublishedAt,
-		&i.WithdrawnAt,
-		&i.ReadAt,
-	)
-	return i, err
-}
-
-const getNotice = `-- name: GetNotice :one
-SELECT id, title, content, notice_type, channels, target_type, target_ids, status, created_by, created_at, updated_at, published_at, withdrawn_at FROM notification_notices WHERE id = $1
-`
-
-func (q *Queries) GetNotice(ctx context.Context, id pgtype.UUID) (NotificationNotice, error) {
-	row := q.db.QueryRow(ctx, getNotice, id)
-	var i NotificationNotice
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Content,
-		&i.NoticeType,
-		&i.Channels,
-		&i.TargetType,
-		&i.TargetIds,
-		&i.Status,
-		&i.CreatedBy,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.PublishedAt,
-		&i.WithdrawnAt,
 	)
 	return i, err
 }
@@ -452,35 +278,6 @@ func (q *Queries) InsertGroupMessage(ctx context.Context, arg InsertGroupMessage
 		&i.CreatedAt,
 	)
 	return i, err
-}
-
-const insertNoticeSendLog = `-- name: InsertNoticeSendLog :exec
-INSERT INTO notification_send_logs (
-    id, notice_id, channel, status, target_count, success_count, error_message
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
-`
-
-type InsertNoticeSendLogParams struct {
-	ID           pgtype.UUID `json:"id"`
-	NoticeID     pgtype.UUID `json:"notice_id"`
-	Channel      string      `json:"channel"`
-	Status       string      `json:"status"`
-	TargetCount  int32       `json:"target_count"`
-	SuccessCount int32       `json:"success_count"`
-	ErrorMessage string      `json:"error_message"`
-}
-
-func (q *Queries) InsertNoticeSendLog(ctx context.Context, arg InsertNoticeSendLogParams) error {
-	_, err := q.db.Exec(ctx, insertNoticeSendLog,
-		arg.ID,
-		arg.NoticeID,
-		arg.Channel,
-		arg.Status,
-		arg.TargetCount,
-		arg.SuccessCount,
-		arg.ErrorMessage,
-	)
-	return err
 }
 
 const isGroupMember = `-- name: IsGroupMember :one
@@ -779,175 +576,6 @@ func (q *Queries) ListGroupsForUser(ctx context.Context, userID pgtype.UUID) ([]
 	return items, nil
 }
 
-const listMyNotices = `-- name: ListMyNotices :many
-SELECT n.id, n.title, n.content, n.notice_type, n.channels, n.target_type, n.target_ids, n.status, n.created_by, n.created_at, n.updated_at, n.published_at, n.withdrawn_at, r.read_at
-FROM notification_notices n
-JOIN notification_recipients r ON r.notice_id = n.id
-WHERE r.user_id = $1 AND n.status = 'published'
-ORDER BY n.published_at DESC
-LIMIT $2 OFFSET $3
-`
-
-type ListMyNoticesParams struct {
-	UserID pgtype.UUID `json:"user_id"`
-	Limit  int32       `json:"limit"`
-	Offset int32       `json:"offset"`
-}
-
-type ListMyNoticesRow struct {
-	ID          pgtype.UUID        `json:"id"`
-	Title       string             `json:"title"`
-	Content     string             `json:"content"`
-	NoticeType  int16              `json:"notice_type"`
-	Channels    []byte             `json:"channels"`
-	TargetType  string             `json:"target_type"`
-	TargetIds   []byte             `json:"target_ids"`
-	Status      string             `json:"status"`
-	CreatedBy   pgtype.UUID        `json:"created_by"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	PublishedAt pgtype.Timestamptz `json:"published_at"`
-	WithdrawnAt pgtype.Timestamptz `json:"withdrawn_at"`
-	ReadAt      pgtype.Timestamptz `json:"read_at"`
-}
-
-func (q *Queries) ListMyNotices(ctx context.Context, arg ListMyNoticesParams) ([]ListMyNoticesRow, error) {
-	rows, err := q.db.Query(ctx, listMyNotices, arg.UserID, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListMyNoticesRow{}
-	for rows.Next() {
-		var i ListMyNoticesRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Content,
-			&i.NoticeType,
-			&i.Channels,
-			&i.TargetType,
-			&i.TargetIds,
-			&i.Status,
-			&i.CreatedBy,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.PublishedAt,
-			&i.WithdrawnAt,
-			&i.ReadAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listNoticeRecipientContacts = `-- name: ListNoticeRecipientContacts :many
-SELECT u.id, u.username, u.display_name, u.phone, u.email
-FROM notification_recipients recipient
-JOIN identity_users u ON u.id = recipient.user_id
-WHERE recipient.notice_id = $1 AND u.deleted_at IS NULL AND u.status = 'active'
-ORDER BY u.id
-`
-
-type ListNoticeRecipientContactsRow struct {
-	ID          pgtype.UUID `json:"id"`
-	Username    string      `json:"username"`
-	DisplayName string      `json:"display_name"`
-	Phone       pgtype.Text `json:"phone"`
-	Email       pgtype.Text `json:"email"`
-}
-
-func (q *Queries) ListNoticeRecipientContacts(ctx context.Context, noticeID pgtype.UUID) ([]ListNoticeRecipientContactsRow, error) {
-	rows, err := q.db.Query(ctx, listNoticeRecipientContacts, noticeID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListNoticeRecipientContactsRow{}
-	for rows.Next() {
-		var i ListNoticeRecipientContactsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Username,
-			&i.DisplayName,
-			&i.Phone,
-			&i.Email,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listNotices = `-- name: ListNotices :many
-SELECT id, title, content, notice_type, channels, target_type, target_ids, status, created_by, created_at, updated_at, published_at, withdrawn_at FROM notification_notices
-WHERE ($1::text = '' OR status = $1)
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
-`
-
-type ListNoticesParams struct {
-	Column1 string `json:"column_1"`
-	Limit   int32  `json:"limit"`
-	Offset  int32  `json:"offset"`
-}
-
-func (q *Queries) ListNotices(ctx context.Context, arg ListNoticesParams) ([]NotificationNotice, error) {
-	rows, err := q.db.Query(ctx, listNotices, arg.Column1, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []NotificationNotice{}
-	for rows.Next() {
-		var i NotificationNotice
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Content,
-			&i.NoticeType,
-			&i.Channels,
-			&i.TargetType,
-			&i.TargetIds,
-			&i.Status,
-			&i.CreatedBy,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.PublishedAt,
-			&i.WithdrawnAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const markAllNoticesRead = `-- name: MarkAllNoticesRead :execrows
-UPDATE notification_recipients SET read_at = now()
-WHERE user_id = $1 AND read_at IS NULL
-`
-
-func (q *Queries) MarkAllNoticesRead(ctx context.Context, userID pgtype.UUID) (int64, error) {
-	result, err := q.db.Exec(ctx, markAllNoticesRead, userID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const markDirectMessagesRead = `-- name: MarkDirectMessagesRead :exec
 INSERT INTO messaging_read_receipts (message_id, user_id)
 SELECT id, $1
@@ -965,38 +593,6 @@ type MarkDirectMessagesReadParams struct {
 func (q *Queries) MarkDirectMessagesRead(ctx context.Context, arg MarkDirectMessagesReadParams) error {
 	_, err := q.db.Exec(ctx, markDirectMessagesRead, arg.UserID, arg.SenderID, arg.CreatedAt)
 	return err
-}
-
-const markNoticeRead = `-- name: MarkNoticeRead :execrows
-UPDATE notification_recipients SET read_at = now()
-WHERE notice_id = $1 AND user_id = $2 AND read_at IS NULL
-`
-
-type MarkNoticeReadParams struct {
-	NoticeID pgtype.UUID `json:"notice_id"`
-	UserID   pgtype.UUID `json:"user_id"`
-}
-
-func (q *Queries) MarkNoticeRead(ctx context.Context, arg MarkNoticeReadParams) (int64, error) {
-	result, err := q.db.Exec(ctx, markNoticeRead, arg.NoticeID, arg.UserID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const publishNotice = `-- name: PublishNotice :execrows
-UPDATE notification_notices
-SET status = 'published', published_at = now(), updated_at = now()
-WHERE id = $1 AND status = 'draft'
-`
-
-func (q *Queries) PublishNotice(ctx context.Context, id pgtype.UUID) (int64, error) {
-	result, err := q.db.Exec(ctx, publishNotice, id)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
 }
 
 const quitGroup = `-- name: QuitGroup :execrows
@@ -1153,67 +749,6 @@ type UpdateGroupMemberRoleParams struct {
 
 func (q *Queries) UpdateGroupMemberRole(ctx context.Context, arg UpdateGroupMemberRoleParams) (int64, error) {
 	result, err := q.db.Exec(ctx, updateGroupMemberRole, arg.GroupID, arg.UserID, arg.MemberRole)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const updateNotice = `-- name: UpdateNotice :one
-UPDATE notification_notices
-SET title = $2, content = $3, notice_type = $4, channels = $5,
-    target_type = $6, target_ids = $7, updated_at = now()
-WHERE id = $1 AND status = 'draft'
-RETURNING id, title, content, notice_type, channels, target_type, target_ids, status, created_by, created_at, updated_at, published_at, withdrawn_at
-`
-
-type UpdateNoticeParams struct {
-	ID         pgtype.UUID `json:"id"`
-	Title      string      `json:"title"`
-	Content    string      `json:"content"`
-	NoticeType int16       `json:"notice_type"`
-	Channels   []byte      `json:"channels"`
-	TargetType string      `json:"target_type"`
-	TargetIds  []byte      `json:"target_ids"`
-}
-
-func (q *Queries) UpdateNotice(ctx context.Context, arg UpdateNoticeParams) (NotificationNotice, error) {
-	row := q.db.QueryRow(ctx, updateNotice,
-		arg.ID,
-		arg.Title,
-		arg.Content,
-		arg.NoticeType,
-		arg.Channels,
-		arg.TargetType,
-		arg.TargetIds,
-	)
-	var i NotificationNotice
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Content,
-		&i.NoticeType,
-		&i.Channels,
-		&i.TargetType,
-		&i.TargetIds,
-		&i.Status,
-		&i.CreatedBy,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.PublishedAt,
-		&i.WithdrawnAt,
-	)
-	return i, err
-}
-
-const withdrawNotice = `-- name: WithdrawNotice :execrows
-UPDATE notification_notices
-SET status = 'withdrawn', withdrawn_at = now(), updated_at = now()
-WHERE id = $1 AND status = 'published'
-`
-
-func (q *Queries) WithdrawNotice(ctx context.Context, id pgtype.UUID) (int64, error) {
-	result, err := q.db.Exec(ctx, withdrawNotice, id)
 	if err != nil {
 		return 0, err
 	}

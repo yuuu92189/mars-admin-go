@@ -77,8 +77,8 @@ type LoginInput struct {
 	IPAddress   string `json:"-"`
 	UserAgent   string `json:"-"`
 	RememberMe  bool   `json:"rememberMe"`
-	CaptchaID   string `json:"uuid,omitempty"`
-	CaptchaCode string `json:"code,omitempty"`
+	CaptchaID   string `json:"captchaId,omitempty"`
+	CaptchaCode string `json:"captchaCode,omitempty"`
 	MFACode     string `json:"mfaCode,omitempty"`
 	LoginType   string `json:"loginType,omitempty"`
 	WXCode      string `json:"wxCode,omitempty"`

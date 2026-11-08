@@ -60,8 +60,8 @@ C:\Users\admin\Desktop\admin\
 | Go files | 163 | 递归清点 |
 | Goose migrations | 23，编号 `000001` 至 `000023` | `db/migrations` |
 | SQL query files | 11 | `db/queries` |
-| OpenAPI paths | 95 | `api/openapi/v1/openapi.yaml` |
-| OpenAPI operations | 130 | `operationId` 清点 |
+| OpenAPI paths | 99（Phase 1 后） | `api/openapi/v1/openapi.yaml` |
+| OpenAPI operations | 134（Phase 1 后） | `operationId` 清点 |
 | Entrypoints | API、Worker、Migrate、Legacy Import、Outbox | `cmd/*` |
 | Domain modules | Identity、Access、Organization、System、Audit、Monitoring、Storage、Messaging、Notification、Scheduler、Workflow、Codegen、Integrations、Outbox | `internal/modules` |
 | Platform | Config、Database、Cache、Logging、Telemetry、HTTP、Security、Request Context、Outbox、Shutdown | `internal/platform` |

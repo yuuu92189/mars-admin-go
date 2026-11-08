@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 const defaultMaxJSONBody = 1 << 20
@@ -121,6 +122,13 @@ func WriteError(w http.ResponseWriter, r *http.Request, logger *slog.Logger, err
 	var appErr *apperror.Error
 	if errors.As(err, &appErr) {
 		status := apperror.HTTPStatus(err)
+		if status >= 500 {
+			if problem, ok := databaseProblem(err); ok {
+				logger.WarnContext(r.Context(), "database application error", "sqlstate", sqlState(err), "path", r.URL.Path)
+				WriteProblem(w, r, problem)
+				return
+			}
+		}
 		problem = NewProblem(status, appErr.Code, appErr.Message)
 		if appErr.Field != "" {
 			problem.Violations = []ValidationError{{Field: appErr.Field, Message: appErr.Message}}
@@ -131,21 +139,53 @@ func WriteError(w http.ResponseWriter, r *http.Request, logger *slog.Logger, err
 		WriteProblem(w, r, problem)
 		return
 	}
+	if problem, ok := databaseProblem(err); ok {
+		logger.WarnContext(r.Context(), "database request failed", "sqlstate", sqlState(err), "path", r.URL.Path)
+		WriteProblem(w, r, problem)
+		return
+	}
 	logger.ErrorContext(r.Context(), "request failed", "error", err, "path", r.URL.Path)
 	WriteProblem(w, r, NewProblem(http.StatusInternalServerError, "internal_error", "An internal error occurred."))
 }
 
 type PageResponse[T any] struct {
 	Items    []T   `json:"items"`
-	Records  []T   `json:"records"`
-	List     []T   `json:"list"`
 	Total    int64 `json:"total"`
 	Page     int   `json:"page"`
 	PageSize int   `json:"pageSize"`
 }
 
 func NewPage[T any](items []T, total int64, page, pageSize int) PageResponse[T] {
-	return PageResponse[T]{Items: items, Records: items, List: items, Total: total, Page: page, PageSize: pageSize}
+	return PageResponse[T]{Items: items, Total: total, Page: page, PageSize: pageSize}
+}
+
+func databaseProblem(err error) (Problem, bool) {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return Problem{}, false
+	}
+	switch pgErr.Code {
+	case "23505":
+		return NewProblem(http.StatusConflict, "resource_conflict", "The resource conflicts with an existing record."), true
+	case "23503":
+		return NewProblem(http.StatusConflict, "resource_in_use", "The resource is referenced by another record."), true
+	case "23502", "23514", "22P02":
+		return NewProblem(http.StatusUnprocessableEntity, "validation_failed", "The request contains a value that is not valid for this resource."), true
+	case "40001", "40P01":
+		return NewProblem(http.StatusConflict, "transaction_conflict", "The request could not be completed because of a concurrent change. Retry the request."), true
+	case "57014":
+		return NewProblem(http.StatusServiceUnavailable, "request_cancelled", "The database operation was cancelled."), true
+	default:
+		return Problem{}, false
+	}
+}
+
+func sqlState(err error) string {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code
+	}
+	return ""
 }
 
 func ParsePagination(r *http.Request, maxPageSize int) (int, int, error) {

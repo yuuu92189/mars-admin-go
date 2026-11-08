@@ -16,6 +16,7 @@ type Actor struct {
 	ClientType   string
 	Roles        []string
 	Permissions  []string
+	DataScope    string
 	IsSuperAdmin bool
 	ViaCookie    bool
 }

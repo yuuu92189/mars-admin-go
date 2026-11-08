@@ -13,12 +13,37 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type Service struct {
-	repo domain.Repository
+type DefinitionRepository interface {
+	CreateDefinition(ctx context.Context, definition domain.Definition) (domain.Definition, error)
+	GetDefinition(ctx context.Context, id uuid.UUID) (domain.Definition, error)
+	ListDefinitions(ctx context.Context, status string, page, pageSize int) ([]domain.Definition, int64, error)
+	PublishDefinition(ctx context.Context, id uuid.UUID) error
 }
 
-func New(repo domain.Repository) *Service {
-	return &Service{repo: repo}
+type RuntimeRepository interface {
+	Start(ctx context.Context, definition domain.Definition, actorID uuid.UUID, input domain.StartInput, node domain.Node) (domain.Instance, domain.Task, error)
+	GetInstance(ctx context.Context, id uuid.UUID, actor domain.Actor) (domain.Instance, error)
+	ListInstances(ctx context.Context, actor domain.Actor, page, pageSize int) ([]domain.Instance, int64, error)
+	Todo(ctx context.Context, actor domain.Actor, page, pageSize int) ([]domain.Task, int64, error)
+	Done(ctx context.Context, actor domain.Actor, page, pageSize int) ([]domain.Task, int64, error)
+	TaskContext(ctx context.Context, taskID uuid.UUID, actor domain.Actor) (domain.Task, domain.Instance, domain.Definition, domain.Node, error)
+	Decide(ctx context.Context, actor domain.Actor, input domain.DecisionInput, decision domain.DOMDecision) (domain.Task, domain.Instance, error)
+	Terminate(ctx context.Context, instanceID, actorID uuid.UUID, comment string) (domain.Instance, error)
+	Events(ctx context.Context, instanceID uuid.UUID, actor domain.Actor) ([]domain.Event, error)
+}
+
+type Repository interface {
+	DefinitionRepository
+	RuntimeRepository
+}
+
+type Service struct {
+	definitions DefinitionRepository
+	runtime     RuntimeRepository
+}
+
+func New(repo Repository) *Service {
+	return &Service{definitions: repo, runtime: repo}
 }
 
 func (s *Service) CreateDefinition(ctx context.Context, createdBy uuid.UUID, input domain.CreateDefinitionInput) (domain.Definition, error) {
@@ -41,11 +66,11 @@ func (s *Service) CreateDefinition(ctx context.Context, createdBy uuid.UUID, inp
 		Description: input.Description, Document: input.Document, Status: "draft",
 		CreatedAt: time.Now().UTC(), CreatedBy: domain.CloneUUID(createdBy),
 	}
-	return s.repo.CreateDefinition(ctx, definition)
+	return s.definitions.CreateDefinition(ctx, definition)
 }
 
 func (s *Service) Definition(ctx context.Context, id uuid.UUID) (domain.Definition, error) {
-	definition, err := s.repo.GetDefinition(ctx, id)
+	definition, err := s.definitions.GetDefinition(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Definition{}, apperror.NotFound("Workflow definition")
 	}
@@ -59,7 +84,7 @@ func (s *Service) Definitions(ctx context.Context, status string, page, pageSize
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return s.repo.ListDefinitions(ctx, status, page, pageSize)
+	return s.definitions.ListDefinitions(ctx, status, page, pageSize)
 }
 
 func (s *Service) Publish(ctx context.Context, id uuid.UUID) error {
@@ -70,7 +95,7 @@ func (s *Service) Publish(ctx context.Context, id uuid.UUID) error {
 	if err := domain.ValidateDefinition(definition.Document); err != nil {
 		return apperror.Validation("definition", err.Error())
 	}
-	if err := s.repo.PublishDefinition(ctx, id); err != nil {
+	if err := s.definitions.PublishDefinition(ctx, id); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return apperror.Conflict("Only a draft workflow can be published.")
 		}
@@ -97,25 +122,25 @@ func (s *Service) Start(ctx context.Context, actorID uuid.UUID, input domain.Sta
 	if input.Variables == nil {
 		input.Variables = map[string]any{}
 	}
-	return s.repo.Start(ctx, definition, actorID, input, first)
+	return s.runtime.Start(ctx, definition, actorID, input, first)
 }
 
-func (s *Service) Instance(ctx context.Context, id uuid.UUID) (domain.Instance, error) {
-	instance, err := s.repo.GetInstance(ctx, id)
+func (s *Service) Instance(ctx context.Context, actor domain.Actor, id uuid.UUID) (domain.Instance, error) {
+	instance, err := s.runtime.GetInstance(ctx, id, normalizeActor(actor))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Instance{}, apperror.NotFound("Workflow instance")
 	}
 	return instance, err
 }
 
-func (s *Service) Instances(ctx context.Context, page, pageSize int) ([]domain.Instance, int64, error) {
+func (s *Service) Instances(ctx context.Context, actor domain.Actor, page, pageSize int) ([]domain.Instance, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return s.repo.ListInstances(ctx, page, pageSize)
+	return s.runtime.ListInstances(ctx, normalizeActor(actor), page, pageSize)
 }
 
 func (s *Service) Todo(ctx context.Context, actor domain.Actor, page, pageSize int) ([]domain.Task, int64, error) {
@@ -125,7 +150,7 @@ func (s *Service) Todo(ctx context.Context, actor domain.Actor, page, pageSize i
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return s.repo.Todo(ctx, actor, page, pageSize)
+	return s.runtime.Todo(ctx, actor, page, pageSize)
 }
 
 func (s *Service) Done(ctx context.Context, actor domain.Actor, page, pageSize int) ([]domain.Task, int64, error) {
@@ -135,7 +160,7 @@ func (s *Service) Done(ctx context.Context, actor domain.Actor, page, pageSize i
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return s.repo.Done(ctx, actor, page, pageSize)
+	return s.runtime.Done(ctx, actor, page, pageSize)
 }
 
 func (s *Service) Decide(ctx context.Context, actor domain.Actor, input domain.DecisionInput) (domain.Task, domain.Instance, error) {
@@ -145,7 +170,7 @@ func (s *Service) Decide(ctx context.Context, actor domain.Actor, input domain.D
 	if len(input.Comment) > 2000 {
 		return domain.Task{}, domain.Instance{}, apperror.Validation("comment", "Comment must not exceed 2000 characters.")
 	}
-	_, instance, definition, node, err := s.repo.TaskContext(ctx, input.TaskID, actor)
+	_, instance, definition, node, err := s.runtime.TaskContext(ctx, input.TaskID, actor)
 	if err != nil {
 		return domain.Task{}, domain.Instance{}, mapDecisionError(err)
 	}
@@ -166,7 +191,7 @@ func (s *Service) Decide(ctx context.Context, actor domain.Actor, input domain.D
 			decision.TerminalStatus = "approved"
 		}
 	}
-	task, updatedInstance, err := s.repo.Decide(ctx, actor, input, decision)
+	task, updatedInstance, err := s.runtime.Decide(ctx, actor, input, decision)
 	if err != nil {
 		return domain.Task{}, domain.Instance{}, mapDecisionError(err)
 	}
@@ -177,15 +202,26 @@ func (s *Service) Terminate(ctx context.Context, instanceID, actorID uuid.UUID, 
 	if len(comment) > 2000 {
 		return domain.Instance{}, apperror.Validation("comment", "Comment must not exceed 2000 characters.")
 	}
-	instance, err := s.repo.Terminate(ctx, instanceID, actorID, comment)
+	instance, err := s.runtime.Terminate(ctx, instanceID, actorID, comment)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Instance{}, apperror.Conflict("Only a running workflow instance can be terminated.")
 	}
 	return instance, err
 }
 
-func (s *Service) Events(ctx context.Context, instanceID uuid.UUID) ([]domain.Event, error) {
-	return s.repo.Events(ctx, instanceID)
+func (s *Service) Events(ctx context.Context, actor domain.Actor, instanceID uuid.UUID) ([]domain.Event, error) {
+	events, err := s.runtime.Events(ctx, instanceID, normalizeActor(actor))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, apperror.NotFound("Workflow instance")
+	}
+	return events, err
+}
+
+func normalizeActor(actor domain.Actor) domain.Actor {
+	if actor.DataScope == "" {
+		actor.DataScope = "self"
+	}
+	return actor
 }
 
 func mapDecisionError(err error) error {

@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	accesssqlc "mars-admin-go/internal/modules/access/adapter/postgres/sqlc"
 	identitysqlc "mars-admin-go/internal/modules/identity/adapter/postgres/sqlc"
 	"mars-admin-go/internal/modules/identity/domain"
 	"mars-admin-go/internal/modules/outbox/contracts"
@@ -452,7 +451,7 @@ func (r *Repository) ListActiveSessions(ctx context.Context) ([]domain.Session, 
 }
 
 func (r *Repository) GetAccess(ctx context.Context, userID uuid.UUID) (domain.Access, error) {
-	rows, err := accesssqlc.New(r.pool).GetUserAccess(ctx, pgUUID(userID))
+	rows, err := identitysqlc.New(r.pool).GetUserAccess(ctx, pgUUID(userID))
 	if err != nil {
 		return domain.Access{}, err
 	}

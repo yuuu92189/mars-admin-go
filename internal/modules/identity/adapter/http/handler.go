@@ -118,10 +118,61 @@ func (h *Handler) LegacyOnlineRoutes() chi.Router {
 }
 
 func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
-	var input identitydomain.LoginInput
+	if strings.HasPrefix(r.URL.Path, "/api/v1/") {
+		var input identitydomain.LoginInput
+		if !httpserver.DecodeJSON(w, r, &input) {
+			return
+		}
+		h.loginWithInput(w, r, input, false)
+		return
+	}
+
+	var input legacyLoginInput
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
+	h.loginWithInput(w, r, input.toDomain(), true)
+}
+
+type legacyLoginInput struct {
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	ClientType  string `json:"clientType"`
+	DeviceName  string `json:"deviceName"`
+	RememberMe  bool   `json:"rememberMe"`
+	Captcha     string `json:"captcha"`
+	CaptchaUUID string `json:"captchaUuid"`
+	UUID        string `json:"uuid"`
+	Code        string `json:"code"`
+	MFACode     string `json:"mfaCode"`
+	LoginType   string `json:"loginType"`
+	Phone       string `json:"phone"`
+	WXCode      string `json:"wxCode"`
+	SMSCode     string `json:"smsCode"`
+	Platform    string `json:"platform"`
+	AuthCode    string `json:"authCode"`
+}
+
+func (input legacyLoginInput) toDomain() identitydomain.LoginInput {
+	return identitydomain.LoginInput{
+		Username:    input.Username,
+		Password:    input.Password,
+		ClientType:  input.ClientType,
+		DeviceName:  input.DeviceName,
+		RememberMe:  input.RememberMe,
+		CaptchaID:   firstNonEmpty(input.CaptchaUUID, input.UUID),
+		CaptchaCode: firstNonEmpty(input.Captcha, input.Code),
+		MFACode:     input.MFACode,
+		LoginType:   input.LoginType,
+		Phone:       input.Phone,
+		WXCode:      input.WXCode,
+		SMSCode:     input.SMSCode,
+		Platform:    input.Platform,
+		AuthCode:    input.AuthCode,
+	}
+}
+
+func (h *Handler) loginWithInput(w http.ResponseWriter, r *http.Request, input identitydomain.LoginInput, legacy bool) {
 	input.IPAddress = httpserver.ClientIP(r, h.config.Auth.TrustedProxyCIDRs)
 	input.UserAgent = r.UserAgent()
 	if input.ClientType == "" {
@@ -154,6 +205,26 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.setSessionCookies(w, result)
+	if legacy {
+		expiresIn := int64(time.Until(result.ExpiresAt).Seconds())
+		if expiresIn < 0 {
+			expiresIn = 0
+		}
+		httpserver.WriteJSON(w, http.StatusOK, struct {
+			Token        string                `json:"token"`
+			RefreshToken string                `json:"refreshToken,omitempty"`
+			CSRFToken    string                `json:"csrfToken,omitempty"`
+			ExpiresIn    int64                 `json:"expiresIn"`
+			ExpiresAt    time.Time             `json:"expiresAt"`
+			User         identitydomain.User   `json:"user"`
+			Access       identitydomain.Access `json:"access"`
+		}{
+			Token: result.AccessToken, RefreshToken: result.RefreshToken,
+			CSRFToken: result.CSRFToken, ExpiresIn: expiresIn, ExpiresAt: result.ExpiresAt,
+			User: result.User, Access: result.Access,
+		})
+		return
+	}
 	httpserver.WriteJSON(w, http.StatusOK, result)
 }
 

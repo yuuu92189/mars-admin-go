@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	messagingsqlc "mars-admin-go/internal/modules/messaging/adapter/postgres/sqlc"
+	notificationsqlc "mars-admin-go/internal/modules/notification/adapter/postgres/sqlc"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -25,7 +25,7 @@ func (timeoutSMSProvider) SendNotice(ctx context.Context, _ string, _ string, _ 
 func TestSMSCampaignPropagatesProviderTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
-	contacts := []messagingsqlc.ListNoticeRecipientContactsRow{
+	contacts := []notificationsqlc.ListNoticeRecipientContactsRow{
 		{Phone: pgtype.Text{String: "13800000000", Valid: true}},
 	}
 	count, err := sendSMSCampaign(ctx, timeoutSMSProvider{}, contacts, "title", "content")

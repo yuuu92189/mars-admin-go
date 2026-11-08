@@ -6,6 +6,7 @@ import (
 
 	"mars-admin-go/internal/modules/scheduler/application"
 	"mars-admin-go/internal/modules/scheduler/domain"
+	"mars-admin-go/internal/platform/apperror"
 	"mars-admin-go/internal/platform/httpserver"
 	"mars-admin-go/internal/platform/requestctx"
 
@@ -197,14 +198,45 @@ func (h *Handler) legacyRunsQuery(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handler) legacyStatistics(w http.ResponseWriter, _ *http.Request) {
+func (h *Handler) legacyStatistics(w http.ResponseWriter, r *http.Request) {
+	jobID, err := uuid.Parse(r.URL.Query().Get("jobId"))
+	if err != nil {
+		httpserver.WriteError(w, r, h.logger, apperror.Validation("jobId", "jobId must be a valid UUID."))
+		return
+	}
+	runs, err := h.service.Runs(r.Context(), jobID, 1, 100)
+	if err != nil {
+		httpserver.WriteError(w, r, h.logger, err)
+		return
+	}
+	success, failure := 0, 0
+	daily := make(map[string]map[string]int)
+	for _, run := range runs {
+		date := run.CreatedAt.Format("2006-01-02")
+		if daily[date] == nil {
+			daily[date] = map[string]int{"total": 0, "success": 0, "fail": 0}
+		}
+		daily[date]["total"]++
+		switch run.Status {
+		case "completed", "succeeded":
+			success++
+			daily[date]["success"]++
+		case "failed", "cancelled":
+			failure++
+			daily[date]["fail"]++
+		}
+	}
 	httpserver.WriteJSON(w, http.StatusOK, map[string]any{
-		"totalCount": 0, "successCount": 0, "failCount": 0, "dailyStats": []map[string]any{},
+		"totalCount": len(runs), "successCount": success, "failCount": failure, "dailyStats": daily,
 	})
 }
 
-func (h *Handler) legacyCleanLogs(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusNoContent)
+func (h *Handler) legacyCleanLogs(w http.ResponseWriter, r *http.Request) {
+	httpserver.WriteError(w, r, h.logger, apperror.New(
+		apperror.KindNotConfigured,
+		"legacy_scheduler_log_cleanup_not_supported",
+		"Legacy scheduler log cleanup is not supported. Use the River run history retention process.",
+	))
 }
 
 func legacyJob(item domain.Job) map[string]any {

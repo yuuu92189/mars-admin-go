@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	sqlc "mars-admin-go/internal/modules/messaging/adapter/postgres/sqlc"
+	sqlc "mars-admin-go/internal/modules/notification/adapter/postgres/sqlc"
 	"mars-admin-go/internal/modules/notification/domain"
 	"mars-admin-go/internal/modules/outbox/contracts"
 	"mars-admin-go/internal/platform/apperror"

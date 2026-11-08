@@ -545,6 +545,13 @@ func (s *Service) Authenticate(ctx context.Context, token string) (requestctx.Ac
 	if err := s.repo.TouchSession(ctx, session.ID); err != nil {
 		return requestctx.Actor{}, err
 	}
+	dataScope := access.DataScope
+	if dataScope == "" {
+		dataScope = "self"
+	}
+	if access.IsSuperAdmin {
+		dataScope = "all"
+	}
 	return requestctx.Actor{
 		UserID:       user.ID,
 		SessionID:    session.ID,
@@ -553,6 +560,7 @@ func (s *Service) Authenticate(ctx context.Context, token string) (requestctx.Ac
 		ClientType:   session.ClientType,
 		Roles:        access.Roles,
 		Permissions:  access.Permissions,
+		DataScope:    dataScope,
 		IsSuperAdmin: access.IsSuperAdmin,
 	}, nil
 }

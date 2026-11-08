@@ -26,6 +26,7 @@
 | [09-target-architecture.md](09-target-architecture.md) | React/Next.js 与 Go 的目标架构 |
 | [10-implementation-roadmap.md](10-implementation-roadmap.md) | 分阶段任务、文件范围、依赖和验收门禁 |
 | [11-risk-and-decision-log.md](11-risk-and-decision-log.md) | P0/P1/P2 风险、技术决策和待确认事项 |
+| [12-phase-1-implementation-report.md](12-phase-1-implementation-report.md) | Phase 1 实际修改、契约变化、测试证据和剩余风险 |
 
 ## First-Round Status
 
@@ -35,6 +36,24 @@
 - React/Next.js 页面尚未实现；本轮没有用静态假页面冒充迁移完成。
 - `scaffold-vue` 当前连接的是参考仓库内的 Spring Boot `scaffold-system`，不是 Go 后端。Go 集成仍需独立适配或新 API 实现。
 - 当前 Go 后端没有与 `scaffold-vue` 漏洞资产、漏洞和修复工单页面等价的完整领域模块。
+
+## Phase 1 Status
+
+Phase 1 已实施已确认的技术基线：
+
+- `/metrics` 使用 `audit:read`，OpenAPI、Handler 和集成测试一致。
+- 登录新 API 使用 `captchaId`/`captchaCode` 和 `expiresAt`；旧 `/api` 客户端只在兼容层映射 `captcha`/`captchaUuid` 和 `expiresIn`。
+- 分页统一为 `items`/`total`/`page`/`pageSize`。
+- PostgreSQL SQLSTATE 在统一 HTTP 错误边界映射为 RFC 9457 Problem。
+- OpenAPI 当前为 99 paths、134 operations；所有 2xx response 都有 content schema，110 个 operation 声明 required permission，12 个 operation 声明仅认证。
+- 群组删除成员、成员角色、禁言和转让群主已进入 OpenAPI。
+- Identity 和 Notification 的已知跨模块 sqlc 引用已移除。
+- Access 和 Workflow 的 Repository 已按用例拆分；Identity/Notification 仍保留较大接口，列为后续治理。
+- Workflow 实例、详情和事件读取已执行实例级 Data Scope。
+- Legacy Stub 已改为真实统计或明确 501 Problem。
+- `frontend-api/` 可从 OpenAPI 生成 TypeScript 严格类型，当前生成结果为 0 个 `any`。
+
+Phase 1 不包含 React 页面实现、漏洞领域、AI Provider、支付账本、生产数据切换和外部 Provider 认证。详细状态见 [12-phase-1-implementation-report.md](12-phase-1-implementation-report.md)。
 
 ## Evidence Commands
 
@@ -46,8 +65,12 @@
 | `npm run build`（`scaffold-vue`） | `vue-tsc` 与 Vite production build 通过 |
 | `go test ./...`（`mars-admin-go`） | 通过 |
 | `go vet ./...`（`mars-admin-go`） | 通过 |
-| `go test -tags=integration ./... -count=1` | 通过，`test/integration` 52.828s |
-| OpenAPI validation test | `api/openapi_test.go` 通过；95 paths，130 operations，operationId 唯一 |
+| `go test -tags=integration ./... -count=1` | 通过，`test/integration` 40.535s |
+| Linux `go test -race ./...` | 通过，`golang:1.27.3-bookworm` |
+| `golangci-lint run` | `0 issues.` |
+| `govulncheck ./...` | 无可达漏洞；存在非可达依赖公告 |
+| `npm run check`（`frontend-api`） | 通过；TypeScript strict；生成 schema 0 个 `any` |
+| OpenAPI contract tests | 通过；99 paths，134 operations，所有 2xx 有 content，权限元数据完整 |
 
 更早的 PostgreSQL/Redis/MySQL Testcontainers、Race、lint、漏洞扫描、Compose 和 Helm 记录见 `docs/go-standard-audit/verification.md` 与 `docs/audit-round-3/verification-report.md`。本轮没有把历史记录替代为当前运行态证明；本轮重新执行的命令以上表为准。
 

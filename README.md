@@ -8,6 +8,8 @@ Current verified status and residual gaps are recorded in [`docs/status.md`](doc
 
 The unified first-round frontend/backend architecture audit, Vue page/component inventory, design and animation analysis, API mapping, target architecture and implementation roadmap are in [`docs/architecture-audit/README.md`](docs/architecture-audit/README.md).
 
+Phase 1 implementation results, API contract changes and verification evidence are in [`docs/architecture-audit/12-phase-1-implementation-report.md`](docs/architecture-audit/12-phase-1-implementation-report.md).
+
 The latest Refresh concurrency and transactional Outbox audit is in [`docs/audit-round-3/audit-summary.md`](docs/audit-round-3/audit-summary.md).
 
 The current Go-standard audit and remediation plan are in

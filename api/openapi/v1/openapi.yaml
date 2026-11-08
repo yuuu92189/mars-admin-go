@@ -33,6 +33,10 @@ paths:
       responses:
         "200":
           description: Process is alive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
   /health/ready:
     get:
       operationId: healthReady
@@ -40,12 +44,16 @@ paths:
       responses:
         "200":
           description: Dependencies are ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
         "503":
           $ref: "#/components/responses/Problem"
   /metrics:
     get:
       operationId: metrics
-      security: []
+      x-required-permission: audit:read
       responses:
         "200":
           description: Prometheus metrics
@@ -53,6 +61,12 @@ paths:
             text/plain:
               schema:
                 type: string
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
   /api/v1/auth/login:
     post:
       tags: [Auth]
@@ -124,6 +138,10 @@ paths:
       responses:
         "202":
           description: Code sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SMSCodeResult"
         "429":
           $ref: "#/components/responses/Problem"
         "501":
@@ -144,15 +162,21 @@ paths:
     post:
       tags: [Auth]
       operationId: setupMFA
+      x-auth-required: true
       responses:
         "200":
           description: TOTP secret and provisioning URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MFASetup"
         "501":
           $ref: "#/components/responses/Problem"
   /api/v1/auth/mfa/enable:
     post:
       tags: [Auth]
       operationId: enableMFA
+      x-auth-required: true
       responses:
         "204":
           description: MFA enabled
@@ -162,6 +186,7 @@ paths:
     post:
       tags: [Auth]
       operationId: disableMFA
+      x-auth-required: true
       responses:
         "204":
           description: MFA disabled
@@ -193,6 +218,7 @@ paths:
     post:
       tags: [Auth]
       operationId: logout
+      x-auth-required: true
       responses:
         "204":
           description: Session revoked
@@ -202,6 +228,7 @@ paths:
     get:
       tags: [Auth]
       operationId: currentUser
+      x-auth-required: true
       responses:
         "200":
           description: Current user, roles, permissions and menus
@@ -215,6 +242,7 @@ paths:
     get:
       tags: [Identity]
       operationId: listUsers
+      x-required-permission: user:read
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
@@ -238,6 +266,7 @@ paths:
     post:
       tags: [Identity]
       operationId: createUser
+      x-required-permission: user:create
       requestBody:
         required: true
         content:
@@ -259,6 +288,7 @@ paths:
     get:
       tags: [Identity]
       operationId: getUser
+      x-required-permission: user:read
       responses:
         "200":
           description: User
@@ -271,6 +301,7 @@ paths:
     put:
       tags: [Identity]
       operationId: updateUser
+      x-required-permission: user:update
       requestBody:
         required: true
         content:
@@ -289,6 +320,7 @@ paths:
     delete:
       tags: [Identity]
       operationId: deleteUser
+      x-required-permission: user:delete
       responses:
         "204":
           description: Deleted
@@ -298,6 +330,7 @@ paths:
     get:
       tags: [Access]
       operationId: listRoles
+      x-required-permission: role:read
       responses:
         "200":
           description: Role page
@@ -308,6 +341,7 @@ paths:
     post:
       tags: [Access]
       operationId: createRole
+      x-required-permission: role:create
       requestBody:
         required: true
         content:
@@ -325,6 +359,7 @@ paths:
     get:
       tags: [Organization]
       operationId: listDepartments
+      x-required-permission: department:read
       responses:
         "200":
           description: Department tree
@@ -337,6 +372,7 @@ paths:
     post:
       tags: [Organization]
       operationId: createDepartment
+      x-required-permission: department:manage
       requestBody:
         required: true
         content:
@@ -346,13 +382,22 @@ paths:
       responses:
         "201":
           description: Created department
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
   /api/v1/admin/dictionaries:
     get:
       tags: [System]
       operationId: listDictionaries
+      x-required-permission: dictionary:read
       responses:
         "200":
           description: Dictionary types
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DictionaryTypePage"
   /api/v1/admin/settings/{code}:
     parameters:
       - name: code
@@ -363,14 +408,20 @@ paths:
     get:
       tags: [System]
       operationId: getSettingGroup
+      x-required-permission: settings:read
       responses:
         "200":
           description: Setting group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingGroup"
         "404":
           $ref: "#/components/responses/Problem"
     put:
       tags: [System]
       operationId: updateSettingGroup
+      x-required-permission: settings:manage
       requestBody:
         required: true
         content:
@@ -381,23 +432,38 @@ paths:
       responses:
         "200":
           description: Updated setting group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingGroup"
   /api/v1/admin/audit/events:
     get:
       tags: [Audit]
       operationId: listAuditEvents
+      x-required-permission: audit:read
       responses:
         "200":
           description: Audit event page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditEventPage"
   /api/v1/files:
     get:
       tags: [Storage]
       operationId: listFiles
+      x-required-permission: file:download
       responses:
         "200":
           description: File page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilePage"
     post:
       tags: [Storage]
       operationId: uploadFile
+      x-required-permission: file:upload
       requestBody:
         required: true
         content:
@@ -415,6 +481,16 @@ paths:
       responses:
         "201":
           description: Uploaded file
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [file, url]
+                properties:
+                  file:
+                    $ref: "#/components/schemas/File"
+                  url:
+                    type: string
         "422":
           $ref: "#/components/responses/Problem"
   /api/v1/files/{id}/download:
@@ -423,6 +499,7 @@ paths:
     get:
       tags: [Storage]
       operationId: downloadFile
+      x-required-permission: file:download
       responses:
         "200":
           description: File bytes
@@ -437,6 +514,7 @@ paths:
     post:
       tags: [Messaging]
       operationId: sendDirectMessage
+      x-required-permission: message:send
       requestBody:
         required: true
         content:
@@ -461,6 +539,7 @@ paths:
     get:
       tags: [Messaging]
       operationId: directMessageHistory
+      x-required-permission: message:read
       parameters:
         - name: before
           in: query
@@ -480,34 +559,57 @@ paths:
     get:
       tags: [Messaging]
       operationId: listGroups
+      x-required-permission: message:read
       responses:
         "200":
           description: Groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
     post:
       tags: [Messaging]
       operationId: createGroup
+      x-required-permission: message:send
       responses:
         "201":
           description: Created group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
   /api/v1/notices:
     get:
       tags: [Notification]
       operationId: listNotices
+      x-required-permission: notice:read
       responses:
         "200":
           description: Notice page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoticePage"
     post:
       tags: [Notification]
       operationId: createNotice
+      x-required-permission: notice:manage
       responses:
         "201":
           description: Draft notice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notice"
   /api/v1/notices/{id}/read:
     parameters:
       - $ref: "#/components/parameters/Id"
     post:
       tags: [Notification]
       operationId: readNotice
+      x-required-permission: notice:read
       responses:
         "204":
           description: Marked read
@@ -515,50 +617,90 @@ paths:
     get:
       tags: [Scheduler]
       operationId: listScheduledJobs
+      x-required-permission: scheduler:read
       responses:
         "200":
           description: Scheduled job page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledJobPage"
     post:
       tags: [Scheduler]
       operationId: createScheduledJob
+      x-required-permission: scheduler:manage
       responses:
         "201":
           description: Scheduled job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledJob"
   /api/v1/admin/scheduler/jobs/{id}/run:
     parameters:
       - $ref: "#/components/parameters/Id"
     post:
       tags: [Scheduler]
       operationId: runScheduledJob
+      x-required-permission: scheduler:manage
       responses:
         "202":
           description: River job queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledJobRun"
   /api/v1/workflows/definitions:
     get:
       tags: [Workflow]
       operationId: listWorkflowDefinitions
+      x-required-permission: workflow:read
       responses:
         "200":
           description: Workflow definition page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowDefinitionPage"
     post:
       tags: [Workflow]
       operationId: createWorkflowDefinition
+      x-required-permission: workflow:manage
       responses:
         "201":
           description: Created definition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowDefinition"
   /api/v1/workflows/instances:
     get:
       tags: [Workflow]
       operationId: listWorkflowInstances
+      x-required-permission: workflow:read
       responses:
         "200":
           description: Workflow instance page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowInstancePage"
     post:
       tags: [Workflow]
       operationId: startWorkflowInstance
+      x-required-permission: workflow:manage
       responses:
         "201":
           description: Started instance and initial task
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  instance:
+                    $ref: "#/components/schemas/WorkflowInstance"
+                  task:
+                    $ref: "#/components/schemas/WorkflowTask"
   /api/v1/workflows/tasks/{action}:
     parameters:
       - name: action
@@ -570,6 +712,7 @@ paths:
     post:
       tags: [Workflow]
       operationId: decideWorkflowTask
+      x-required-permission: workflow:approve
       requestBody:
         required: true
         content:
@@ -589,40 +732,91 @@ paths:
       responses:
         "200":
           description: Updated task and instance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    $ref: "#/components/schemas/WorkflowTask"
+                  instance:
+                    $ref: "#/components/schemas/WorkflowInstance"
         "409":
           $ref: "#/components/responses/Problem"
   /api/v1/admin/codegen/tables:
     get:
       tags: [Codegen]
       operationId: listDatabaseTables
+      x-required-permission: codegen:read
       responses:
         "200":
           description: PostgreSQL tables
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CodegenTable"
   /api/v1/admin/codegen/preview:
     post:
       tags: [Codegen]
       operationId: previewGeneratedCode
+      x-required-permission: codegen:manage
       responses:
         "200":
           description: Generated file preview
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [files, activeFile, code]
+                properties:
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      required: [name, path, code]
+                      properties:
+                        name:
+                          type: string
+                        path:
+                          type: string
+                        code:
+                          type: string
+                  activeFile:
+                    type: string
+                  code:
+                    type: string
   /api/v1/admin/monitoring/snapshot:
     get:
       tags: [Monitoring]
       operationId: monitoringSnapshot
+      x-required-permission: audit:read
       responses:
         "200":
           description: Runtime and dependency snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitoringSnapshot"
   /api/v1/auth/social/{provider}:
     parameters: [{ name: provider, in: path, required: true, schema: { type: string } }]
     post:
       tags: [Auth]
       operationId: socialLogin
       security: []
-      responses: { "200": { description: Authenticated } }
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResult"
   /api/v1/auth/social-identities/unbind:
     post:
       tags: [Auth]
       operationId: unbindSocialIdentity
+      x-auth-required: true
       requestBody:
         required: true
         content:
@@ -642,422 +836,988 @@ paths:
       tags: [Auth]
       operationId: registerUser
       security: []
-      responses: { "201": { description: Registered user }, "422": { $ref: "#/components/responses/Problem" } }
+      responses:
+        "201":
+          description: Registered user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "422":
+          $ref: "#/components/responses/Problem"
   /api/v1/auth/login-types:
     get:
       tags: [Auth]
       operationId: loginTypes
       security: []
-      responses: { "200": { description: Enabled login methods } }
+      responses:
+        "200":
+          description: Enabled login methods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
   /api/v1/auth/info:
     get:
       tags: [Auth]
       operationId: currentUserInfo
-      responses: { "200": { description: "Current user, roles, permissions and menus" } }
+      x-auth-required: true
+      responses:
+        "200":
+          description: Current user, roles, permissions and menus
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
   /api/v1/auth/profile:
     get:
       tags: [Auth]
       operationId: getProfile
-      responses: { "200": { description: Current user profile } }
+      x-auth-required: true
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
     put:
       tags: [Auth]
       operationId: updateProfile
-      responses: { "200": { description: Updated profile } }
+      x-auth-required: true
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
   /api/v1/auth/password:
     post:
       tags: [Auth]
       operationId: changePassword
+      x-auth-required: true
       responses: { "204": { description: Password changed }, "422": { $ref: "#/components/responses/Problem" } }
   /api/v1/auth/sessions:
     get:
       tags: [Auth]
       operationId: listSessions
-      responses: { "200": { description: Active sessions } }
+      x-auth-required: true
+      responses:
+        "200":
+          description: Active sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Session"
   /api/v1/auth/sessions/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     delete:
       tags: [Auth]
       operationId: revokeSession
+      x-auth-required: true
       responses: { "204": { description: Session revoked } }
   /api/v1/admin/users/{id}/reset-password:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     post:
       tags: [Identity]
       operationId: resetUserPassword
-      responses: { "200": { description: Temporary password } }
+      x-required-permission: user:update
+      responses:
+        "200":
+          description: Temporary password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemporaryPassword"
   /api/v1/admin/users/{id}/revoke-sessions:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     post:
       tags: [Identity]
       operationId: revokeUserSessions
+      x-required-permission: user:update
       responses: { "204": { description: Sessions revoked } }
   /api/v1/admin/access/roles/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     put:
       tags: [Access]
       operationId: updateRole
-      responses: { "200": { description: Updated role } }
+      x-required-permission: role:create
+      responses:
+        "200":
+          description: Updated role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
     delete:
       tags: [Access]
       operationId: deleteRole
+      x-required-permission: role:create
       responses: { "204": { description: Role deleted } }
   /api/v1/admin/access/roles/{id}/menus:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
       tags: [Access]
       operationId: getRoleMenus
-      responses: { "200": { description: Assigned menu ids } }
+      x-required-permission: role:read
+      responses:
+        "200":
+          description: Assigned menu ids
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleMenuIDs"
     put:
       tags: [Access]
       operationId: setRoleMenus
+      x-required-permission: role:assign
       responses: { "204": { description: Role menus updated } }
   /api/v1/admin/access/roles/{id}/permissions:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     put:
       tags: [Access]
       operationId: setRolePermissions
+      x-required-permission: role:assign
       responses: { "204": { description: Role permissions updated } }
   /api/v1/admin/access/permissions:
     get:
       tags: [Access]
       operationId: listPermissions
-      responses: { "200": { description: Permission catalog } }
+      x-required-permission: role:read
+      responses:
+        "200":
+          description: Permission catalog
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Permission"
   /api/v1/admin/access/menus:
     get:
       tags: [Access]
       operationId: listMenus
-      responses: { "200": { description: Visible menu tree } }
+      x-required-permission: role:read
+      responses:
+        "200":
+          description: Visible menu tree
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Menu"
     post:
       tags: [Access]
       operationId: createMenu
-      responses: { "201": { description: Created menu } }
+      x-required-permission: role:assign
+      responses:
+        "201":
+          description: Created menu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Menu"
   /api/v1/admin/access/menus/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     put:
       tags: [Access]
       operationId: updateMenu
-      responses: { "200": { description: Updated menu } }
+      x-required-permission: role:assign
+      responses:
+        "200":
+          description: Updated menu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Menu"
     delete:
       tags: [Access]
       operationId: deleteMenu
+      x-required-permission: role:assign
       responses: { "204": { description: Menu deleted } }
   /api/v1/admin/organization/departments/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
       tags: [Organization]
       operationId: getDepartment
-      responses: { "200": { description: Department } }
+      x-required-permission: department:read
+      responses:
+        "200":
+          description: Department
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
     put:
       tags: [Organization]
       operationId: updateDepartment
-      responses: { "200": { description: Updated department } }
+      x-required-permission: department:manage
+      responses:
+        "200":
+          description: Updated department
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
     delete:
       tags: [Organization]
       operationId: deleteDepartment
+      x-required-permission: department:manage
       responses: { "204": { description: Department deleted } }
   /api/v1/admin/organization/positions:
     get:
       tags: [Organization]
       operationId: listPositions
-      responses: { "200": { description: Position list } }
+      x-required-permission: department:read
+      responses:
+        "200":
+          description: Position list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Position"
     post:
       tags: [Organization]
       operationId: createPosition
-      responses: { "201": { description: Created position } }
+      x-required-permission: department:manage
+      responses:
+        "201":
+          description: Created position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Position"
   /api/v1/admin/organization/positions/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     put:
       tags: [Organization]
       operationId: updatePosition
-      responses: { "200": { description: Updated position } }
+      x-required-permission: department:manage
+      responses:
+        "200":
+          description: Updated position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Position"
     delete:
       tags: [Organization]
       operationId: deletePosition
+      x-required-permission: department:manage
       responses: { "204": { description: Position deleted } }
   /api/v1/admin/dictionaries/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
       tags: [System]
       operationId: listDictionaryItems
-      responses: { "200": { description: Dictionary items } }
+      x-required-permission: dictionary:read
+      responses:
+        "200":
+          description: Dictionary items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DictionaryItem"
     put:
       tags: [System]
       operationId: updateDictionary
-      responses: { "200": { description: Updated dictionary } }
+      x-required-permission: dictionary:manage
+      responses:
+        "200":
+          description: Updated dictionary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DictionaryType"
     delete:
       tags: [System]
       operationId: deleteDictionary
+      x-required-permission: dictionary:manage
       responses: { "204": { description: Dictionary deleted } }
   /api/v1/admin/dictionaries/items:
     post:
       tags: [System]
       operationId: createDictionaryItem
-      responses: { "201": { description: Created dictionary item } }
+      x-required-permission: dictionary:manage
+      responses:
+        "201":
+          description: Created dictionary item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DictionaryItem"
   /api/v1/admin/dictionaries/items/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     put:
       tags: [System]
       operationId: updateDictionaryItem
-      responses: { "200": { description: Updated dictionary item } }
+      x-required-permission: dictionary:manage
+      responses:
+        "200":
+          description: Updated dictionary item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DictionaryItem"
     delete:
       tags: [System]
       operationId: deleteDictionaryItem
+      x-required-permission: dictionary:manage
       responses: { "204": { description: Dictionary item deleted } }
   /api/v1/admin/settings/public:
     get:
       tags: [System]
       operationId: publicSettings
       security: []
-      responses: { "200": { description: Public settings } }
+      responses:
+        "200":
+          description: Public settings
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
   /api/v1/admin/settings:
     get:
       tags: [System]
       operationId: listSettingGroups
-      responses: { "200": { description: Setting groups } }
+      x-required-permission: settings:read
+      responses:
+        "200":
+          description: Setting groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SettingGroup"
   /api/v1/admin/audit/logins:
     get:
       tags: [Audit]
       operationId: listLoginEvents
-      responses: { "200": { description: Login event page } }
+      x-required-permission: audit:read
+      responses:
+        "200":
+          description: Login event page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginEventPage"
   /api/v1/files/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
       tags: [Storage]
       operationId: getFile
-      responses: { "200": { description: File metadata } }
+      x-required-permission: file:download
+      responses:
+        "200":
+          description: File metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/File"
     delete:
       tags: [Storage]
       operationId: deleteFile
+      x-required-permission: file:delete
       responses: { "204": { description: File deleted } }
   /api/v1/messages/users:
     get:
       tags: [Messaging]
       operationId: listMessageUsers
-      responses: { "200": { description: Available chat users } }
+      x-required-permission: message:read
+      responses:
+        "200":
+          description: Available chat users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatUser"
   /api/v1/messages/unread:
     get:
       tags: [Messaging]
       operationId: messageUnreadCounts
-      responses: { "200": { description: Unread message counts } }
+      x-required-permission: message:read
+      responses:
+        "200":
+          description: Unread message counts
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+                  format: int64
   /api/v1/messages/{peerId}/read:
     parameters: [{ name: peerId, in: path, required: true, schema: { type: string, format: uuid } }]
     post:
       tags: [Messaging]
       operationId: markMessagesRead
+      x-required-permission: message:read
       responses: { "204": { description: Messages marked read } }
   /api/v1/messages/block/{targetId}:
     parameters: [{ name: targetId, in: path, required: true, schema: { type: string, format: uuid } }]
     post:
       tags: [Messaging]
       operationId: blockChatUser
+      x-required-permission: message:send
       responses: { "204": { description: User blocked } }
     delete:
       tags: [Messaging]
       operationId: unblockChatUser
+      x-required-permission: message:send
       responses: { "204": { description: User unblocked } }
   /api/v1/messages/blocked:
     get:
       tags: [Messaging]
       operationId: listBlockedChatUsers
-      responses: { "200": { description: Blocked users } }
+      x-required-permission: message:read
+      responses:
+        "200":
+          description: Blocked users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatUser"
   /api/v1/groups/{groupId}:
     parameters: [{ name: groupId, in: path, required: true, schema: { type: string, format: uuid } }]
     get:
       tags: [Messaging]
       operationId: getGroup
-      responses: { "200": { description: Group details } }
+      x-required-permission: message:read
+      responses:
+        "200":
+          description: Group details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
     delete:
       tags: [Messaging]
       operationId: dissolveGroup
+      x-required-permission: message:send
       responses: { "204": { description: Group dissolved } }
   /api/v1/groups/{groupId}/members:
     parameters: [{ name: groupId, in: path, required: true, schema: { type: string, format: uuid } }]
     get:
       tags: [Messaging]
       operationId: listGroupMembers
-      responses: { "200": { description: Group members } }
+      x-required-permission: message:read
+      responses:
+        "200":
+          description: Group members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GroupMember"
     post:
       tags: [Messaging]
       operationId: addGroupMembers
+      x-required-permission: message:send
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userIds]
+              properties:
+                userIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
       responses: { "204": { description: Members added } }
+  /api/v1/groups/{groupId}/members/{memberId}:
+    parameters:
+      - { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: memberId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Messaging]
+      operationId: removeGroupMember
+      x-required-permission: message:send
+      responses:
+        "204": { description: Group member removed }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+  /api/v1/groups/{groupId}/members/{memberId}/role:
+    parameters:
+      - { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: memberId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Messaging]
+      operationId: updateGroupMemberRole
+      x-required-permission: message:send
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [admin, member]
+                isAdmin:
+                  type: boolean
+      responses:
+        "204": { description: Group member role updated }
+        "403": { $ref: "#/components/responses/Problem" }
+  /api/v1/groups/{groupId}/members/{memberId}/mute:
+    parameters:
+      - { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: memberId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Messaging]
+      operationId: muteGroupMember
+      x-required-permission: message:send
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [muted]
+              properties:
+                muted:
+                  type: boolean
+      responses:
+        "204": { description: Group member mute state updated }
+        "403": { $ref: "#/components/responses/Problem" }
+  /api/v1/groups/{groupId}/transfer/{newOwnerId}:
+    parameters:
+      - { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: newOwnerId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Messaging]
+      operationId: transferGroupOwner
+      x-required-permission: message:send
+      responses:
+        "204": { description: Group owner transferred }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
   /api/v1/groups/{groupId}/messages:
     parameters: [{ name: groupId, in: path, required: true, schema: { type: string, format: uuid } }]
     get:
       tags: [Messaging]
       operationId: listGroupMessages
-      responses: { "200": { description: Group message history } }
+      x-required-permission: message:read
+      responses:
+        "200":
+          description: Group message history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
     post:
       tags: [Messaging]
       operationId: sendGroupMessage
-      responses: { "201": { description: Group message created } }
+      x-required-permission: message:send
+      responses:
+        "201":
+          description: Group message created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
   /api/v1/groups/{groupId}/quit:
     parameters: [{ name: groupId, in: path, required: true, schema: { type: string, format: uuid } }]
     post:
       tags: [Messaging]
       operationId: quitGroup
+      x-required-permission: message:send
       responses: { "204": { description: Left group } }
   /api/v1/notices/my:
     get:
       tags: [Notification]
       operationId: listMyNotices
-      responses: { "200": { description: Current user notifications } }
+      x-required-permission: notice:read
+      responses:
+        "200":
+          description: Current user notifications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoticePage"
   /api/v1/notices/unread:
     get:
       tags: [Notification]
       operationId: noticeUnreadCounts
-      responses: { "200": { description: Unread notice counts } }
+      x-required-permission: notice:read
+      responses:
+        "200":
+          description: Unread notice counts
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+                  format: int64
   /api/v1/notices/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
       tags: [Notification]
       operationId: getNotice
-      responses: { "200": { description: Notice } }
+      x-required-permission: notice:read
+      responses:
+        "200":
+          description: Notice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notice"
     put:
       tags: [Notification]
       operationId: updateNotice
-      responses: { "200": { description: Updated notice } }
+      x-required-permission: notice:manage
+      responses:
+        "200":
+          description: Updated notice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notice"
   /api/v1/notices/{id}/publish:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     post:
       tags: [Notification]
       operationId: publishNotice
+      x-required-permission: notice:manage
       responses: { "204": { description: Notice published } }
   /api/v1/notices/{id}/withdraw:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     post:
       tags: [Notification]
       operationId: withdrawNotice
+      x-required-permission: notice:manage
       responses: { "204": { description: Notice withdrawn } }
   /api/v1/admin/scheduler/jobs/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
       tags: [Scheduler]
       operationId: getScheduledJob
-      responses: { "200": { description: Scheduled job } }
+      x-required-permission: scheduler:read
+      responses:
+        "200":
+          description: Scheduled job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledJob"
     put:
       tags: [Scheduler]
       operationId: updateScheduledJob
-      responses: { "200": { description: Updated job } }
+      x-required-permission: scheduler:manage
+      responses:
+        "200":
+          description: Updated job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledJob"
     delete:
       tags: [Scheduler]
       operationId: deleteScheduledJob
+      x-required-permission: scheduler:manage
       responses: { "204": { description: Job deleted } }
   /api/v1/admin/scheduler/jobs/{id}/pause:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     post:
       tags: [Scheduler]
       operationId: pauseScheduledJob
-      responses: { "200": { description: Paused job } }
+      x-required-permission: scheduler:manage
+      responses:
+        "200":
+          description: Paused job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledJob"
   /api/v1/admin/scheduler/jobs/{id}/resume:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     post:
       tags: [Scheduler]
       operationId: resumeScheduledJob
-      responses: { "200": { description: Resumed job } }
+      x-required-permission: scheduler:manage
+      responses:
+        "200":
+          description: Resumed job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledJob"
   /api/v1/admin/scheduler/jobs/{id}/runs:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
       tags: [Scheduler]
       operationId: listScheduledJobRuns
-      responses: { "200": { description: Job run history } }
+      x-required-permission: scheduler:read
+      responses:
+        "200":
+          description: Job run history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduledJobRunPage"
   /api/v1/workflows/definitions/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
       tags: [Workflow]
       operationId: getWorkflowDefinition
-      responses: { "200": { description: Workflow definition } }
+      x-required-permission: workflow:read
+      responses:
+        "200":
+          description: Workflow definition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowDefinition"
   /api/v1/workflows/definitions/{id}/publish:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     post:
       tags: [Workflow]
       operationId: publishWorkflowDefinition
+      x-required-permission: workflow:manage
       responses: { "204": { description: Workflow published } }
   /api/v1/workflows/instances/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
       tags: [Workflow]
       operationId: getWorkflowInstance
-      responses: { "200": { description: Workflow instance } }
+      x-required-permission: workflow:read
+      responses:
+        "200":
+          description: Workflow instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowInstance"
   /api/v1/workflows/instances/{id}/events:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
       tags: [Workflow]
       operationId: listWorkflowEvents
-      responses: { "200": { description: Workflow event history } }
+      x-required-permission: workflow:read
+      responses:
+        "200":
+          description: Workflow event history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkflowEvent"
   /api/v1/workflows/instances/{id}/terminate:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     post:
       tags: [Workflow]
       operationId: terminateWorkflowInstance
-      responses: { "200": { description: Terminated workflow } }
+      x-required-permission: workflow:manage
+      responses:
+        "200":
+          description: Terminated workflow
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowInstance"
   /api/v1/workflows/tasks/todo:
     get:
       tags: [Workflow]
       operationId: listTodoWorkflowTasks
-      responses: { "200": { description: Todo task page } }
+      x-required-permission: workflow:read
+      responses:
+        "200":
+          description: Todo task page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowTaskPage"
   /api/v1/workflows/tasks/done:
     get:
       tags: [Workflow]
       operationId: listDoneWorkflowTasks
-      responses: { "200": { description: Completed task page } }
+      x-required-permission: workflow:read
+      responses:
+        "200":
+          description: Completed task page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowTaskPage"
   /api/v1/admin/codegen/imported:
     get:
       tags: [Codegen]
       operationId: listImportedCodegenTables
-      responses: { "200": { description: Imported table page } }
+      x-required-permission: codegen:read
+      responses:
+        "200":
+          description: Imported table page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodegenTablePage"
     post:
       tags: [Codegen]
       operationId: importCodegenTables
-      responses: { "201": { description: Imported tables } }
+      x-required-permission: codegen:manage
+      responses:
+        "201":
+          description: Imported tables
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CodegenTable"
   /api/v1/admin/codegen/imported/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
       tags: [Codegen]
       operationId: getImportedCodegenTable
-      responses: { "200": { description: Imported table } }
+      x-required-permission: codegen:read
+      responses:
+        "200":
+          description: Imported table
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodegenTable"
     put:
       tags: [Codegen]
       operationId: updateImportedCodegenTable
-      responses: { "200": { description: Updated imported table } }
+      x-required-permission: codegen:manage
+      responses:
+        "200":
+          description: Updated imported table
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodegenTable"
     delete:
       tags: [Codegen]
       operationId: deleteImportedCodegenTable
+      x-required-permission: codegen:manage
       responses: { "204": { description: Imported table deleted } }
   /api/v1/admin/codegen/imported/{id}/preview:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     get:
       tags: [Codegen]
       operationId: previewImportedCodegenTable
-      responses: { "200": { description: Generated files } }
+      x-required-permission: codegen:manage
+      responses:
+        "200":
+          description: Generated files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        path:
+                          type: string
+                        code:
+                          type: string
   /api/v1/admin/codegen/imported/{id}/sync:
     parameters: [{ $ref: "#/components/parameters/Id" }]
     post:
       tags: [Codegen]
       operationId: syncImportedCodegenTable
-      responses: { "200": { description: Synced imported table } }
+      x-required-permission: codegen:manage
+      responses:
+        "200":
+          description: Synced imported table
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodegenTable"
   /api/v1/admin/monitoring/dashboard:
     get:
       tags: [Monitoring]
       operationId: monitoringDashboard
-      responses: { "200": { description: Dashboard counters } }
+      x-required-permission: audit:read
+      responses:
+        "200":
+          description: Dashboard counters
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+                  format: int64
   /api/v1/admin/integrations:
     get:
       tags: [Integrations]
       operationId: listIntegrationProviders
-      responses: { "200": { description: Provider statuses } }
+      x-required-permission: settings:read
+      responses:
+        "200":
+          description: Provider statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IntegrationProviderStatus"
   /api/v1/admin/integrations/payments/{provider}:
     parameters: [{ name: provider, in: path, required: true, schema: { type: string } }]
     post:
       tags: [Integrations]
       operationId: createPayment
-      responses: { "201": { description: Payment session }, "501": { $ref: "#/components/responses/Problem" } }
+      x-required-permission: settings:manage
+      responses:
+        "201":
+          description: Payment session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSession"
+        "501":
+          $ref: "#/components/responses/Problem"
   /api/v1/payments/callbacks/{provider}:
     parameters: [{ name: provider, in: path, required: true, schema: { type: string } }]
     post:
       tags: [Integrations]
       operationId: paymentCallback
       security: []
-      responses: { "200": { description: Callback accepted }, "400": { $ref: "#/components/responses/Problem" } }
+      responses:
+        "200":
+          description: Callback accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+        "400":
+          $ref: "#/components/responses/Problem"
 components:
   securitySchemes:
     bearerAuth:
@@ -1118,7 +1878,12 @@ components:
           type: string
     LoginRequest:
       type: object
-      required: [username, password]
+      description: Password login is the default. SMS and social login use the optional loginType and provider fields.
+      anyOf:
+        - required: [username, password]
+        - required: [phone, smsCode]
+        - required: [authCode]
+        - required: [wxCode]
       properties:
         username:
           type: string
@@ -1134,9 +1899,27 @@ components:
           type: boolean
         mfaCode:
           type: string
+        captchaId:
+          type: string
+          format: uuid
+        captchaCode:
+          type: string
+        phone:
+          type: string
+        smsCode:
+          type: string
+        loginType:
+          type: string
+          enum: [PASSWORD, SMS, SOCIAL, MINIPROGRAM, WECHAT_MINIPROGRAM, WECHAT_MINI_PROGRAM]
+        wxCode:
+          type: string
+        authCode:
+          type: string
+        platform:
+          type: string
     LoginResult:
       type: object
-      required: [token, user]
+      required: [token, sessionId, expiresAt, user, access]
       properties:
         token:
           type: string
@@ -1144,6 +1927,9 @@ components:
           type: string
         csrfToken:
           type: string
+        sessionId:
+          type: string
+          format: uuid
         expiresAt:
           type: string
           format: date-time
@@ -1270,8 +2056,40 @@ components:
         menus:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            $ref: "#/components/schemas/Menu"
+    Menu:
+      type: object
+      required: [id, name, type, sort, visible, isFrame]
+      properties:
+        id:
+          type: string
+          format: uuid
+        parentId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: integer
+          enum: [1, 2, 3]
+        path:
+          type: string
+        component:
+          type: string
+        permission:
+          type: string
+        icon:
+          type: string
+        sort:
+          type: integer
+        visible:
+          type: boolean
+        isFrame:
+          type: boolean
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/Menu"
     Role:
       type: object
       properties:
@@ -1286,8 +2104,22 @@ components:
           type: string
         status:
           type: string
+        description:
+          type: string
+        isSuperAdmin:
+          type: boolean
+        userCount:
+          type: integer
+          format: int64
+        version:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
     RolePage:
       type: object
+      required: [items, total, page, pageSize]
       properties:
         items:
           type: array
@@ -1296,6 +2128,10 @@ components:
         total:
           type: integer
           format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
     CreateRole:
       type: object
       required: [name, code, dataScope]
@@ -1390,6 +2226,848 @@ components:
         sequence:
           type: integer
           format: int64
+        read:
+          type: boolean
+        metadata:
+          type: object
+          description: Provider/business-specific message metadata.
+          additionalProperties: true
         createdAt:
+          type: string
+          format: date-time
+    Group:
+      type: object
+      required: [id, name, ownerId, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        avatarUrl:
+          type: string
+        ownerId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [active, dissolved]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    GroupMember:
+      type: object
+      required: [groupId, userId, username, displayName, role, joinedAt]
+      properties:
+        groupId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        role:
+          type: string
+          enum: [owner, admin, member]
+        mutedUntil:
+          type: string
+          format: date-time
+        joinedAt:
+          type: string
+          format: date-time
+    ChatUser:
+      type: object
+      required: [id, username, displayName, online]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        online:
+          type: boolean
+    DepartmentPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Department"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    Position:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        parentId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        sort:
+          type: integer
+        status:
+          type: string
+          enum: [active, disabled]
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    PositionPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Position"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    DictionaryType:
+      type: object
+      required: [id, code, name, status, itemCount, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, disabled]
+        itemCount:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+    DictionaryTypePage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DictionaryType"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    DictionaryItem:
+      type: object
+      required: [id, typeId, value, label, sort, isDefault, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        typeId:
+          type: string
+          format: uuid
+        value:
+          type: string
+        label:
+          type: string
+        sort:
+          type: integer
+        tagStyle:
+          type: string
+        isDefault:
+          type: boolean
+        status:
+          type: string
+          enum: [active, disabled]
+    Setting:
+      type: object
+      required: [id, key, valueType, sensitive, version, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        key:
+          type: string
+        valueType:
+          type: string
+        value:
+          description: Value may be string, number, boolean, array, or object according to valueType.
+        sensitive:
+          type: boolean
+        version:
+          type: integer
+          format: int64
+        updatedAt:
+          type: string
+          format: date-time
+    SettingGroup:
+      type: object
+      required: [id, code, name, sort, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        sort:
+          type: integer
+        status:
+          type: string
+        settingCount:
+          type: integer
+          format: int64
+        settings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Setting"
+        values:
+          type: object
+          description: Public/group values keyed by setting key.
+          additionalProperties: true
+    AuditEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        occurredAt:
+          type: string
+          format: date-time
+        actorUserId:
+          type: string
+          format: uuid
+        actorName:
+          type: string
+        action:
+          type: string
+        resourceType:
+          type: string
+        resourceId:
+          type: string
+        outcome:
+          type: string
+        requestId:
+          type: string
+        traceId:
+          type: string
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+        metadata:
+          type: object
+          description: Redacted audit metadata.
+          additionalProperties: true
+    AuditEventPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditEvent"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    LoginEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        clientType:
+          type: string
+        outcome:
+          type: string
+        failureReason:
+          type: string
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+    LoginEventPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LoginEvent"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    File:
+      type: object
+      required: [id, originalName, storageProvider, contentType, sizeBytes, sha256, visibility, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        ownerUserId:
+          type: string
+          format: uuid
+        originalName:
+          type: string
+        storageProvider:
+          type: string
+        contentType:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        sha256:
+          type: string
+        visibility:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    FilePage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/File"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    Notice:
+      type: object
+      required: [id, title, content, noticeType, channels, targetType, targetIds, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        content:
+          type: string
+        noticeType:
+          type: integer
+        channels:
+          type: array
+          items:
+            type: string
+        targetType:
+          type: string
+        targetIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        status:
+          type: string
+          enum: [draft, published, withdrawn]
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        publishedAt:
+          type: string
+          format: date-time
+        readAt:
+          type: string
+          format: date-time
+    NoticePage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notice"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    ScheduledJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        handler:
+          type: string
+        cronExpression:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+        maxAttempts:
+          type: integer
+        timeoutSeconds:
+          type: integer
+        concurrencyKey:
+          type: string
+        nextRunAt:
+          type: string
+          format: date-time
+        lastEnqueuedAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ScheduledJobPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScheduledJob"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    ScheduledJobRun:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        jobId:
+          type: string
+          format: uuid
+        riverJobId:
+          type: integer
+          format: int64
+        status:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        durationMs:
+          type: integer
+          format: int64
+        attempt:
+          type: integer
+        errorMessage:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ScheduledJobRunPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScheduledJobRun"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    WorkflowDefinition:
+      type: object
+      required: [id, code, name, version, definition, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        version:
+          type: integer
+        description:
+          type: string
+        definition:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        publishedAt:
+          type: string
+          format: date-time
+    WorkflowDefinitionPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowDefinition"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    WorkflowInstance:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        definitionId:
+          type: string
+          format: uuid
+        definitionName:
+          type: string
+        businessId:
+          type: string
+        initiatorId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        currentNodeCode:
+          type: string
+        variables:
+          type: object
+          additionalProperties: true
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+    WorkflowInstancePage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowInstance"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    WorkflowTask:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        instanceId:
+          type: string
+          format: uuid
+        definitionId:
+          type: string
+          format: uuid
+        definitionName:
+          type: string
+        businessId:
+          type: string
+        nodeCode:
+          type: string
+        nodeName:
+          type: string
+        assigneeId:
+          type: string
+          format: uuid
+        assigneeRole:
+          type: string
+        status:
+          type: string
+        decision:
+          type: string
+        comment:
+          type: string
+        dueAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+    WorkflowTaskPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowTask"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    WorkflowEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        instanceId:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        actorUserId:
+          type: string
+          format: uuid
+        type:
+          type: string
+        fromNode:
+          type: string
+        toNode:
+          type: string
+        comment:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+    CodegenTable:
+      type: object
+      properties:
+        schema:
+          type: string
+        name:
+          type: string
+        comment:
+          type: string
+    CodegenTablePage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CodegenTable"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    MonitoringSnapshot:
+      type: object
+      properties:
+        goVersion:
+          type: string
+        goroutines:
+          type: integer
+        heapAllocBytes:
+          type: integer
+          format: int64
+        uptimeSeconds:
+          type: integer
+          format: int64
+        database:
+          type: object
+          additionalProperties: true
+        redis:
+          type: object
+          additionalProperties: true
+    IntegrationProviderStatus:
+      type: object
+      properties:
+        name:
+          type: string
+        configured:
+          type: boolean
+        kind:
+          type: string
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+        database:
+          type: string
+        redis:
+          type: string
+    SMSCodeResult:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+    MFASetup:
+      type: object
+      required: [secret, url]
+      properties:
+        secret:
+          type: string
+        url:
+          type: string
+    Session:
+      type: object
+      required: [id, userId, clientType, expiresAt, refreshExpiresAt, lastSeenAt, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        clientType:
+          type: string
+        deviceName:
+          type: string
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        refreshExpiresAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    TemporaryPassword:
+      type: object
+      required: [temporaryPassword]
+      properties:
+        temporaryPassword:
+          type: string
+    RoleMenuIDs:
+      type: object
+      required: [menuIds]
+      properties:
+        menuIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    Permission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        module:
+          type: string
+        description:
+          type: string
+    PaymentSession:
+      type: object
+      properties:
+        provider:
+          type: string
+        orderId:
+          type: string
+        paymentUrl:
+          type: string
+        expiresAt:
           type: string
           format: date-time

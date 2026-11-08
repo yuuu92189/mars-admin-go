@@ -13,13 +13,38 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+type RoleRepository interface {
+	Roles(ctx context.Context, query string, page, pageSize int) ([]domain.Role, int64, error)
+	Role(ctx context.Context, id uuid.UUID) (domain.Role, error)
+	CreateRole(ctx context.Context, input domain.CreateRoleInput) (domain.Role, error)
+	UpdateRole(ctx context.Context, id uuid.UUID, input domain.UpdateRoleInput) (domain.Role, error)
+	DeleteRole(ctx context.Context, id uuid.UUID) error
+	Permissions(ctx context.Context) ([]domain.Permission, error)
+	SetRolePermissions(ctx context.Context, roleID uuid.UUID, permissionCodes []string) error
+	SetRoleMenus(ctx context.Context, roleID uuid.UUID, menuIDs []uuid.UUID) error
+	RoleMenuIDs(ctx context.Context, roleID uuid.UUID) ([]uuid.UUID, error)
+}
+
+type MenuRepository interface {
+	Menus(ctx context.Context, userID uuid.UUID, superAdmin bool) ([]domain.Menu, error)
+	CreateMenu(ctx context.Context, input domain.MenuInput) (domain.Menu, error)
+	UpdateMenu(ctx context.Context, id uuid.UUID, input domain.MenuInput) (domain.Menu, error)
+	DeleteMenu(ctx context.Context, id uuid.UUID) error
+}
+
+type Repository interface {
+	RoleRepository
+	MenuRepository
+}
+
 type Service struct {
-	repo  domain.Repository
+	roles RoleRepository
+	menus MenuRepository
 	cache domain.Cache
 }
 
-func New(repo domain.Repository, caches ...domain.Cache) *Service {
-	service := &Service{repo: repo}
+func New(repo Repository, caches ...domain.Cache) *Service {
+	service := &Service{roles: repo, menus: repo}
 	if len(caches) > 0 {
 		service.cache = caches[0]
 	}
@@ -27,7 +52,7 @@ func New(repo domain.Repository, caches ...domain.Cache) *Service {
 }
 
 func (s *Service) Menus(ctx context.Context, userID uuid.UUID, superAdmin bool) ([]domain.Menu, error) {
-	return s.repo.Menus(ctx, userID, superAdmin)
+	return s.menus.Menus(ctx, userID, superAdmin)
 }
 
 func (s *Service) Roles(ctx context.Context, query string, page, pageSize int) ([]domain.Role, int64, error) {
@@ -37,11 +62,11 @@ func (s *Service) Roles(ctx context.Context, query string, page, pageSize int) (
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return s.repo.Roles(ctx, strings.TrimSpace(query), page, pageSize)
+	return s.roles.Roles(ctx, strings.TrimSpace(query), page, pageSize)
 }
 
 func (s *Service) Role(ctx context.Context, id uuid.UUID) (domain.Role, error) {
-	role, err := s.repo.Role(ctx, id)
+	role, err := s.roles.Role(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Role{}, apperror.NotFound("Role")
 	}
@@ -60,7 +85,7 @@ func (s *Service) CreateRole(ctx context.Context, input domain.CreateRoleInput) 
 	if !validScope(input.DataScope) {
 		return domain.Role{}, apperror.Validation("dataScope", "Unsupported data scope.")
 	}
-	role, err := s.repo.CreateRole(ctx, input)
+	role, err := s.roles.CreateRole(ctx, input)
 	s.invalidateAccess(ctx)
 	return role, err
 }
@@ -79,7 +104,7 @@ func (s *Service) UpdateRole(ctx context.Context, actor requestctx.Actor, id uui
 	if input.Status != "active" && input.Status != "disabled" {
 		return domain.Role{}, apperror.Validation("status", "status must be active or disabled.")
 	}
-	role, err := s.repo.UpdateRole(ctx, id, input)
+	role, err := s.roles.UpdateRole(ctx, id, input)
 	s.invalidateAccess(ctx)
 	return role, err
 }
@@ -88,13 +113,13 @@ func (s *Service) DeleteRole(ctx context.Context, actor requestctx.Actor, id uui
 	if err := s.authorizeRoleMutation(ctx, actor, id); err != nil {
 		return err
 	}
-	err := s.repo.DeleteRole(ctx, id)
+	err := s.roles.DeleteRole(ctx, id)
 	s.invalidateAccess(ctx)
 	return err
 }
 
 func (s *Service) Permissions(ctx context.Context) ([]domain.Permission, error) {
-	return s.repo.Permissions(ctx)
+	return s.roles.Permissions(ctx)
 }
 
 func (s *Service) SetRolePermissions(ctx context.Context, actor requestctx.Actor, roleID uuid.UUID, codes []string) error {
@@ -107,7 +132,7 @@ func (s *Service) SetRolePermissions(ctx context.Context, actor requestctx.Actor
 			return apperror.Validation("permissions", "Permission codes must not be empty.")
 		}
 	}
-	err := s.repo.SetRolePermissions(ctx, roleID, codes)
+	err := s.roles.SetRolePermissions(ctx, roleID, codes)
 	s.invalidateAccess(ctx)
 	return err
 }
@@ -116,20 +141,20 @@ func (s *Service) SetRoleMenus(ctx context.Context, actor requestctx.Actor, role
 	if err := s.authorizeRoleMutation(ctx, actor, roleID); err != nil {
 		return err
 	}
-	err := s.repo.SetRoleMenus(ctx, roleID, menuIDs)
+	err := s.roles.SetRoleMenus(ctx, roleID, menuIDs)
 	s.invalidateAccess(ctx)
 	return err
 }
 
 func (s *Service) RoleMenuIDs(ctx context.Context, roleID uuid.UUID) ([]uuid.UUID, error) {
-	return s.repo.RoleMenuIDs(ctx, roleID)
+	return s.roles.RoleMenuIDs(ctx, roleID)
 }
 
 func (s *Service) CreateMenu(ctx context.Context, input domain.MenuInput) (domain.Menu, error) {
 	if err := validateMenu(&input); err != nil {
 		return domain.Menu{}, err
 	}
-	menu, err := s.repo.CreateMenu(ctx, input)
+	menu, err := s.menus.CreateMenu(ctx, input)
 	s.invalidateAccess(ctx)
 	return menu, err
 }
@@ -141,13 +166,13 @@ func (s *Service) UpdateMenu(ctx context.Context, id uuid.UUID, input domain.Men
 	if input.ParentID != nil && *input.ParentID == id {
 		return domain.Menu{}, apperror.Validation("parentId", "A menu cannot be its own parent.")
 	}
-	menu, err := s.repo.UpdateMenu(ctx, id, input)
+	menu, err := s.menus.UpdateMenu(ctx, id, input)
 	s.invalidateAccess(ctx)
 	return menu, err
 }
 
 func (s *Service) DeleteMenu(ctx context.Context, id uuid.UUID) error {
-	err := s.repo.DeleteMenu(ctx, id)
+	err := s.menus.DeleteMenu(ctx, id)
 	s.invalidateAccess(ctx)
 	return err
 }
@@ -162,7 +187,7 @@ func (s *Service) authorizeRoleMutation(ctx context.Context, actor requestctx.Ac
 	if actor.IsSuperAdmin {
 		return nil
 	}
-	role, err := s.repo.Role(ctx, roleID)
+	role, err := s.roles.Role(ctx, roleID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return apperror.NotFound("Role")
 	}

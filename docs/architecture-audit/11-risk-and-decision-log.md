@@ -9,6 +9,30 @@
 | P2 | 重要工程质量或可维护性风险，可分批处理 |
 | P3 | 优化项，不阻断核心交付 |
 
+## 1.1 Phase 1 Risk Update
+
+### Resolved or Reduced
+
+- `RISK-002`：Metrics 安全声明、登录 canonical 字段和绝对过期时间已统一；legacy 字段只在 adapter 映射。
+- `RISK-004`：Workflow 实例、详情和事件读取已执行实例级 Data Scope，并有真实 PostgreSQL 集成测试。
+- `RISK-008`：Identity 和 Notification 的已知跨模块 sqlc 引用已移除。
+- `RISK-009`：Access 和 Workflow Repository 已按用例拆分；Identity/Notification 仍未拆分，保留为后续债务。
+- `RISK-011`：已确认的 Legacy Stub 已改为真实统计或明确 501 Problem。
+- `RISK-007`：OpenAPI 当前所有 2xx response 都有 content schema；剩余动态 map 均有明确业务原因。
+
+### Still Open
+
+- `RISK-001`：React 前端尚未实现，因此旧的明文密码和浏览器 Token 问题仍存在于参考 Vue。
+- `RISK-003`：漏洞领域未实现，等待产品确认。
+- `RISK-005`：支付订单账本未实现，等待产品确认。
+- `RISK-006`：外部 Provider 仍不能宣称 exactly-once。
+- `RISK-010`：Monitoring 跨模块 read model 仍是当前架构的已知边界。
+- `RISK-012`：Identity/Notification application、adapter 和部分错误分支覆盖率仍需补强。
+- `RISK-013`：React 组件测试、Playwright 和视觉回归尚未开始。
+- `RISK-014`：生产数据切换仍未批准。
+
+Phase 1 的 OpenAPI 和 TypeScript 基线已可支撑 Phase 2 前端工程；未确认的产品模块不应被前端静态页面替代。
+
 ## 2. Confirmed Risks
 
 ### P1

@@ -130,7 +130,8 @@ func (h *Handler) legacyInstances(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	items, total, err := h.service.Instances(r.Context(), page, pageSize)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	items, total, err := h.service.Instances(r.Context(), workflowActor(actor), page, pageSize)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -285,7 +286,8 @@ func (h *Handler) instances(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	items, total, err := h.service.Instances(r.Context(), page, pageSize)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	items, total, err := h.service.Instances(r.Context(), workflowActor(actor), page, pageSize)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -299,7 +301,8 @@ func (h *Handler) instance(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	item, err := h.service.Instance(r.Context(), id)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	item, err := h.service.Instance(r.Context(), workflowActor(actor), id)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -349,7 +352,8 @@ func (h *Handler) events(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	events, err := h.service.Events(r.Context(), id)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	events, err := h.service.Events(r.Context(), workflowActor(actor), id)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -422,7 +426,7 @@ func (h *Handler) decideAction(w http.ResponseWriter, r *http.Request, action st
 }
 
 func workflowActor(actor requestctx.Actor) domain.Actor {
-	return domain.Actor{UserID: actor.UserID, Roles: actor.Roles}
+	return domain.Actor{UserID: actor.UserID, Roles: actor.Roles, DataScope: actor.DataScope}
 }
 
 func firstNonEmpty(values ...string) string {

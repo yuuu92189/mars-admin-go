@@ -1,0 +1,13 @@
+{
+  "name": "mars-admin-api-types",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "openapi-typescript ../api/openapi/v1/openapi.yaml -o src/schema.ts",
+    "check": "npm run generate && tsc --noEmit"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}
