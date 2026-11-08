@@ -54,7 +54,10 @@ Each page has:
 
 ## Remote CI
 
-Pending final push. The GitHub Actions run result and URL will be appended after the repository is pushed.
+- Frontend CI: PASS, run `42490651582`, <https://github.com/yuuu92189/mars-admin-go/actions/runs/42490651582>
+- Frontend E2E: PASS, run `42490651532`, <https://github.com/yuuu92189/mars-admin-go/actions/runs/42490651532>
+
+Both workflows completed successfully for code commit `1054449b74d980fd301c9885aee1e4147d69bb14`.
 
 ## Conclusion
 

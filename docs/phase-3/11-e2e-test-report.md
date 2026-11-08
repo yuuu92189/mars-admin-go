@@ -67,6 +67,9 @@ The 17 skips are conditional coverage guards, not failures or test-time bypasses
 - Session refresh integration uses a 45-second access TTL to avoid unrelated mid-test expiry while still proving refresh behavior.
 - Long page matrices and password lifecycle tests have bounded, explicit timeout budgets.
 
-## Remaining CI Evidence
+## Remote CI Evidence
 
-The local full-suite evidence is complete. Remote GitHub Actions evidence is added after the final push and is recorded in `13-phase-3-final-acceptance.md`.
+- Frontend CI: PASS, run `42490651582`, <https://github.com/yuuu92189/mars-admin-go/actions/runs/42490651582>
+- Frontend E2E: PASS, run `42490651532`, <https://github.com/yuuu92189/mars-admin-go/actions/runs/42490651532>
+
+Both workflows completed successfully for code commit `1054449b74d980fd301c9885aee1e4147d69bb14`.
