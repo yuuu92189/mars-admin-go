@@ -34,6 +34,7 @@
 | Production build                           | PASS   | Next.js production build                                            |
 | GitHub Actions Frontend CI                 | PASS   | run `42466214627`, commit `d64f5ed`                                 |
 | GitHub Actions Frontend E2E                | PASS   | run `42466214592`, commit `d64f5ed`                                 |
+| GitHub Actions E2E on final docs SHA       | PASS   | run `42466874011`, commit `53fbd9f`                                 |
 
 ## Non-Blocking Scope Notes
 
@@ -48,4 +49,4 @@
 
 `ACCEPTED`
 
-All Phase 2.1 requirements passed locally and in the recorded GitHub Actions runs for `d64f5ed`.
+All Phase 2.1 requirements passed locally and in the recorded GitHub Actions runs.

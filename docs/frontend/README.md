@@ -6,7 +6,7 @@ This directory records the Phase 2 frontend audit, architecture and acceptance e
 
 - Phase 2 foundation: implemented.
 - Phase 2.1 hardening: implemented and accepted; Frontend CI run `42466214627` and Frontend E2E
-  run `42466214592` passed for commit `d64f5ed`.
+  run `42466214592` passed for commit `d64f5ed`; E2E run `42466874011` passed for `53fbd9f`.
 - Reference design: current `scaffold-vue` source, including the Kintsugi login brand panel and four-stage terminal.
 - Current backend contract: `api/openapi/v1/openapi.yaml`.
 - Current frontend: Next.js App Router + React + TypeScript strict + Tailwind CSS + local Pearl Glass CSS.

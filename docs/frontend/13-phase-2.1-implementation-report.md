@@ -79,6 +79,7 @@ Shell behavior, evidence-backed visual comparison, and Go-backed quality gates.
 | Real password lifecycle              | PASS, temporary user created, changed password, old password rejected, new password accepted, test user deleted |
 | GitHub Actions Frontend CI           | PASS, run `42466214627`, job `128686232041`                                                                     |
 | GitHub Actions Frontend E2E          | PASS, run `42466214592`, job `128686231984`                                                                     |
+| GitHub Actions E2E on final docs SHA | PASS, run `42466874011`, commit `53fbd9f`                                                                       |
 
 The Playwright suite covers `390x844`, `768x1024`, `1024x768`, `1440x900`, `1920x1080` and the
 existing mobile matrix. Authenticated tests use only local or isolated CI test credentials.
