@@ -7,6 +7,7 @@ import (
 
 	sqlc "mars-admin-go/internal/modules/access/adapter/postgres/sqlc"
 	"mars-admin-go/internal/modules/access/domain"
+	"mars-admin-go/internal/platform/apperror"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -192,8 +193,12 @@ func (r *Repository) SetRolePermissions(ctx context.Context, roleID uuid.UUID, p
 		return err
 	}
 	for _, code := range permissionCodes {
-		if err := q.AddRolePermission(ctx, sqlc.AddRolePermissionParams{RoleID: pgUUID(roleID), Code: code}); err != nil {
+		affected, err := q.AddRolePermission(ctx, sqlc.AddRolePermissionParams{RoleID: pgUUID(roleID), Code: code})
+		if err != nil {
 			return err
+		}
+		if affected == 0 {
+			return apperror.Validation("permissions", "Unknown permission code: "+code)
 		}
 	}
 	return tx.Commit(ctx)

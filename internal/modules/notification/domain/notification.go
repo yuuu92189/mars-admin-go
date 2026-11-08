@@ -41,8 +41,10 @@ type Repository interface {
 	Publish(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
 	Withdraw(ctx context.Context, id uuid.UUID) error
 	My(ctx context.Context, userID uuid.UUID, page, pageSize int) ([]Notice, error)
+	MyCount(ctx context.Context, userID uuid.UUID) (int64, error)
 	GetMy(ctx context.Context, noticeID, userID uuid.UUID) (Notice, error)
 	MarkRead(ctx context.Context, noticeID, userID uuid.UUID) error
+	MarkAllRead(ctx context.Context, userID uuid.UUID) error
 	Unread(ctx context.Context, userID uuid.UUID) (int64, error)
 }
 

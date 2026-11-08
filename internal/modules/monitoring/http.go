@@ -32,7 +32,7 @@ func NewHandler(service *Service, auth func(http.Handler) http.Handler, logger *
 
 func (h *Handler) Routes() chi.Router {
 	router := chi.NewRouter()
-	router.Use(h.auth)
+	router.Use(h.auth, httpserver.RequirePermission("audit:read"))
 	router.Get("/snapshot", h.snapshot)
 	router.Get("/dashboard", h.dashboard)
 	return router
@@ -40,7 +40,7 @@ func (h *Handler) Routes() chi.Router {
 
 func (h *Handler) LegacyRoutes() chi.Router {
 	router := chi.NewRouter()
-	router.Use(h.auth)
+	router.Use(h.auth, httpserver.RequirePermission("audit:read"))
 	router.Get("/stats", h.dashboard)
 	router.Get("/snapshot", h.snapshot)
 	router.Get("/info", h.legacyInfo)
@@ -54,7 +54,7 @@ func (h *Handler) LegacyCacheRoutes() chi.Router {
 	router.Get("/info", h.cacheStats)
 	router.Get("/keys", h.cacheKeys)
 	router.Get("/value", h.cacheValue)
-	router.Delete("/", h.cacheDelete)
+	router.With(httpserver.RequirePermission("settings:manage")).Delete("/", h.cacheDelete)
 	return router
 }
 

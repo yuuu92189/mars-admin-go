@@ -94,11 +94,15 @@ RETURNING *;
 INSERT INTO messaging_group_members (group_id, user_id, member_role)
 VALUES ($1, $2, $3)
 ON CONFLICT (group_id, user_id) DO UPDATE
-SET member_role = excluded.member_role, left_at = NULL;
+SET member_role = CASE
+        WHEN messaging_group_members.member_role = 'owner' THEN 'owner'
+        ELSE excluded.member_role
+    END,
+    left_at = NULL;
 
 -- name: RemoveGroupMember :execrows
 UPDATE messaging_group_members SET left_at = now()
-WHERE group_id = $1 AND user_id = $2 AND user_id <> $3;
+WHERE group_id = $1 AND user_id = $2 AND member_role <> 'owner' AND left_at IS NULL;
 
 -- name: ListGroupMembers :many
 SELECT gm.*, u.username, u.display_name, u.avatar_url
@@ -194,6 +198,12 @@ WHERE r.user_id = $1 AND n.status = 'published'
 ORDER BY n.published_at DESC
 LIMIT $2 OFFSET $3;
 
+-- name: CountMyNotices :one
+SELECT count(*)
+FROM notification_notices n
+JOIN notification_recipients r ON r.notice_id = n.id
+WHERE r.user_id = $1 AND n.status = 'published';
+
 -- name: GetMyNotice :one
 SELECT n.*, r.read_at
 FROM notification_notices n
@@ -218,6 +228,10 @@ LIMIT $3;
 -- name: MarkNoticeRead :execrows
 UPDATE notification_recipients SET read_at = now()
 WHERE notice_id = $1 AND user_id = $2 AND read_at IS NULL;
+
+-- name: MarkAllNoticesRead :execrows
+UPDATE notification_recipients SET read_at = now()
+WHERE user_id = $1 AND read_at IS NULL;
 
 -- name: CountUnreadNotices :one
 SELECT count(*) FROM notification_recipients

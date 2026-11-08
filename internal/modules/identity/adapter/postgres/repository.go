@@ -53,9 +53,18 @@ func (r *Repository) FindUserByID(ctx context.Context, id uuid.UUID) (domain.Use
 	}
 	user := mapUser(row)
 	org := organizationQueries{pool: r.pool}
-	user.RoleIDs, _ = r.userRoleIDs(ctx, id)
-	user.DepartmentIDs, _ = org.userDepartmentIDs(ctx, id)
-	user.PositionIDs, _ = org.userPositionIDs(ctx, id)
+	user.RoleIDs, err = r.userRoleIDs(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
+	user.DepartmentIDs, err = org.userDepartmentIDs(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
+	user.PositionIDs, err = org.userPositionIDs(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
 	return user, nil
 }
 
@@ -68,9 +77,18 @@ func (r *Repository) FindUserByIDInDataScope(ctx context.Context, targetID, acto
 	}
 	user := mapUser(row)
 	org := organizationQueries{pool: r.pool}
-	user.RoleIDs, _ = r.userRoleIDs(ctx, targetID)
-	user.DepartmentIDs, _ = org.userDepartmentIDs(ctx, targetID)
-	user.PositionIDs, _ = org.userPositionIDs(ctx, targetID)
+	user.RoleIDs, err = r.userRoleIDs(ctx, targetID)
+	if err != nil {
+		return domain.User{}, err
+	}
+	user.DepartmentIDs, err = org.userDepartmentIDs(ctx, targetID)
+	if err != nil {
+		return domain.User{}, err
+	}
+	user.PositionIDs, err = org.userPositionIDs(ctx, targetID)
+	if err != nil {
+		return domain.User{}, err
+	}
 	return user, nil
 }
 

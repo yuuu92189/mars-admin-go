@@ -9,6 +9,7 @@ import (
 
 	"mars-admin-go/internal/modules/system/application"
 	"mars-admin-go/internal/modules/system/domain"
+	"mars-admin-go/internal/platform/apperror"
 	"mars-admin-go/internal/platform/httpserver"
 	"mars-admin-go/internal/platform/requestctx"
 
@@ -587,7 +588,7 @@ func (h *Handler) legacyUpdateSettings(w http.ResponseWriter, r *http.Request) {
 	values := make(map[string]any)
 	flattenSettings("", input, values)
 	for key, value := range values {
-		if isSensitiveSettingKey(key) {
+		if application.IsSensitiveSettingKey(key) {
 			if text, ok := value.(string); ok && strings.TrimSpace(text) == "" {
 				delete(values, key)
 			}
@@ -613,7 +614,8 @@ func (h *Handler) legacyUpdateSettings(w http.ResponseWriter, r *http.Request) {
 	httpserver.WriteJSON(w, http.StatusOK, item)
 }
 
-func (h *Handler) legacyRefreshSettings(w http.ResponseWriter, _ *http.Request) {
+func (h *Handler) legacyRefreshSettings(w http.ResponseWriter, r *http.Request) {
+	h.settings.Invalidate(r.Context())
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -724,8 +726,12 @@ func (h *Handler) legacyFileConfigSetMaster(w http.ResponseWriter, _ *http.Reque
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) legacyFileConfigTest(w http.ResponseWriter, _ *http.Request) {
-	httpserver.WriteJSON(w, http.StatusOK, true)
+func (h *Handler) legacyFileConfigTest(w http.ResponseWriter, r *http.Request) {
+	httpserver.WriteError(w, r, h.logger, apperror.New(
+		apperror.KindNotConfigured,
+		"file_config_test_not_configured",
+		"Storage connectivity testing is not configured.",
+	))
 }
 
 func (h *Handler) legacyEmptySMSLogs(w http.ResponseWriter, _ *http.Request) {
@@ -903,13 +909,6 @@ func asInt(value any) (int, bool) {
 	default:
 		return 0, false
 	}
-}
-
-func isSensitiveSettingKey(key string) bool {
-	normalized := strings.ToLower(key)
-	return strings.Contains(normalized, "secret") || strings.Contains(normalized, "password") ||
-		strings.Contains(normalized, "privatekey") || strings.Contains(normalized, "private_key") ||
-		strings.Contains(normalized, "apikey") || strings.Contains(normalized, "api_key")
 }
 
 func legacySettingGroupName(code, fallback string) string {

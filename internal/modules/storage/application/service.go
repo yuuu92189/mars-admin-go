@@ -56,7 +56,7 @@ func (s *Service) Upload(ctx context.Context, input domain.Upload) (domain.File,
 		return domain.File{}, fmt.Errorf("stage upload: %w", err)
 	}
 	if written > s.maxUpload {
-		return domain.File{}, apperror.New(apperror.KindValidation, "file_too_large", fmt.Sprintf("File exceeds the %d byte limit.", s.maxUpload))
+		return domain.File{}, apperror.New(apperror.KindPayloadTooLarge, "file_too_large", fmt.Sprintf("File exceeds the %d byte limit.", s.maxUpload))
 	}
 	if written == 0 {
 		return domain.File{}, apperror.Validation("file", "Empty files are not allowed.")
@@ -80,7 +80,7 @@ func (s *Service) Upload(ctx context.Context, input domain.Upload) (domain.File,
 	}
 
 	now := s.now()
-	key := filepath.ToSlash(filepath.Join(now.Format("2006"), now.Format("01"), uuid.Must(uuid.NewV7()).String()))
+	key := filepath.ToSlash(filepath.Join(now.Format("2006"), now.Format("01"), mustID().String()))
 	info, err := s.backend.Put(ctx, key, tmp, written, contentType)
 	if err != nil {
 		return domain.File{}, fmt.Errorf("store file: %w", err)

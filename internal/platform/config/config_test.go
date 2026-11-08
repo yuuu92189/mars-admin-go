@@ -93,3 +93,27 @@ func TestValidateRejectsMissingRefreshHistoryRetention(t *testing.T) {
 		t.Fatal("expected missing refresh history retention to fail")
 	}
 }
+
+func TestLoadRejectsInvalidEnvironmentValue(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://localhost/db")
+	t.Setenv("APP_PORT", "not-a-port")
+	if _, err := Load(); err == nil {
+		t.Fatal("expected invalid APP_PORT to fail configuration loading")
+	}
+}
+
+func TestValidateRejectsInvalidStorageProvider(t *testing.T) {
+	cfg := Config{
+		App:      AppConfig{Env: "development", Port: 8080, ShutdownTimeout: time.Second, LogLevel: "info"},
+		Database: DatabaseConfig{URL: "postgres://localhost/db", MaxConnections: 2, ConnectionTimeout: time.Second},
+		Redis:    RedisConfig{PoolSize: 1},
+		Auth: AuthConfig{
+			SessionTTL: time.Minute, RefreshTTL: time.Hour, RefreshHistoryRetention: time.Hour,
+			CookieSameSite: "lax", LoginMaxAttempts: 1, LoginLockDuration: time.Minute,
+		},
+		Storage: StorageConfig{Provider: "unknown", MaxUploadBytes: 1},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected unsupported storage provider to be rejected")
+	}
+}

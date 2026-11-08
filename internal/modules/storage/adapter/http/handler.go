@@ -11,6 +11,7 @@ import (
 
 	"mars-admin-go/internal/modules/storage/application"
 	storagedomain "mars-admin-go/internal/modules/storage/domain"
+	"mars-admin-go/internal/platform/apperror"
 	"mars-admin-go/internal/platform/httpserver"
 	"mars-admin-go/internal/platform/requestctx"
 
@@ -271,6 +272,14 @@ func legacyFile(file storagedomain.File, url string) map[string]any {
 func (h *Handler) receiveUpload(w http.ResponseWriter, r *http.Request) (storagedomain.File, error) {
 	r.Body = http.MaxBytesReader(w, r.Body, h.max+(1<<20))
 	if err := r.ParseMultipartForm(h.max + (1 << 20)); err != nil { // #nosec G120 -- body is bounded by MaxBytesReader and h.max.
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			return storagedomain.File{}, apperror.New(
+				apperror.KindPayloadTooLarge,
+				"upload_too_large",
+				"The multipart upload exceeds the configured size limit.",
+			)
+		}
 		return storagedomain.File{}, errors.New("invalid multipart upload")
 	}
 	file, header, err := r.FormFile("file")

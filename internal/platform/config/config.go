@@ -149,38 +149,39 @@ type BootstrapConfig struct {
 
 func Load() (Config, error) {
 	var cfg Config
+	parser := &envParser{}
 	cfg.App = AppConfig{
 		Env:             env("APP_ENV", "development"),
 		Name:            env("APP_NAME", "Mars Admin Go Edition"),
 		Version:         env("APP_VERSION", "0.1.0"),
-		Port:            envInt("APP_PORT", 8080),
+		Port:            parser.int("APP_PORT", 8080),
 		PublicBaseURL:   env("APP_PUBLIC_BASE_URL", "http://localhost:8080"),
 		LogLevel:        env("APP_LOG_LEVEL", "info"),
-		ShutdownTimeout: envDuration("APP_SHUTDOWN_TIMEOUT", 20*time.Second),
+		ShutdownTimeout: parser.duration("APP_SHUTDOWN_TIMEOUT", 20*time.Second),
 		CORSOrigins:     splitCSV(env("APP_CORS_ORIGINS", "http://localhost:3000,http://localhost:3001")),
-		AutoMigrate:     envBool("AUTO_MIGRATE", true),
+		AutoMigrate:     parser.bool("AUTO_MIGRATE", true),
 	}
 	cfg.Database = DatabaseConfig{
 		URL:               os.Getenv("DATABASE_URL"),
-		MaxConnections:    envInt32("DATABASE_MAX_CONNECTIONS", 20),
-		MinConnections:    envInt32("DATABASE_MIN_CONNECTIONS", 2),
-		ConnectionTimeout: envDuration("DATABASE_CONNECTION_TIMEOUT", 10*time.Second),
+		MaxConnections:    parser.int32("DATABASE_MAX_CONNECTIONS", 20),
+		MinConnections:    parser.int32("DATABASE_MIN_CONNECTIONS", 2),
+		ConnectionTimeout: parser.duration("DATABASE_CONNECTION_TIMEOUT", 10*time.Second),
 	}
 	cfg.Redis = RedisConfig{
 		URL:      env("REDIS_URL", "redis://localhost:6379/0"),
 		Password: os.Getenv("REDIS_PASSWORD"),
-		PoolSize: envInt("REDIS_POOL_SIZE", 10),
+		PoolSize: parser.int("REDIS_POOL_SIZE", 10),
 	}
 	cfg.Auth = AuthConfig{
-		SessionTTL:              envDuration("AUTH_SESSION_TTL", 30*time.Minute),
-		RefreshTTL:              envDuration("AUTH_REFRESH_TTL", 30*24*time.Hour),
-		RefreshGracePeriod:      envDuration("AUTH_REFRESH_GRACE_PERIOD", 15*time.Second),
-		RefreshHistoryRetention: envDuration("AUTH_REFRESH_HISTORY_RETENTION", 30*24*time.Hour),
-		CookieSecure:            envBool("AUTH_COOKIE_SECURE", false),
+		SessionTTL:              parser.duration("AUTH_SESSION_TTL", 30*time.Minute),
+		RefreshTTL:              parser.duration("AUTH_REFRESH_TTL", 30*24*time.Hour),
+		RefreshGracePeriod:      parser.duration("AUTH_REFRESH_GRACE_PERIOD", 15*time.Second),
+		RefreshHistoryRetention: parser.duration("AUTH_REFRESH_HISTORY_RETENTION", 30*24*time.Hour),
+		CookieSecure:            parser.bool("AUTH_COOKIE_SECURE", false),
 		CookieSameSite:          strings.ToLower(env("AUTH_COOKIE_SAME_SITE", "lax")),
-		LoginMaxAttempts:        envInt32("AUTH_LOGIN_MAX_ATTEMPTS", 5),
-		LoginLockDuration:       envDuration("AUTH_LOGIN_LOCK_DURATION", 30*time.Minute),
-		CaptchaEnabled:          envBool("AUTH_CAPTCHA_ENABLED", false),
+		LoginMaxAttempts:        parser.int32("AUTH_LOGIN_MAX_ATTEMPTS", 5),
+		LoginLockDuration:       parser.duration("AUTH_LOGIN_LOCK_DURATION", 30*time.Minute),
+		CaptchaEnabled:          parser.bool("AUTH_CAPTCHA_ENABLED", false),
 		SensitiveDataKey:        os.Getenv("SETTINGS_ENCRYPTION_KEY"),
 		TrustedProxyCIDRs:       splitCSV(os.Getenv("AUTH_TRUSTED_PROXY_CIDRS")),
 	}
@@ -188,7 +189,7 @@ func Load() (Config, error) {
 		Provider:       strings.ToLower(env("STORAGE_PROVIDER", "local")),
 		LocalDir:       env("STORAGE_LOCAL_DIR", "./uploads"),
 		PublicBaseURL:  strings.TrimRight(env("STORAGE_PUBLIC_BASE_URL", "http://localhost:8080/files"), "/"),
-		MaxUploadBytes: int64(envInt("STORAGE_MAX_UPLOAD_BYTES", 50<<20)),
+		MaxUploadBytes: int64(parser.int("STORAGE_MAX_UPLOAD_BYTES", 50<<20)),
 		S3: S3Config{
 			Endpoint:  os.Getenv("STORAGE_S3_ENDPOINT"),
 			Region:    os.Getenv("STORAGE_S3_REGION"),
@@ -228,8 +229,8 @@ func Load() (Config, error) {
 			NotifyURL: os.Getenv("ALIPAY_NOTIFY_URL"), ReturnURL: os.Getenv("ALIPAY_RETURN_URL"),
 		},
 		SMTP: SMTPConfig{
-			Host: os.Getenv("SMTP_HOST"), Port: envInt("SMTP_PORT", 587), Username: os.Getenv("SMTP_USERNAME"),
-			Password: os.Getenv("SMTP_PASSWORD"), From: os.Getenv("SMTP_FROM"), TLS: envBool("SMTP_TLS", true),
+			Host: os.Getenv("SMTP_HOST"), Port: parser.int("SMTP_PORT", 587), Username: os.Getenv("SMTP_USERNAME"),
+			Password: os.Getenv("SMTP_PASSWORD"), From: os.Getenv("SMTP_FROM"), TLS: parser.bool("SMTP_TLS", true),
 		},
 	}
 	cfg.Telemetry = TelemetryConfig{
@@ -242,6 +243,9 @@ func Load() (Config, error) {
 		AdminEmail:    env("BOOTSTRAP_ADMIN_EMAIL", "admin@example.invalid"),
 	}
 
+	if err := errors.Join(parser.errs...); err != nil {
+		return Config{}, err
+	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
 	}
@@ -259,8 +263,22 @@ func (c Config) Validate() error {
 	if c.App.Port < 1 || c.App.Port > 65535 {
 		return errors.New("APP_PORT must be between 1 and 65535")
 	}
+	if c.App.ShutdownTimeout <= 0 {
+		return errors.New("APP_SHUTDOWN_TIMEOUT must be positive")
+	}
+	switch strings.ToLower(c.App.LogLevel) {
+	case "debug", "info", "warn", "error":
+	default:
+		return errors.New("APP_LOG_LEVEL must be debug, info, warn, or error")
+	}
 	if c.Database.MaxConnections < 1 || c.Database.MinConnections < 0 || c.Database.MinConnections > c.Database.MaxConnections {
 		return errors.New("database pool sizes are invalid")
+	}
+	if c.Database.ConnectionTimeout <= 0 {
+		return errors.New("DATABASE_CONNECTION_TIMEOUT must be positive")
+	}
+	if c.Redis.PoolSize < 1 {
+		return errors.New("REDIS_POOL_SIZE must be positive")
 	}
 	switch c.App.Env {
 	case "development", "test", "staging", "production":
@@ -268,15 +286,18 @@ func (c Config) Validate() error {
 		return errors.New("APP_ENV must be development, test, staging, or production")
 	}
 	if c.App.Env == "production" {
-		if c.Storage.Provider == "console" {
-			return errors.New("console providers are not allowed in production")
-		}
 		if !c.Auth.CookieSecure {
 			return errors.New("AUTH_COOKIE_SECURE must be true in production")
+		}
+		if c.Auth.SensitiveDataKey == "" {
+			return errors.New("SETTINGS_ENCRYPTION_KEY is required in production")
 		}
 		if c.Bootstrap.AdminPassword != "" && len(c.Bootstrap.AdminPassword) < 16 {
 			return errors.New("production bootstrap password must be at least 16 characters")
 		}
+	}
+	if c.Auth.SessionTTL <= 0 || c.Auth.RefreshTTL <= 0 {
+		return errors.New("AUTH_SESSION_TTL and AUTH_REFRESH_TTL must be positive")
 	}
 	if c.Auth.SessionTTL >= c.Auth.RefreshTTL {
 		return errors.New("AUTH_SESSION_TTL must be shorter than AUTH_REFRESH_TTL")
@@ -286,6 +307,12 @@ func (c Config) Validate() error {
 	}
 	if c.Auth.RefreshHistoryRetention <= 0 {
 		return errors.New("AUTH_REFRESH_HISTORY_RETENTION must be positive")
+	}
+	if c.Auth.LoginMaxAttempts < 1 {
+		return errors.New("AUTH_LOGIN_MAX_ATTEMPTS must be positive")
+	}
+	if c.Auth.LoginLockDuration <= 0 {
+		return errors.New("AUTH_LOGIN_LOCK_DURATION must be positive")
 	}
 	switch c.Auth.CookieSameSite {
 	case "strict", "lax", "none":
@@ -303,8 +330,14 @@ func (c Config) Validate() error {
 	if c.Storage.MaxUploadBytes < 1 {
 		return errors.New("STORAGE_MAX_UPLOAD_BYTES must be positive")
 	}
-	if c.Storage.Provider == "s3" && (c.Storage.S3.Bucket == "" || c.Storage.S3.Region == "") {
-		return errors.New("S3 storage requires STORAGE_S3_BUCKET and STORAGE_S3_REGION")
+	switch c.Storage.Provider {
+	case "local":
+	case "s3", "minio":
+		if c.Storage.S3.Endpoint == "" || c.Storage.S3.Bucket == "" || c.Storage.S3.Region == "" {
+			return errors.New("S3-compatible storage requires STORAGE_S3_ENDPOINT, STORAGE_S3_BUCKET, and STORAGE_S3_REGION")
+		}
+	default:
+		return errors.New("STORAGE_PROVIDER must be local, s3, or minio")
 	}
 	switch c.Integrations.SMSProvider {
 	case "", "console", "aliyun":
@@ -337,49 +370,57 @@ func env(key, fallback string) string {
 	return fallback
 }
 
-func envInt(key string, fallback int) int {
+type envParser struct {
+	errs []error
+}
+
+func (p *envParser) int(key string, fallback int) int {
 	raw := os.Getenv(key)
 	if raw == "" {
 		return fallback
 	}
 	value, err := strconv.Atoi(raw)
 	if err != nil {
+		p.errs = append(p.errs, fmt.Errorf("%s must be an integer: %w", key, err))
 		return fallback
 	}
 	return value
 }
 
-func envInt32(key string, fallback int32) int32 {
+func (p *envParser) int32(key string, fallback int32) int32 {
 	raw := os.Getenv(key)
 	if raw == "" {
 		return fallback
 	}
 	value, err := strconv.ParseInt(raw, 10, 32)
 	if err != nil {
+		p.errs = append(p.errs, fmt.Errorf("%s must be a 32-bit integer: %w", key, err))
 		return fallback
 	}
 	return int32(value) // #nosec G115 -- ParseInt with bitSize 32 guarantees the value range.
 }
 
-func envBool(key string, fallback bool) bool {
+func (p *envParser) bool(key string, fallback bool) bool {
 	raw := os.Getenv(key)
 	if raw == "" {
 		return fallback
 	}
 	value, err := strconv.ParseBool(raw)
 	if err != nil {
+		p.errs = append(p.errs, fmt.Errorf("%s must be a boolean: %w", key, err))
 		return fallback
 	}
 	return value
 }
 
-func envDuration(key string, fallback time.Duration) time.Duration {
+func (p *envParser) duration(key string, fallback time.Duration) time.Duration {
 	raw := os.Getenv(key)
 	if raw == "" {
 		return fallback
 	}
 	value, err := time.ParseDuration(raw)
 	if err != nil {
+		p.errs = append(p.errs, fmt.Errorf("%s must be a Go duration: %w", key, err))
 		return fallback
 	}
 	return value

@@ -68,6 +68,13 @@ type Setting struct {
 	RawValue  []byte    `json:"-"`
 }
 
+type SettingUpdate struct {
+	Key       string
+	ValueType string
+	Raw       []byte
+	Sensitive bool
+}
+
 type Repository interface {
 	DictionaryTypes(ctx context.Context) ([]DictionaryType, error)
 	DictionaryItems(ctx context.Context, typeID uuid.UUID) ([]DictionaryItem, error)
@@ -80,7 +87,7 @@ type Repository interface {
 	SettingGroups(ctx context.Context) ([]SettingGroup, error)
 	SettingGroupByCode(ctx context.Context, code string, includeSensitive bool) (SettingGroup, error)
 	PublicSettings(ctx context.Context) (map[string]any, error)
-	UpsertSetting(ctx context.Context, groupCode, key, valueType string, raw []byte, sensitive bool, changedBy uuid.UUID) (Setting, error)
+	UpsertSettings(ctx context.Context, groupCode string, updates []SettingUpdate, changedBy uuid.UUID) error
 }
 
 type Cache interface {

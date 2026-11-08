@@ -3,6 +3,7 @@ package application
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"go/format"
 	"regexp"
@@ -13,6 +14,7 @@ import (
 	"mars-admin-go/internal/platform/apperror"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type Service struct {
@@ -50,6 +52,9 @@ func (s *Service) ImportTables(ctx context.Context, schema string, tableNames []
 		}
 		table, err := s.repo.Table(ctx, schema, tableName)
 		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil, apperror.NotFound("Table")
+			}
 			return nil, err
 		}
 		className := exported(table.Name)
@@ -149,6 +154,9 @@ func (s *Service) Preview(ctx context.Context, input domain.GenerateInput) (doma
 		}
 		table, err := s.repo.Table(ctx, input.Schema, tableName)
 		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return domain.Output{}, apperror.NotFound("Table")
+			}
 			return domain.Output{}, err
 		}
 		model, err := renderModel(table, input.Package)
@@ -173,7 +181,23 @@ func (s *Service) Preview(ctx context.Context, input domain.GenerateInput) (doma
 func renderModel(table domain.Table, packageName string) (string, error) {
 	var buffer bytes.Buffer
 	fmt.Fprintf(&buffer, "package %s\n\n", packageName)
-	buffer.WriteString("import (\n\t\"time\"\n\n\t\"github.com/google/uuid\"\n)\n\n")
+	needsTime := false
+	needsUUID := false
+	for _, column := range table.Columns {
+		columnType := goType(column)
+		needsTime = needsTime || strings.Contains(columnType, "time.")
+		needsUUID = needsUUID || strings.Contains(columnType, "uuid.")
+	}
+	if needsTime || needsUUID {
+		buffer.WriteString("import (\n")
+		if needsTime {
+			buffer.WriteString("\t\"time\"\n")
+		}
+		if needsUUID {
+			buffer.WriteString("\n\t\"github.com/google/uuid\"\n")
+		}
+		buffer.WriteString(")\n\n")
+	}
 	fmt.Fprintf(&buffer, "// %s maps the %s.%s table.\n", exported(table.Name), table.Schema, table.Name)
 	fmt.Fprintf(&buffer, "type %s struct {\n", exported(table.Name))
 	for _, column := range table.Columns {

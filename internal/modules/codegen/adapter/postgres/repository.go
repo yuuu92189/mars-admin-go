@@ -3,11 +3,13 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"mars-admin-go/internal/modules/codegen/domain"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -44,7 +46,17 @@ func (r *Repository) Tables(ctx context.Context, schema string) ([]domain.Table,
 
 func (r *Repository) Table(ctx context.Context, schema, table string) (domain.Table, error) {
 	result := domain.Table{Schema: schema, Name: table}
-	_ = r.pool.QueryRow(ctx, `SELECT COALESCE(obj_description(c.oid, 'pg_class'), '') FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = $1 AND c.relname = $2`, schema, table).Scan(&result.Comment)
+	err := r.pool.QueryRow(ctx, `
+		SELECT COALESCE(obj_description(c.oid, 'pg_class'), '')
+		FROM pg_class c
+		JOIN pg_namespace n ON n.oid = c.relnamespace
+		WHERE n.nspname = $1 AND c.relname = $2`, schema, table).Scan(&result.Comment)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Table{}, pgx.ErrNoRows
+	}
+	if err != nil {
+		return domain.Table{}, err
+	}
 	rows, err := r.pool.Query(ctx, `
 		SELECT
 		    a.attname,

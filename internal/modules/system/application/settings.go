@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"strconv"
@@ -49,7 +50,7 @@ func (s *SettingsService) Group(ctx context.Context, code string, includeSensiti
 		key += ":admin"
 	}
 	var cached domain.SettingGroup
-	if s.cache != nil {
+	if s.cache != nil && !includeSensitive {
 		if hit, _ := s.cache.Get(ctx, key, &cached); hit {
 			return cached, nil
 		}
@@ -65,7 +66,7 @@ func (s *SettingsService) Group(ctx context.Context, code string, includeSensiti
 	for _, setting := range group.Settings {
 		group.Values[setting.Key] = setting.Value
 	}
-	if s.cache != nil {
+	if s.cache != nil && !includeSensitive {
 		_ = s.cache.Set(ctx, key, group)
 	}
 	return group, nil
@@ -85,10 +86,17 @@ func (s *SettingsService) Public(ctx context.Context) (map[string]any, error) {
 	return values, err
 }
 
+func (s *SettingsService) Invalidate(ctx context.Context) {
+	if s.cache != nil {
+		_ = s.cache.DeletePrefix(ctx, "settings:")
+	}
+}
+
 func (s *SettingsService) Update(ctx context.Context, groupCode string, values map[string]any, actorID uuid.UUID) error {
 	if len(values) == 0 {
 		return apperror.Validation("settings", "At least one setting is required.")
 	}
+	updates := make([]domain.SettingUpdate, 0, len(values))
 	for key, value := range values {
 		key = strings.TrimSpace(key)
 		if key == "" || len(key) > 120 {
@@ -106,11 +114,14 @@ func (s *SettingsService) Update(ctx context.Context, groupCode string, values m
 			if err != nil {
 				return err
 			}
-			raw = encrypted
+			raw = []byte(base64.RawStdEncoding.EncodeToString(encrypted))
 		}
-		if _, err := s.repo.UpsertSetting(ctx, groupCode, key, valueType, raw, sensitive, actorID); err != nil {
-			return err
-		}
+		updates = append(updates, domain.SettingUpdate{
+			Key: key, ValueType: valueType, Raw: raw, Sensitive: sensitive,
+		})
+	}
+	if err := s.repo.UpsertSettings(ctx, groupCode, updates, actorID); err != nil {
+		return err
 	}
 	if s.cache != nil {
 		_ = s.cache.DeletePrefix(ctx, "settings:")
@@ -125,7 +136,14 @@ func (s *SettingsService) Decrypt(setting domain.Setting, raw string) (any, erro
 	if s.secretBox == nil {
 		return nil, apperror.New(apperror.KindNotConfigured, "settings_encryption_not_configured", "Sensitive settings encryption is not configured.")
 	}
-	plaintext, err := s.secretBox.Decrypt([]byte(raw))
+	encoded, err := base64.RawStdEncoding.DecodeString(strings.TrimSpace(raw))
+	if err != nil {
+		encoded, err = base64.StdEncoding.DecodeString(strings.TrimSpace(raw))
+	}
+	if err != nil {
+		return nil, err
+	}
+	plaintext, err := s.secretBox.Decrypt(encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -133,10 +151,7 @@ func (s *SettingsService) Decrypt(setting domain.Setting, raw string) (any, erro
 }
 
 func encodeSetting(key string, value any) (string, []byte, bool, error) {
-	sensitive := strings.Contains(strings.ToLower(key), "secret") ||
-		strings.Contains(strings.ToLower(key), "password") ||
-		strings.Contains(strings.ToLower(key), "private_key") ||
-		strings.Contains(strings.ToLower(key), "api_key")
+	sensitive := IsSensitiveSettingKey(key)
 	switch typed := value.(type) {
 	case string:
 		return "string", []byte(typed), sensitive, nil
@@ -159,6 +174,19 @@ func encodeSetting(key string, value any) (string, []byte, bool, error) {
 		}
 		return "json", encoded, sensitive, nil
 	}
+}
+
+func IsSensitiveSettingKey(key string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(key))
+	for _, marker := range []string{
+		"secret", "password", "private_key", "privatekey", "api_key", "apikey",
+		"access_key", "accesskey", "token", "credential", "signing_key", "signingkey",
+	} {
+		if strings.Contains(normalized, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 func decodeByType(valueType string, raw []byte) (any, error) {

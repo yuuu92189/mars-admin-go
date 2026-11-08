@@ -279,6 +279,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
+	input.IPAddress = httpserver.ClientIP(r, h.config.Auth.TrustedProxyCIDRs)
 	user, err := h.identity.Register(r.Context(), input)
 	if err != nil {
 		httpserver.WriteError(w, r, bootstrapLogger(), err)
@@ -791,10 +792,24 @@ func (h *Handler) legacyUpdateUser(w http.ResponseWriter, r *http.Request) {
 		version = input.Version
 	}
 	actor, _ := requestctx.ActorFrom(r.Context())
+	current, err := h.identity.GetUser(r.Context(), actor, input.User.ID)
+	if err != nil {
+		httpserver.WriteError(w, r, bootstrapLogger(), err)
+		return
+	}
+	nickname := firstNonEmpty(payload.Nickname, current.DisplayName)
+	email := firstNonEmpty(payload.Email, current.Email)
+	phone := firstNonEmpty(payload.Phone, current.Phone)
+	avatarURL := firstNonEmpty(payload.Avatar, payload.AvatarURL, input.AvatarURL, current.AvatarURL)
+	userType := firstNonEmpty(payload.UserType, current.UserType)
+	status := current.Status
+	if payload.Status != nil {
+		status = legacyStatusNameFromAny(payload.Status)
+	}
 	user, err := h.identity.UpdateUser(r.Context(), actor, input.User.ID, identitydomain.UpdateUserInput{
-		DisplayName: payload.Nickname, Email: payload.Email, Phone: payload.Phone,
-		AvatarURL: firstNonEmpty(payload.Avatar, payload.AvatarURL, input.AvatarURL),
-		UserType:  payload.UserType, Status: legacyStatusNameFromAny(payload.Status),
+		DisplayName: nickname, Email: email, Phone: phone,
+		AvatarURL: avatarURL,
+		UserType:  userType, Status: status,
 		Gender: payload.Gender, Version: version, RoleIDs: input.RoleIDs,
 		DepartmentIDs: input.DeptIDs, PositionIDs: input.PostIDs,
 	})

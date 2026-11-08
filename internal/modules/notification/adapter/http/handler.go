@@ -83,7 +83,9 @@ func (h *Handler) legacyList(w http.ResponseWriter, r *http.Request) {
 		items, total, err = h.service.List(r.Context(), status, page, pageSize)
 	} else {
 		items, err = h.service.My(r.Context(), actor.UserID, page, pageSize)
-		total = int64(len(items))
+		if err == nil {
+			total, err = h.service.MyCount(r.Context(), actor.UserID)
+		}
 	}
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
@@ -111,13 +113,18 @@ func (h *Handler) legacyMy(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
+	total, err := h.service.MyCount(r.Context(), actor.UserID)
+	if err != nil {
+		httpserver.WriteError(w, r, h.logger, err)
+		return
+	}
 	result := make([]map[string]any, 0, len(items))
 	for _, item := range items {
 		result = append(result, legacyNotice(item))
 	}
 	httpserver.WriteJSON(w, http.StatusOK, map[string]any{
 		"list": result, "records": result, "items": result,
-		"total": len(result), "page": page, "pageSize": pageSize,
+		"total": total, "page": page, "pageSize": pageSize,
 	})
 }
 
@@ -201,18 +208,9 @@ func (h *Handler) legacyChannels(w http.ResponseWriter, _ *http.Request) {
 
 func (h *Handler) legacyReadAll(w http.ResponseWriter, r *http.Request) {
 	actor, _ := requestctx.ActorFrom(r.Context())
-	items, err := h.service.My(r.Context(), actor.UserID, 1, 1000)
-	if err != nil {
+	if err := h.service.MarkAllRead(r.Context(), actor.UserID); err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
-	}
-	for _, item := range items {
-		if item.ReadAt == nil {
-			if err := h.service.MarkRead(r.Context(), item.ID, actor.UserID); err != nil {
-				httpserver.WriteError(w, r, h.logger, err)
-				return
-			}
-		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -338,7 +336,9 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 		items, total, err = h.service.List(r.Context(), r.URL.Query().Get("status"), page, pageSize)
 	} else {
 		items, err = h.service.My(r.Context(), actor.UserID, page, pageSize)
-		total = int64(len(items))
+		if err == nil {
+			total, err = h.service.MyCount(r.Context(), actor.UserID)
+		}
 	}
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
@@ -359,7 +359,12 @@ func (h *Handler) my(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	httpserver.WriteJSON(w, http.StatusOK, httpserver.NewPage(items, int64(len(items)), page, pageSize))
+	total, err := h.service.MyCount(r.Context(), actor.UserID)
+	if err != nil {
+		httpserver.WriteError(w, r, h.logger, err)
+		return
+	}
+	httpserver.WriteJSON(w, http.StatusOK, httpserver.NewPage(items, total, page, pageSize))
 }
 
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {

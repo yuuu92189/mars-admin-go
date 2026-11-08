@@ -305,6 +305,15 @@ func (r *Repository) Decide(ctx context.Context, actor domain.Actor, input domai
 	var taskRow sqlc.WorkflowTask
 	var instanceRow sqlc.WorkflowInstance
 	var definitionRaw []byte
+	var lockedInstanceID uuid.UUID
+	if err := tx.QueryRow(ctx, `
+		SELECT instance.id
+		FROM workflow_instances AS instance
+		JOIN workflow_tasks AS task ON task.instance_id = instance.id
+		WHERE task.id = $1
+		FOR UPDATE OF instance`, input.TaskID).Scan(&lockedInstanceID); err != nil {
+		return domain.Task{}, domain.Instance{}, err
+	}
 	err = tx.QueryRow(ctx, `
 		SELECT
 		    t.id, t.instance_id, t.node_code, t.node_name, t.assignee_id, t.assignee_role,
@@ -315,7 +324,7 @@ func (r *Repository) Decide(ctx context.Context, actor domain.Actor, input domai
 		JOIN workflow_instances i ON i.id = t.instance_id
 		JOIN workflow_definitions d ON d.id = i.definition_id
 		WHERE t.id = $1
-		FOR UPDATE OF t, i`, input.TaskID).Scan(
+		FOR UPDATE OF t`, input.TaskID).Scan(
 		&taskRow.ID, &taskRow.InstanceID, &taskRow.NodeCode, &taskRow.NodeName, &taskRow.AssigneeID,
 		&taskRow.AssigneeRole, &taskRow.Status, &taskRow.Decision, &taskRow.Comment, &taskRow.DueAt,
 		&taskRow.CreatedAt, &taskRow.CompletedAt,
@@ -465,20 +474,36 @@ func (r *Repository) Terminate(ctx context.Context, instanceID, actorID uuid.UUI
 		return domain.Instance{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	row, err := sqlc.New(tx).GetWorkflowInstance(ctx, pgUUID(instanceID))
+	var lockedID uuid.UUID
+	if err := tx.QueryRow(ctx, `
+		SELECT id
+		FROM workflow_instances
+		WHERE id = $1 AND status = 'running'
+		FOR UPDATE`, instanceID).Scan(&lockedID); err != nil {
+		return domain.Instance{}, err
+	}
+	q := sqlc.New(tx)
+	row, err := q.GetWorkflowInstance(ctx, pgUUID(instanceID))
 	if err != nil {
 		return domain.Instance{}, err
 	}
 	if row.Status != "running" {
 		return domain.Instance{}, pgx.ErrNoRows
 	}
-	if _, err := tx.Exec(ctx, `UPDATE workflow_instances SET status = 'terminated', finished_at = now() WHERE id = $1`, instanceID); err != nil {
+	result, err := tx.Exec(ctx, `
+		UPDATE workflow_instances
+		SET status = 'terminated', finished_at = now()
+		WHERE id = $1 AND status = 'running'`, instanceID)
+	if err != nil {
 		return domain.Instance{}, err
 	}
-	if err := sqlc.New(tx).CancelInstanceTasks(ctx, pgUUID(instanceID)); err != nil {
+	if result.RowsAffected() == 0 {
+		return domain.Instance{}, pgx.ErrNoRows
+	}
+	if err := q.CancelInstanceTasks(ctx, pgUUID(instanceID)); err != nil {
 		return domain.Instance{}, err
 	}
-	if err := sqlc.New(tx).CreateWorkflowEvent(ctx, sqlc.CreateWorkflowEventParams{
+	if err := q.CreateWorkflowEvent(ctx, sqlc.CreateWorkflowEventParams{
 		ID: pgUUID(mustID()), InstanceID: pgUUID(instanceID), TaskID: pgtype.UUID{},
 		ActorUserID: pgUUID(actorID), EventType: "terminated", FromNodeCode: row.CurrentNodeCode,
 		ToNodeCode: pgtype.Text{}, Comment: comment, Metadata: []byte(`{}`),

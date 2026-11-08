@@ -218,49 +218,49 @@ func (r *Repository) PublicSettings(ctx context.Context) (map[string]any, error)
 	return values, rows.Err()
 }
 
-func (r *Repository) UpsertSetting(ctx context.Context, groupCode, key, valueType string, raw []byte, sensitive bool, changedBy uuid.UUID) (domain.Setting, error) {
+func (r *Repository) UpsertSettings(ctx context.Context, groupCode string, updates []domain.SettingUpdate, changedBy uuid.UUID) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return domain.Setting{}, err
+		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	group, err := sqlc.New(tx).GetSettingGroupByCode(ctx, groupCode)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return domain.Setting{}, apperror.NotFound("Setting group")
+		return apperror.NotFound("Setting group")
 	}
 	if err != nil {
-		return domain.Setting{}, err
+		return err
 	}
-	var oldValue string
-	_ = tx.QueryRow(ctx, `SELECT value_text FROM system_settings WHERE group_id = $1 AND key = $2`, group.ID, key).Scan(&oldValue)
+	q := sqlc.New(tx)
 	validation := []byte(`{}`)
-	if sensitive {
-		valueType = "secret"
+	for _, update := range updates {
+		var oldValue string
+		err := tx.QueryRow(ctx, `
+			SELECT value_text
+			FROM system_settings
+			WHERE group_id = $1 AND key = $2`, group.ID, update.Key).Scan(&oldValue)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		valueType := update.ValueType
+		if update.Sensitive {
+			valueType = "secret"
+		}
+		row, err := q.UpsertSetting(ctx, sqlc.UpsertSettingParams{
+			ID: pgUUID(mustID()), GroupID: group.ID, Key: update.Key, ValueType: valueType,
+			ValueText: string(update.Raw), IsSensitive: update.Sensitive, Validation: validation,
+		})
+		if err != nil {
+			return err
+		}
+		if err := q.RecordSettingRevision(ctx, sqlc.RecordSettingRevisionParams{
+			ID: pgUUID(mustID()), SettingID: row.ID, OldValue: pgText(oldValue),
+			NewValue: pgText(string(update.Raw)), ChangedBy: pgUUID(changedBy),
+		}); err != nil {
+			return err
+		}
 	}
-	row, err := sqlc.New(tx).UpsertSetting(ctx, sqlc.UpsertSettingParams{
-		ID: pgUUID(mustID()), GroupID: group.ID, Key: key, ValueType: valueType,
-		ValueText: string(raw), IsSensitive: sensitive, Validation: validation,
-	})
-	if err != nil {
-		return domain.Setting{}, err
-	}
-	if err := sqlc.New(tx).RecordSettingRevision(ctx, sqlc.RecordSettingRevisionParams{
-		ID: pgUUID(mustID()), SettingID: row.ID, OldValue: pgText(oldValue),
-		NewValue: pgText(string(raw)), ChangedBy: pgUUID(changedBy),
-	}); err != nil {
-		return domain.Setting{}, err
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return domain.Setting{}, err
-	}
-	value, _ := decodeValue(row.ValueType, []byte(row.ValueText))
-	if sensitive {
-		value = "<encrypted>"
-	}
-	return domain.Setting{
-		ID: uuid.UUID(row.ID.Bytes), Key: row.Key, ValueType: row.ValueType, Value: value,
-		Sensitive: row.IsSensitive, Version: row.Version, UpdatedAt: row.UpdatedAt.Time.UTC(),
-	}, nil
+	return tx.Commit(ctx)
 }
 
 func decodeValue(valueType string, raw []byte) (any, error) {

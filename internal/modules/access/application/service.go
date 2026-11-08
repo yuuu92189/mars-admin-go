@@ -40,6 +40,14 @@ func (s *Service) Roles(ctx context.Context, query string, page, pageSize int) (
 	return s.repo.Roles(ctx, strings.TrimSpace(query), page, pageSize)
 }
 
+func (s *Service) Role(ctx context.Context, id uuid.UUID) (domain.Role, error) {
+	role, err := s.repo.Role(ctx, id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Role{}, apperror.NotFound("Role")
+	}
+	return role, err
+}
+
 func (s *Service) CreateRole(ctx context.Context, input domain.CreateRoleInput) (domain.Role, error) {
 	input.Name = strings.TrimSpace(input.Name)
 	input.Code = strings.ToLower(strings.TrimSpace(input.Code))

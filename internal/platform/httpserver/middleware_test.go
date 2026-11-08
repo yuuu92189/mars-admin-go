@@ -141,6 +141,27 @@ func TestTimeoutSkipsWebSocketUpgrade(t *testing.T) {
 	}
 }
 
+func TestBodyLimitAllowsMultipartToReachUploadHandler(t *testing.T) {
+	payload := bytes.Repeat([]byte("x"), 2<<20)
+	handler := BodyLimit(1 << 20)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(body) != len(payload) {
+			t.Fatalf("body length = %d, want %d", len(body), len(payload))
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	request := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/upload", bytes.NewReader(payload))
+	request.Header.Set("Content-Type", "multipart/form-data; boundary=test")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusNoContent)
+	}
+}
+
 func TestSecurityHeadersOnlyTrustForwardedProtoFromProxy(t *testing.T) {
 	handler := SecurityHeaders([]string{"10.0.0.0/8"})(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)

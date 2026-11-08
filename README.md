@@ -8,6 +8,10 @@ Current verified status and residual gaps are recorded in [`docs/status.md`](doc
 
 The latest Refresh concurrency and transactional Outbox audit is in [`docs/audit-round-3/audit-summary.md`](docs/audit-round-3/audit-summary.md).
 
+The current Go-standard audit and remediation plan are in
+[`docs/go-standard-audit/README.md`](docs/go-standard-audit/README.md).
+The long-term project standard is [`docs/GO_ENGINEERING_STANDARD.md`](docs/GO_ENGINEERING_STANDARD.md).
+
 ## Quick Start
 
 ```bash

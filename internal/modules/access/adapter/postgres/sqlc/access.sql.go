@@ -26,7 +26,7 @@ func (q *Queries) AddRoleMenu(ctx context.Context, arg AddRoleMenuParams) error 
 	return err
 }
 
-const addRolePermission = `-- name: AddRolePermission :exec
+const addRolePermission = `-- name: AddRolePermission :execrows
 INSERT INTO access_role_permissions (role_id, permission_id)
 SELECT $1, id FROM access_permissions WHERE code = $2
 ON CONFLICT DO NOTHING
@@ -37,9 +37,12 @@ type AddRolePermissionParams struct {
 	Code   string      `json:"code"`
 }
 
-func (q *Queries) AddRolePermission(ctx context.Context, arg AddRolePermissionParams) error {
-	_, err := q.db.Exec(ctx, addRolePermission, arg.RoleID, arg.Code)
-	return err
+func (q *Queries) AddRolePermission(ctx context.Context, arg AddRolePermissionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, addRolePermission, arg.RoleID, arg.Code)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const countRoles = `-- name: CountRoles :one

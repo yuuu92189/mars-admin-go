@@ -15,7 +15,11 @@ const addGroupMember = `-- name: AddGroupMember :exec
 INSERT INTO messaging_group_members (group_id, user_id, member_role)
 VALUES ($1, $2, $3)
 ON CONFLICT (group_id, user_id) DO UPDATE
-SET member_role = excluded.member_role, left_at = NULL
+SET member_role = CASE
+        WHEN messaging_group_members.member_role = 'owner' THEN 'owner'
+        ELSE excluded.member_role
+    END,
+    left_at = NULL
 `
 
 type AddGroupMemberParams struct {
@@ -85,6 +89,20 @@ WHERE m.receiver_id = $1
 
 func (q *Queries) CountDirectUnread(ctx context.Context, receiverID pgtype.UUID) (int64, error) {
 	row := q.db.QueryRow(ctx, countDirectUnread, receiverID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countMyNotices = `-- name: CountMyNotices :one
+SELECT count(*)
+FROM notification_notices n
+JOIN notification_recipients r ON r.notice_id = n.id
+WHERE r.user_id = $1 AND n.status = 'published'
+`
+
+func (q *Queries) CountMyNotices(ctx context.Context, userID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countMyNotices, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -917,6 +935,19 @@ func (q *Queries) ListNotices(ctx context.Context, arg ListNoticesParams) ([]Not
 	return items, nil
 }
 
+const markAllNoticesRead = `-- name: MarkAllNoticesRead :execrows
+UPDATE notification_recipients SET read_at = now()
+WHERE user_id = $1 AND read_at IS NULL
+`
+
+func (q *Queries) MarkAllNoticesRead(ctx context.Context, userID pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, markAllNoticesRead, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const markDirectMessagesRead = `-- name: MarkDirectMessagesRead :exec
 INSERT INTO messaging_read_receipts (message_id, user_id)
 SELECT id, $1
@@ -989,17 +1020,16 @@ func (q *Queries) QuitGroup(ctx context.Context, arg QuitGroupParams) (int64, er
 
 const removeGroupMember = `-- name: RemoveGroupMember :execrows
 UPDATE messaging_group_members SET left_at = now()
-WHERE group_id = $1 AND user_id = $2 AND user_id <> $3
+WHERE group_id = $1 AND user_id = $2 AND member_role <> 'owner' AND left_at IS NULL
 `
 
 type RemoveGroupMemberParams struct {
-	GroupID  pgtype.UUID `json:"group_id"`
-	UserID   pgtype.UUID `json:"user_id"`
-	UserID_2 pgtype.UUID `json:"user_id_2"`
+	GroupID pgtype.UUID `json:"group_id"`
+	UserID  pgtype.UUID `json:"user_id"`
 }
 
 func (q *Queries) RemoveGroupMember(ctx context.Context, arg RemoveGroupMemberParams) (int64, error) {
-	result, err := q.db.Exec(ctx, removeGroupMember, arg.GroupID, arg.UserID, arg.UserID_2)
+	result, err := q.db.Exec(ctx, removeGroupMember, arg.GroupID, arg.UserID)
 	if err != nil {
 		return 0, err
 	}

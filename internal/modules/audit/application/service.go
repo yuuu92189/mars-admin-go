@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -14,11 +15,16 @@ import (
 )
 
 type Service struct {
-	repo domain.Repository
+	repo   domain.Repository
+	logger *slog.Logger
 }
 
-func New(repo domain.Repository) *Service {
-	return &Service{repo: repo}
+func New(repo domain.Repository, loggers ...*slog.Logger) *Service {
+	service := &Service{repo: repo}
+	if len(loggers) > 0 {
+		service.logger = loggers[0]
+	}
+	return service
 }
 
 func (s *Service) Write(ctx context.Context, action, resourceType, resourceID, outcome string, metadata map[string]any) {
@@ -38,7 +44,9 @@ func (s *Service) Write(ctx context.Context, action, resourceType, resourceID, o
 	if actor.UserID != uuid.Nil {
 		event.ActorUserID = &actor.UserID
 	}
-	_ = s.repo.Insert(ctx, event)
+	if err := s.repo.Insert(ctx, event); err != nil && s.logger != nil {
+		s.logger.ErrorContext(ctx, "persist audit event", "error", err, "action", action)
+	}
 }
 
 func (s *Service) WriteHTTP(ctx context.Context, r *http.Request, action, resourceType, resourceID string, metadata map[string]any) {
@@ -64,7 +72,9 @@ func (s *Service) WriteHTTPOutcome(ctx context.Context, r *http.Request, action,
 	if actor.UserID != uuid.Nil {
 		event.ActorUserID = &actor.UserID
 	}
-	_ = s.repo.Insert(ctx, event)
+	if err := s.repo.Insert(ctx, event); err != nil && s.logger != nil {
+		s.logger.ErrorContext(ctx, "persist HTTP audit event", "error", err, "action", action)
+	}
 }
 
 func (s *Service) List(ctx context.Context, filter domain.Filter) ([]domain.Event, int64, error) {
@@ -105,10 +115,33 @@ func sanitize(metadata map[string]any) map[string]any {
 			}
 		case map[string]any:
 			out[key] = sanitize(typed)
+		case []any:
+			out[key] = sanitizeSlice(typed)
+		case []map[string]any:
+			items := make([]any, 0, len(typed))
+			for _, item := range typed {
+				items = append(items, sanitize(item))
+			}
+			out[key] = items
 		default:
 			if encoded, err := json.Marshal(typed); err == nil && len(encoded) <= 4000 {
 				out[key] = typed
 			}
+		}
+	}
+	return out
+}
+
+func sanitizeSlice(values []any) []any {
+	out := make([]any, 0, len(values))
+	for _, value := range values {
+		switch typed := value.(type) {
+		case map[string]any:
+			out = append(out, sanitize(typed))
+		case []any:
+			out = append(out, sanitizeSlice(typed))
+		default:
+			out = append(out, typed)
 		}
 	}
 	return out

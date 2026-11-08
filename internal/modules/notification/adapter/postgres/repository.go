@@ -192,6 +192,10 @@ func (r *Repository) My(ctx context.Context, userID uuid.UUID, page, pageSize in
 	return notices, nil
 }
 
+func (r *Repository) MyCount(ctx context.Context, userID uuid.UUID) (int64, error) {
+	return sqlc.New(r.pool).CountMyNotices(ctx, pgUUID(userID))
+}
+
 func (r *Repository) GetMy(ctx context.Context, noticeID, userID uuid.UUID) (domain.Notice, error) {
 	row, err := sqlc.New(r.pool).GetMyNotice(ctx, sqlc.GetMyNoticeParams{
 		ID: pgUUID(noticeID), UserID: pgUUID(userID),
@@ -225,9 +229,14 @@ func (r *Repository) MarkRead(ctx context.Context, noticeID, userID uuid.UUID) e
 		return err
 	}
 	if affected == 0 {
-		return apperror.NotFound("Notice")
+		return nil
 	}
 	return nil
+}
+
+func (r *Repository) MarkAllRead(ctx context.Context, userID uuid.UUID) error {
+	_, err := sqlc.New(r.pool).MarkAllNoticesRead(ctx, pgUUID(userID))
+	return err
 }
 
 func (r *Repository) Unread(ctx context.Context, userID uuid.UUID) (int64, error) {

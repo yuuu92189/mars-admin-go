@@ -104,6 +104,7 @@ type RegisterInput struct {
 	Email       string `json:"email"`
 	Phone       string `json:"phone"`
 	UserType    string `json:"userType"`
+	IPAddress   string `json:"-"`
 }
 
 type Captcha struct {

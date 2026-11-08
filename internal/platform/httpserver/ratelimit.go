@@ -12,6 +12,15 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+var rateLimitScript = redis.NewScript(`
+local current = redis.call("INCR", KEYS[1])
+local ttl = redis.call("PTTL", KEYS[1])
+if current == 1 or ttl < 0 then
+    redis.call("PEXPIRE", KEYS[1], ARGV[1])
+end
+return current
+`)
+
 type RateLimit struct {
 	client *redis.Client
 	prefix string
@@ -38,13 +47,15 @@ func (l *RateLimit) AllowPolicy(ctx context.Context, key string, limit int64, wi
 		window = l.window
 	}
 	redisKey := fmt.Sprintf("%s:%s", l.prefix, key)
-	pipe := l.client.TxPipeline()
-	count := pipe.Incr(ctx, redisKey)
-	pipe.Expire(ctx, redisKey, window)
-	if _, err := pipe.Exec(ctx); err != nil {
-		return false, fmt.Errorf("rate limit Redis transaction: %w", err)
+	windowMS := window.Milliseconds()
+	if windowMS <= 0 {
+		windowMS = 1
 	}
-	return count.Val() <= limit, nil
+	count, err := rateLimitScript.Run(ctx, l.client, []string{redisKey}, windowMS).Int64()
+	if err != nil {
+		return false, fmt.Errorf("rate limit Redis script: %w", err)
+	}
+	return count <= limit, nil
 }
 
 func (l *RateLimit) Middleware(key func(*http.Request) string) func(http.Handler) http.Handler {

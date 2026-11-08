@@ -60,7 +60,7 @@ WHERE id = $1 AND is_super_admin = false AND deleted_at IS NULL;
 -- name: SetRolePermissions :exec
 DELETE FROM access_role_permissions WHERE role_id = $1;
 
--- name: AddRolePermission :exec
+-- name: AddRolePermission :execrows
 INSERT INTO access_role_permissions (role_id, permission_id)
 SELECT $1, id FROM access_permissions WHERE code = $2
 ON CONFLICT DO NOTHING;

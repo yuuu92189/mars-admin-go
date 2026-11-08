@@ -143,6 +143,11 @@ func (s *Service) ResolveDataScope(ctx context.Context, userID uuid.UUID) (strin
 }
 
 func (s *Service) LoginSocial(ctx context.Context, providerName, code, clientType, deviceName, ip, userAgent string) (domain.LoginResult, error) {
+	if err := s.enforceLoginSourceRateLimits(ctx, domain.LoginInput{
+		ClientType: clientType, DeviceName: deviceName, IPAddress: ip, UserAgent: userAgent,
+	}); err != nil {
+		return domain.LoginResult{}, err
+	}
 	providerName = strings.ToLower(strings.TrimSpace(providerName))
 	provider := s.socialProviders[providerName]
 	if provider == nil {
@@ -467,6 +472,12 @@ func (s *Service) Login(ctx context.Context, input domain.LoginInput) (domain.Lo
 }
 
 func (s *Service) issueSession(ctx context.Context, user domain.User, access domain.Access, input domain.LoginInput) (domain.LoginResult, error) {
+	if input.ClientType == "" {
+		input.ClientType = "app"
+	}
+	if !validClientType(input.ClientType) {
+		return domain.LoginResult{}, apperror.Validation("clientType", "clientType must be admin, web, or app")
+	}
 	rawToken, err := security.GenerateToken(32)
 	if err != nil {
 		return domain.LoginResult{}, err
@@ -652,8 +663,18 @@ func (s *Service) UpdateProfile(ctx context.Context, userID uuid.UUID, input dom
 	if err != nil {
 		return domain.User{}, err
 	}
+	if input.UserType != "" && input.UserType != current.UserType {
+		return domain.User{}, apperror.Validation("userType", "userType cannot be changed through the profile endpoint.")
+	}
+	if input.Status != "" && input.Status != current.Status {
+		return domain.User{}, apperror.Validation("status", "status cannot be changed through the profile endpoint.")
+	}
 	if input.DisplayName == "" {
 		input.DisplayName = current.DisplayName
+	}
+	input.DisplayName = strings.TrimSpace(input.DisplayName)
+	if input.DisplayName == "" || len(input.DisplayName) > 100 {
+		return domain.User{}, apperror.Validation("displayName", "Display name must contain 1 to 100 characters.")
 	}
 	if input.UserType == "" {
 		input.UserType = current.UserType
@@ -666,6 +687,9 @@ func (s *Service) UpdateProfile(ctx context.Context, userID uuid.UUID, input dom
 	}
 	if input.Gender == 0 && current.Gender != 0 {
 		input.Gender = current.Gender
+	}
+	if input.Gender < 0 || input.Gender > 2 {
+		return domain.User{}, apperror.Validation("gender", "Gender must be 0, 1, or 2.")
 	}
 	input.RoleIDs = nil
 	input.DepartmentIDs = nil
@@ -732,8 +756,14 @@ func (s *Service) CreateUser(ctx context.Context, input domain.CreateUserInput) 
 	if input.UserType == "" {
 		input.UserType = "admin"
 	}
+	if !validUserType(input.UserType) {
+		return domain.User{}, apperror.Validation("userType", "userType must be admin, pc, or app.")
+	}
 	if input.Status == "" {
 		input.Status = "active"
+	}
+	if !validUserStatus(input.Status) {
+		return domain.User{}, apperror.Validation("status", "Unsupported user status.")
 	}
 	if input.Gender < 0 || input.Gender > 2 {
 		return domain.User{}, apperror.Validation("gender", "Gender must be 0, 1, or 2.")
@@ -855,8 +885,15 @@ func (s *Service) RevokeUserSessions(ctx context.Context, actor requestctx.Actor
 }
 
 func (s *Service) Register(ctx context.Context, input domain.RegisterInput) (domain.User, error) {
+	if err := s.enforceRegistrationRateLimits(ctx, input); err != nil {
+		return domain.User{}, err
+	}
+	input.UserType = strings.ToLower(strings.TrimSpace(input.UserType))
 	if input.UserType == "" {
 		input.UserType = "pc"
+	}
+	if input.UserType != "pc" && input.UserType != "app" {
+		return domain.User{}, apperror.Validation("userType", "Self-registration only supports pc or app users.")
 	}
 	user, err := s.CreateUser(ctx, domain.CreateUserInput{
 		Username:    input.Username,
@@ -1154,6 +1191,40 @@ func (s *Service) enforceLoginSourceRateLimits(ctx context.Context, input domain
 	return nil
 }
 
+func (s *Service) enforceRegistrationRateLimits(ctx context.Context, input domain.RegisterInput) error {
+	if s.rateLimiter == nil {
+		return nil
+	}
+	policies := []struct {
+		key    string
+		limit  int64
+		window time.Duration
+	}{
+		{key: "register:ip:" + rateKeyPart(input.IPAddress), limit: 5, window: time.Hour},
+		{key: "register:username:" + rateKeyPart(input.Username), limit: 3, window: time.Hour},
+	}
+	allowed := true
+	for _, policy := range policies {
+		var (
+			ok  bool
+			err error
+		)
+		if limiter, implementsPolicy := s.rateLimiter.(policyRateLimiter); implementsPolicy {
+			ok, err = limiter.AllowPolicy(ctx, policy.key, policy.limit, policy.window)
+		} else {
+			ok, err = s.rateLimiter.Allow(ctx, policy.key)
+		}
+		if err != nil {
+			return apperror.Wrap(apperror.KindUnavailable, "rate_limiter_unavailable", "Registration is temporarily unavailable.", err)
+		}
+		allowed = allowed && ok
+	}
+	if !allowed {
+		return apperror.New(apperror.KindRateLimited, "registration_rate_limited", "Too many registration attempts. Try again later.")
+	}
+	return nil
+}
+
 func rateKeyPart(value string) string {
 	return base64.RawURLEncoding.EncodeToString(security.HashToken(strings.TrimSpace(value)))
 }
@@ -1161,6 +1232,24 @@ func rateKeyPart(value string) string {
 func validUserStatus(value string) bool {
 	switch value {
 	case "pending", "active", "suspended", "rejected", "left":
+		return true
+	default:
+		return false
+	}
+}
+
+func validUserType(value string) bool {
+	switch value {
+	case "admin", "pc", "app":
+		return true
+	default:
+		return false
+	}
+}
+
+func validClientType(value string) bool {
+	switch value {
+	case "admin", "web", "app":
 		return true
 	default:
 		return false

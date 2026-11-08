@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"mime"
 	"net/http"
 	"runtime/debug"
 	"strconv"
@@ -312,6 +313,14 @@ func Tracing(serviceName string) func(http.Handler) http.Handler {
 func BodyLimit(bytes int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			mediaType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+			if mediaType == "multipart/form-data" {
+				// Upload handlers enforce their configured limit after parsing the
+				// multipart envelope. Applying the JSON limit here would reject
+				// otherwise valid files before the storage service sees them.
+				next.ServeHTTP(w, r)
+				return
+			}
 			if r.ContentLength > bytes {
 				WriteProblem(w, r, NewProblem(http.StatusRequestEntityTooLarge, "body_too_large", fmt.Sprintf("Request body must not exceed %d bytes.", bytes)))
 				return

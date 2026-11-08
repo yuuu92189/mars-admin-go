@@ -109,8 +109,16 @@ func (s *Service) My(ctx context.Context, userID uuid.UUID, page, pageSize int) 
 	return s.repo.My(ctx, userID, page, pageSize)
 }
 
+func (s *Service) MyCount(ctx context.Context, userID uuid.UUID) (int64, error) {
+	return s.repo.MyCount(ctx, userID)
+}
+
 func (s *Service) MarkRead(ctx context.Context, noticeID, userID uuid.UUID) error {
 	return s.repo.MarkRead(ctx, noticeID, userID)
+}
+
+func (s *Service) MarkAllRead(ctx context.Context, userID uuid.UUID) error {
+	return s.repo.MarkAllRead(ctx, userID)
 }
 
 func (s *Service) Unread(ctx context.Context, userID uuid.UUID) (int64, error) {

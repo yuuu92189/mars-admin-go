@@ -85,7 +85,7 @@ type Repository interface {
 	Members(ctx context.Context, groupID uuid.UUID) ([]GroupMember, error)
 	MemberRole(ctx context.Context, groupID, userID uuid.UUID) (string, error)
 	AddMembers(ctx context.Context, groupID uuid.UUID, userIDs []uuid.UUID) error
-	RemoveMember(ctx context.Context, groupID, memberID, ownerID uuid.UUID) error
+	RemoveMember(ctx context.Context, groupID, memberID uuid.UUID) error
 	SetMemberRole(ctx context.Context, groupID, memberID uuid.UUID, role string) error
 	MuteMember(ctx context.Context, groupID, memberID uuid.UUID, until *time.Time) error
 	TransferOwner(ctx context.Context, groupID, currentOwnerID, newOwnerID uuid.UUID) error

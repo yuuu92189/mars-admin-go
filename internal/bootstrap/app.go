@@ -130,7 +130,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	}
 	settingsService := systemapp.NewSettingsService(systemRepo, secretBox, settingsCache)
 	auditRepo := auditpostgres.New(pool)
-	auditService := auditapp.New(auditRepo)
+	auditService := auditapp.New(auditRepo, logger)
 
 	providerRegistry, smsProvider, err := integrations.Configure(cfg.Integrations, logger, cfg.IsProduction())
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 
 	"mars-admin-go/internal/modules/organization/application"
 	"mars-admin-go/internal/modules/organization/domain"
+	"mars-admin-go/internal/platform/apperror"
 	"mars-admin-go/internal/platform/httpserver"
 	"mars-admin-go/internal/platform/requestctx"
 
@@ -140,11 +141,20 @@ func (h *Handler) legacyUpdateDepartment(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	actor, _ := requestctx.ActorFrom(r.Context())
+	current, err := h.service.Department(r.Context(), actor, id)
+	if err != nil {
+		httpserver.WriteError(w, r, h.logger, err)
+		return
+	}
+	status := current.Status
+	if input.Status != nil {
+		status = legacyOrganizationStatus(input.Status)
+	}
 	item, err := h.service.UpdateDepartment(r.Context(), actor, id, domain.DepartmentInput{
-		ParentID: parentID, Name: firstString(input.DeptName, input.Name),
-		Code: firstString(input.Code, "dept_"+id.String()), LeaderName: input.Leader,
-		Phone: input.Phone, Email: input.Email, Sort: input.Sort,
-		Status: legacyOrganizationStatus(input.Status),
+		ParentID: parentID, Name: firstString(input.DeptName, input.Name, current.Name),
+		Code: firstString(input.Code, current.Code), LeaderName: firstString(input.Leader, current.LeaderName),
+		Phone: firstString(input.Phone, current.Phone), Email: firstString(input.Email, current.Email), Sort: input.Sort,
+		Status: status,
 	})
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
@@ -232,10 +242,30 @@ func (h *Handler) legacyUpdatePosition(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
+	items, err := h.service.Positions(r.Context())
+	if err != nil {
+		httpserver.WriteError(w, r, h.logger, err)
+		return
+	}
+	current, found := domain.Position{}, false
+	for _, item := range items {
+		if item.ID == id {
+			current, found = item, true
+			break
+		}
+	}
+	if !found {
+		httpserver.WriteError(w, r, h.logger, apperror.NotFound("Position"))
+		return
+	}
+	status := current.Status
+	if input.Status != nil {
+		status = legacyOrganizationStatus(input.Status)
+	}
 	item, err := h.service.UpdatePosition(r.Context(), id, domain.PositionInput{
-		ParentID: parentID, Code: firstString(input.PostCode, input.Code, "post_"+id.String()),
-		Name: firstString(input.PostName, input.Name), Sort: input.Sort,
-		Status: legacyOrganizationStatus(input.Status), Description: input.Remark,
+		ParentID: parentID, Code: firstString(input.PostCode, input.Code, current.Code),
+		Name: firstString(input.PostName, input.Name, current.Name), Sort: input.Sort,
+		Status: status, Description: firstString(input.Remark, current.Description),
 	})
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)

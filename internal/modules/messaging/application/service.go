@@ -167,7 +167,7 @@ func (s *Service) RemoveMember(ctx context.Context, groupID, actorID, memberID u
 	if actorRole != "owner" && actorRole != "admin" && actorID != memberID {
 		return apperror.Forbidden("Only group owners and administrators can remove members.")
 	}
-	return s.repo.RemoveMember(ctx, groupID, memberID, actorID)
+	return s.repo.RemoveMember(ctx, groupID, memberID)
 }
 
 func (s *Service) SetMemberRole(ctx context.Context, groupID, actorID, memberID uuid.UUID, role string) error {
@@ -213,6 +213,12 @@ func (s *Service) DissolveGroup(ctx context.Context, groupID, userID uuid.UUID) 
 }
 
 func (s *Service) SendGroup(ctx context.Context, groupID, senderID uuid.UUID, clientID, messageType, content string, metadata map[string]any) (domain.Message, error) {
+	if _, err := s.repo.Group(ctx, groupID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Message{}, apperror.Forbidden("The group is not active.")
+		}
+		return domain.Message{}, err
+	}
 	memberRole, err := s.requireMember(ctx, groupID, senderID)
 	if err != nil {
 		return domain.Message{}, err

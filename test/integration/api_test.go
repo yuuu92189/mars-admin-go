@@ -79,7 +79,7 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 		},
 		Storage: config.StorageConfig{
 			Provider: "local", LocalDir: filepath.Join(tempDir, "uploads"),
-			PublicBaseURL: "http://example.test/files", MaxUploadBytes: 1 << 20,
+			PublicBaseURL: "http://example.test/files", MaxUploadBytes: 3 << 20,
 		},
 		Integrations: config.IntegrationConfig{
 			SMSProvider: "console",
@@ -228,7 +228,7 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	multipartWriter := multipart.NewWriter(&upload)
 	part, err := multipartWriter.CreateFormFile("file", "integration.txt")
 	require.NoError(t, err)
-	_, _ = io.Copy(part, strings.NewReader("integration file"))
+	_, _ = io.Copy(part, bytes.NewReader(bytes.Repeat([]byte("x"), 2<<20)))
 	require.NoError(t, multipartWriter.Close())
 	request, err = http.NewRequestWithContext(ctx, http.MethodPost, server.URL+"/api/v1/files", &upload)
 	require.NoError(t, err)

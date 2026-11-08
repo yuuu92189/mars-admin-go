@@ -9,17 +9,18 @@ import (
 type Kind string
 
 const (
-	KindValidation    Kind = "validation"
-	KindNotFound      Kind = "not_found"
-	KindConflict      Kind = "conflict"
-	KindUnauthorized  Kind = "unauthorized"
-	KindForbidden     Kind = "forbidden"
-	KindLocked        Kind = "locked"
-	KindRateLimited   Kind = "rate_limited"
-	KindMFARequired   Kind = "mfa_required"
-	KindNotConfigured Kind = "not_configured"
-	KindUnavailable   Kind = "unavailable"
-	KindInternal      Kind = "internal"
+	KindValidation      Kind = "validation"
+	KindNotFound        Kind = "not_found"
+	KindConflict        Kind = "conflict"
+	KindUnauthorized    Kind = "unauthorized"
+	KindForbidden       Kind = "forbidden"
+	KindLocked          Kind = "locked"
+	KindRateLimited     Kind = "rate_limited"
+	KindMFARequired     Kind = "mfa_required"
+	KindNotConfigured   Kind = "not_configured"
+	KindUnavailable     Kind = "unavailable"
+	KindPayloadTooLarge Kind = "payload_too_large"
+	KindInternal        Kind = "internal"
 )
 
 type Error struct {
@@ -99,6 +100,8 @@ func HTTPStatus(err error) int {
 		return http.StatusNotImplemented
 	case KindUnavailable:
 		return http.StatusServiceUnavailable
+	case KindPayloadTooLarge:
+		return http.StatusRequestEntityTooLarge
 	case KindInternal:
 		return http.StatusInternalServerError
 	default:

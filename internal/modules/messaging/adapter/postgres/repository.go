@@ -9,6 +9,7 @@ import (
 	sqlc "mars-admin-go/internal/modules/messaging/adapter/postgres/sqlc"
 	"mars-admin-go/internal/modules/messaging/domain"
 	"mars-admin-go/internal/modules/outbox/contracts"
+	"mars-admin-go/internal/platform/apperror"
 	platformoutbox "mars-admin-go/internal/platform/outbox"
 
 	"github.com/google/uuid"
@@ -232,11 +233,17 @@ func (r *Repository) AddMembers(ctx context.Context, groupID uuid.UUID, userIDs 
 	return tx.Commit(ctx)
 }
 
-func (r *Repository) RemoveMember(ctx context.Context, groupID, memberID, ownerID uuid.UUID) error {
-	_, err := sqlc.New(r.pool).RemoveGroupMember(ctx, sqlc.RemoveGroupMemberParams{
-		GroupID: pgUUID(groupID), UserID: pgUUID(memberID), UserID_2: pgUUID(ownerID),
+func (r *Repository) RemoveMember(ctx context.Context, groupID, memberID uuid.UUID) error {
+	affected, err := sqlc.New(r.pool).RemoveGroupMember(ctx, sqlc.RemoveGroupMemberParams{
+		GroupID: pgUUID(groupID), UserID: pgUUID(memberID),
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return apperror.Conflict("The group owner cannot be removed or the member is no longer active.")
+	}
+	return nil
 }
 
 func (r *Repository) SetMemberRole(ctx context.Context, groupID, memberID uuid.UUID, role string) error {

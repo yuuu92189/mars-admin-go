@@ -126,26 +126,19 @@ func (h *Handler) legacyRole(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	roles, _, err := h.service.Roles(r.Context(), "", 1, 1000)
+	role, err := h.service.Role(r.Context(), id)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	for _, role := range roles {
-		if role.ID != id {
-			continue
-		}
-		menuIDs, err := h.service.RoleMenuIDs(r.Context(), id)
-		if err != nil {
-			httpserver.WriteError(w, r, h.logger, err)
-			return
-		}
-		httpserver.WriteJSON(w, http.StatusOK, map[string]any{
-			"role": legacyRole(role), "menuIds": menuIDs, "deptIds": []uuid.UUID{},
-		})
+	menuIDs, err := h.service.RoleMenuIDs(r.Context(), id)
+	if err != nil {
+		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	httpserver.WriteJSON(w, http.StatusNotFound, map[string]string{"detail": "Role was not found."})
+	httpserver.WriteJSON(w, http.StatusOK, map[string]any{
+		"role": legacyRole(role), "menuIds": menuIDs, "deptIds": []uuid.UUID{},
+	})
 }
 
 func (h *Handler) legacyCreateRole(w http.ResponseWriter, r *http.Request) {
