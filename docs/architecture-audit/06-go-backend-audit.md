@@ -39,12 +39,14 @@ cmd/*
 ### Scale
 
 - OpenAPI 3.1 文件：`api/openapi/v1/openapi.yaml`。
-- Phase 1 后为 99 paths，134 operations；所有 2xx response 都有 content schema。
+- Phase 1 后为 100 paths，135 operations；所有需要响应体的 2xx response 都有 content schema。
 - `api/openapi_test.go` 验证 OpenAPI 文档可加载、operationId 唯一。
 - 规范 API 前缀：`/api/v1/*`。
 - 旧 API：`/api/*`，由 `internal/platform/compat` 包装。
 
-### Confirmed Contract Issues
+### Confirmed Contract Issues (First-Round Snapshot)
+
+The following entries record the first-round audit findings. Phase 1 remediation is recorded in section 9; the current contract statistics are in section 3.
 
 #### GO-API-001 `/metrics` 安全声明与实际实现冲突
 
@@ -71,13 +73,13 @@ cmd/*
 - 影响：不能直接把 `scaffold-vue` 的 `system.ts` 指向 `/api/v1`。
 - 处理：生成 TypeScript 类型后逐页适配；UUID 在前端统一按字符串处理，禁止转 `number`。
 
-#### GO-API-004 OpenAPI 响应 schema 不完整
+#### GO-API-004 OpenAPI 响应 schema 不完整（第一轮）
 
 大量 operation 只有 `description`，没有 `content/schema`，例如字典、审计、部分消息、通知、调度、工作流和监控。`CurrentUser.menus` 仍使用 `additionalProperties: true`。
 
 影响：oapi-codegen 无法生成稳定 TypeScript 类型；前端会继续维护手写类型，违反“OpenAPI 为唯一契约来源”。
 
-处理：先补齐页面实际消费的 Request/Response schema，再生成 client；不以“文档能通过校验”替代字段契约完整性。
+处理：Phase 1 已补齐当前 canonical operation 的响应 schema；动态 map 的剩余边界和后续产品模块见 section 9。
 
 #### GO-API-005 群组管理路由未完整进入 OpenAPI
 
@@ -112,9 +114,9 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 - `RequirePermission` / `RequireAnyPermission` 路由中间件。
 - 用户列表和部门树支持 Data Scope；部门查询下推到 PostgreSQL。
 
-### Confirmed Gaps
+### First-Round Gaps
 
-- Workflow 读接口目前不做实例级 Data Scope；任何 `workflow:read` 用户可读取全部实例。见 `docs/go-standard-audit/security.md`。
+- 第一轮审计发现 Workflow 读接口缺少实例级 Data Scope；Phase 1 已在实例、详情和事件读取中修复，见 section 9。
 - `internal/modules/integrations/http.go` 的 provider status 路由只使用认证，没有 `settings:read`；是否允许普通登录用户查看 Provider 状态需明确。
 - 兼容层仍接受 legacy raw Authorization；这是迁移期边界，不是目标浏览器认证。
 - `scaffold-vue` 仍把 token 和明文密码放在浏览器存储中；Go 后端无法修复该前端漏洞。
@@ -172,7 +174,7 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 
 - `go test ./...`：通过。
 - `go vet ./...`：通过。
-- OpenAPI 文档校验：通过，95 paths、130 operations、operationId 唯一。
+- OpenAPI 文档校验：通过，100 paths、135 operations、operationId 唯一。
 
 历史且已有记录的可复核证据：
 
@@ -180,7 +182,7 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 - `docs/audit-round-3/verification-report.md`：Refresh/Outbox/多 Worker。
 - `docs/audit-final/final-verification.md`：最终运行态。
 
-结论：Go 后端已达到较强的工程基础，但不是“生产就绪”证明；支付、Workflow Data Scope、Provider 认证、OpenAPI 完整性和覆盖率缺口仍是明确风险。
+结论：Go 后端已达到较强的工程基础，但不是“生产就绪”证明；支付、Provider 认证、多租户模型和覆盖率缺口仍是明确风险。
 
 ## 9. Phase 1 Remediation Update
 
@@ -189,7 +191,7 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 - `GO-API-001`：`/metrics` 保持 `audit:read`，OpenAPI 继承安全方案并声明权限、401/403/500。
 - `GO-API-002`：新登录 API 使用 `captchaId`/`captchaCode`、`expiresAt`；旧字段和 `expiresIn` 只存在于 legacy adapter。
 - `GO-API-003`：新 API 分页固定为 `items/total/page/pageSize`；旧别名只在兼容边界保留。
-- `GO-API-004`：OpenAPI 当前所有 2xx response 都有 content schema；动态 metadata/settings/variables 保留明确说明。
+- `GO-API-004`：OpenAPI 当前所有需要响应体的 2xx response 都有 content schema；动态 metadata/settings/variables 保留明确说明。
 - `GO-API-005`：群组成员删除、角色、禁言和群主转让已进入 OpenAPI。
 - `GO-ARCH-001`：Identity 不再直接导入 Access sqlc。
 - `GO-ARCH-002`：Notification 不再直接导入 Messaging sqlc。
@@ -205,3 +207,4 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 - 支付没有订单状态账本和回调 replay ledger；本轮没有虚构支付结算。
 - 外部 Provider 仍然只保证至少一次投递和显式 not-configured。
 - 生产数据切换、Provider 认证、真实对象存储测试和 React 视觉回归未执行。
+- 当前数据库没有 `tenant_id` 或多租户模型；现有 Workflow Data Scope 是单租户范围内的隔离。进入多租户产品前必须新增租户模型、租户绑定和跨租户测试。

@@ -18,7 +18,7 @@
 - `RISK-008`：Identity 和 Notification 的已知跨模块 sqlc 引用已移除。
 - `RISK-009`：Access 和 Workflow Repository 已按用例拆分；Identity/Notification 仍未拆分，保留为后续债务。
 - `RISK-011`：已确认的 Legacy Stub 已改为真实统计或明确 501 Problem。
-- `RISK-007`：OpenAPI 当前所有 2xx response 都有 content schema；剩余动态 map 均有明确业务原因。
+- `RISK-007`：OpenAPI 当前所有需要响应体的 2xx response 都有 content schema；剩余动态 map 均有明确业务原因。
 
 ### Still Open
 
@@ -30,10 +30,13 @@
 - `RISK-012`：Identity/Notification application、adapter 和部分错误分支覆盖率仍需补强。
 - `RISK-013`：React 组件测试、Playwright 和视觉回归尚未开始。
 - `RISK-014`：生产数据切换仍未批准。
+- `RISK-015`：当前系统是单租户模型，数据库没有 `tenant_id`；Phase 2 可以继续，但多租户产品化前必须新增租户模型、租户绑定和跨租户隔离测试。
 
 Phase 1 的 OpenAPI 和 TypeScript 基线已可支撑 Phase 2 前端工程；未确认的产品模块不应被前端静态页面替代。
 
-## 2. Confirmed Risks
+## 2. Confirmed Risks (First-Round Snapshot)
+
+以下条目保留第一轮审计证据；已在 Phase 1 解决的条目以 1.1 的更新状态为准。
 
 ### P1
 
@@ -175,6 +178,7 @@ Phase 1 的 OpenAPI 和 TypeScript 基线已可支撑 Phase 2 前端工程；未
 6. 旧数据生产切换的时间、停机窗口、回滚责任人和审批人是谁？
 7. 生产部署是否必须 Kubernetes/Helm，还是 Compose/Nginx 即可？
 8. 是否保留工作流 Data Scope 之外的审批/会签/转交能力？
+9. 是否将当前单租户管理平台扩展为多租户产品？如是，租户边界、数据迁移和隔离验收必须单独设计。
 
 ## 5. Do Not Modify Without Explicit Approval
 
@@ -193,5 +197,6 @@ Phase 1 的 OpenAPI 和 TypeScript 基线已可支撑 Phase 2 前端工程；未
 - 未执行生产数据切换。
 - 未验证生产 Prometheus 独立只读认证。
 - 未验证所有页面在真实 Go API 下的空/错误/403/409/超时分支。
+- 未执行多租户隔离测试，因为当前数据库没有租户模型；不能把单租户部门隔离冒充跨租户隔离。
 
 这些缺口必须保留在最终交付报告中，不能以“已有接口”或“构建通过”替代。

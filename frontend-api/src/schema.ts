@@ -287,7 +287,7 @@ export interface paths {
         };
         get: operations["listDictionaries"];
         put?: never;
-        post?: never;
+        post: operations["createDictionary"];
         delete?: never;
         options?: never;
         head?: never;
@@ -927,10 +927,28 @@ export interface paths {
             };
             cookie?: never;
         };
-        get: operations["listDictionaryItems"];
+        get?: never;
         put: operations["updateDictionary"];
         post?: never;
         delete: operations["deleteDictionary"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/dictionaries/{id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get: operations["listDictionaryItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1967,6 +1985,13 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        DictionaryTypeInput: {
+            code: string;
+            name: string;
+            description?: string;
+            /** @enum {string} */
+            status?: "active" | "disabled";
+        };
         DictionaryTypePage: {
             items: components["schemas"]["DictionaryType"][];
             /** Format: int64 */
@@ -2903,6 +2928,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DictionaryTypePage"];
+                };
+            };
+        };
+    };
+    createDictionary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DictionaryTypeInput"];
+            };
+        };
+        responses: {
+            /** @description Created dictionary type */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryType"];
                 };
             };
         };
@@ -4055,28 +4104,6 @@ export interface operations {
             };
         };
     };
-    listDictionaryItems: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: components["parameters"]["Id"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Dictionary items */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryItem"][];
-                };
-            };
-        };
-    };
     updateDictionary: {
         parameters: {
             query?: never;
@@ -4116,6 +4143,28 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    listDictionaryItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dictionary items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryItem"][];
+                };
             };
         };
     };

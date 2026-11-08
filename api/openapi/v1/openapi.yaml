@@ -398,6 +398,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DictionaryTypePage"
+    post:
+      tags: [System]
+      operationId: createDictionary
+      x-required-permission: dictionary:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DictionaryTypeInput"
+      responses:
+        "201":
+          description: Created dictionary type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DictionaryType"
   /api/v1/admin/settings/{code}:
     parameters:
       - name: code
@@ -1115,19 +1132,6 @@ paths:
       responses: { "204": { description: Position deleted } }
   /api/v1/admin/dictionaries/{id}:
     parameters: [{ $ref: "#/components/parameters/Id" }]
-    get:
-      tags: [System]
-      operationId: listDictionaryItems
-      x-required-permission: dictionary:read
-      responses:
-        "200":
-          description: Dictionary items
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/DictionaryItem"
     put:
       tags: [System]
       operationId: updateDictionary
@@ -1144,6 +1148,21 @@ paths:
       operationId: deleteDictionary
       x-required-permission: dictionary:manage
       responses: { "204": { description: Dictionary deleted } }
+  /api/v1/admin/dictionaries/{id}/items:
+    parameters: [{ $ref: "#/components/parameters/Id" }]
+    get:
+      tags: [System]
+      operationId: listDictionaryItems
+      x-required-permission: dictionary:read
+      responses:
+        "200":
+          description: Dictionary items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DictionaryItem"
   /api/v1/admin/dictionaries/items:
     post:
       tags: [System]
@@ -2373,6 +2392,19 @@ components:
         createdAt:
           type: string
           format: date-time
+    DictionaryTypeInput:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, disabled]
     DictionaryTypePage:
       type: object
       required: [items, total, page, pageSize]

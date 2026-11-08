@@ -51,6 +51,18 @@ The source of truth for seeded codes is `db/migrations/000007_seed_authorization
 
 `role:create` is intentionally kept as the current coarse write permission for role mutations. A future migration may split it into `role:update` and `role:delete`, but Phase 1 does not silently change existing role grants.
 
+## Automated Verification
+
+Phase 1 final acceptance adds a route-level cross-check in `internal/platform/httpserver/permission_routes_test.go`. It parses the actual canonical handler route registrations, including group and route middleware, and compares:
+
+- Actual route method/path to OpenAPI operations.
+- Route permission codes to this catalog.
+- Route permission codes to `db/migrations/000007_seed_authorization.sql`.
+- Seed permissions back to this catalog.
+- Public, authenticated-only and business-permission routes.
+
+The current matrix is 135 canonical operations: 12 public, 12 authenticated-only and 111 business-permission routes. `RequireAnyPermission` OR semantics have a separate HTTP middleware test.
+
 ## Legacy Vue Mapping
 
 The reference Vue application uses older permission strings. The mapping is documentation for migration; it is not an authorization bypass.

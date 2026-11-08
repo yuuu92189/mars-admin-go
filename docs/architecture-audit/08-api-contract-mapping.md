@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | 参考前端 | `scaffold-vue/src/api/*` | `/api/*`、`{code,message,data}`、数字 ID、`{rows,pageNum,pageSize,total}` | 当前页面实际调用 |
 | 参考 Spring Boot | `scaffold-system` | 参考前端对应的后端 | 仅作为参考，不进入目标运行时 |
-| Go 目标后端 | `api/openapi/v1/openapi.yaml` + `/api/v1/*` | 直接 JSON、RFC 9457、UUID、`{items,page,pageSize,total}` | 已实现，但 schema/权限元数据不完整 |
+| Go 目标后端 | `api/openapi/v1/openapi.yaml` + `/api/v1/*` | 直接 JSON、RFC 9457、UUID、`{items,page,pageSize,total}` | Phase 1 后：100 paths、135 operations；2xx schema、权限元数据和群组路由已补齐 |
 
 目标不是让 Vue 页面继续依赖旧 envelope，而是：
 
@@ -21,9 +21,9 @@
 
 Current canonical OpenAPI:
 
-- 99 paths / 134 operations.
-- Every 2xx response has a content schema.
-- 110 operations declare `x-required-permission`.
+- 100 paths / 135 operations.
+- Every 2xx response that carries a body has a content schema.
+- 111 operations declare `x-required-permission`.
 - 12 authenticated-only operations declare `x-auth-required`.
 - `/metrics` inherits bearer/cookie security and requires `audit:read`.
 - Canonical login uses `captchaId`, `captchaCode` and `expiresAt`; legacy aliases are adapter-only.
@@ -31,25 +31,25 @@ Current canonical OpenAPI:
 - Group member removal, role update, mute and owner transfer are now documented.
 - Generated TypeScript types live in `frontend-api/src/schema.ts` and contain 0 `any` tokens.
 
-The canonical response shape is now stable enough for React page work, but product-scoped pages such as vulnerability and payment remain absent.
+The canonical response shape is now stable enough for React page work, but product-scoped pages such as vulnerability and payment remain absent. The counts above are Phase 1 current state; the original audit snapshot remains in the historical sections below.
 
 ## 2. Page-to-API Matrix
 
 | 页面 | 业务能力 | Go 模块 | 当前 Vue API | 目标 Go API | 状态/缺口 |
 | --- | --- | --- | --- | --- | --- |
 | 登录 | 验证码、密码登录、当前用户、动态路由 | Identity + Access | `/auth/captcha`, `/auth/login`, `/auth/me`, `/auth/routes` | `/api/v1/auth/captcha`, `/login`, `/me`, Access menus | 契约已固化；旧 Vue 仍需适配新字段/Cookie |
-| 工作台 | 统计、趋势、操作泳道、安全态势 | Monitoring + Audit + Vulnerability | `/dashboard/summary`, `/monitor/oper-logs/timeline`, `/vuln/statistics/*` | `/api/v1/admin/monitoring/dashboard`, `/api/v1/admin/audit/*`; vulnerability 新增 | Dashboard schema 和漏洞统计未完成 |
-| 用户 | 用户 CRUD、状态、密码、角色/部门/岗位选项、导出 | Identity + Organization + Access | `/system/users*`, `/system/permissions/graph` | `/api/v1/admin/users*` | UUID/数字 ID、分页、权限码、选项字段差异 |
-| 角色 | 角色 CRUD、菜单授权、数据范围、权限矩阵 | Access | `/system/roles*`, `/system/menus/tree` | `/api/v1/admin/access/roles*`, `/menus` | 旧 `system:role:*` 与新 `role:*`；矩阵批量写入需契约 |
-| 菜单 | 菜单树、CRUD、显示状态、权限图 | Access | `/system/menus*` | `/api/v1/admin/access/menus*` | 旧组件标识/路径与新菜单字段需映射 |
-| 部门 | 部门树、CRUD、组织画布、成员预览 | Organization | `/system/depts*`, `/system/users?deptId=` | `/api/v1/admin/organization/departments*` | 部门字段、ID、Data Scope 响应需统一 |
-| 岗位 | 岗位 CRUD、成员、阶梯视图 | Organization | `/system/posts*`, `/system/users?postId=` | `/api/v1/admin/organization/positions*` | 旧 `postCode/postName` 与新 `code/name` 需映射 |
-| 字典 | 类型/数据 CRUD、选项缓存 | System | `/system/dict/*` | `/api/v1/admin/dictionaries*` | 旧 `dictType/dictName` 与新 code/name；响应 schema 缺失 |
-| 系统配置 | 参数分组、批量更新、AI 测试、知识库 | System + Integrations | `/system/configs*`, `/vuln/ai/*` | `/api/v1/admin/settings*`; AI 端点新增 | 旧参数列表与 setting group 结构不同 |
-| 通知 | 我的通知、发送记录、已读、发送、删除 | Notification | `/notices/*` | `/api/v1/notices*` | 旧分页/收件人字段与 Go 响应需映射；OpenAPI schema 缺失 |
-| 定时任务 | 任务 CRUD、暂停/恢复、立即执行、cron、日志 | Scheduler | `/monitor/jobs*`, `/monitor/job-logs`, `/monitor/cron-check` | `/api/v1/admin/scheduler/jobs*` | handler 命名/状态字段、cron 校验契约需统一 |
-| 操作日志 | 列表、统计、泳道、导出、删除/清空 | Audit + Monitoring | `/monitor/oper-logs*` | `/api/v1/admin/audit/events`, `/logins`; 统计端点需补齐 | 新 audit 只有 events/logins，缺少旧 stats/timeline 等价 schema |
-| 登录日志 | 列表、统计、热力、异常、导出、删除/清空 | Audit | `/monitor/login-logs*` | `/api/v1/admin/audit/logins`; 统计/热力端点需补齐 | 当前 OpenAPI 仅 login page，不覆盖 heatmap/stats |
+| 工作台 | 统计、趋势、操作泳道、安全态势 | Monitoring + Audit + Vulnerability | `/dashboard/summary`, `/monitor/oper-logs/timeline`, `/vuln/statistics/*` | `/api/v1/admin/monitoring/dashboard`, `/api/v1/admin/audit/*`; vulnerability 新增 | 当前：监控/审计契约可用；漏洞统计仍是产品缺口 |
+| 用户 | 用户 CRUD、状态、密码、角色/部门/岗位选项、导出 | Identity + Organization + Access | `/system/users*`, `/system/permissions/graph` | `/api/v1/admin/users*` | 当前：新 API 契约可用；旧 Vue 数字 ID/分页需 adapter |
+| 角色 | 角色 CRUD、菜单授权、数据范围、权限矩阵 | Access | `/system/roles*`, `/system/menus/tree` | `/api/v1/admin/access/roles*`, `/menus` | 当前：新 API 契约可用；旧权限码需映射 |
+| 菜单 | 菜单树、CRUD、显示状态、权限图 | Access | `/system/menus*` | `/api/v1/admin/access/menus*` | 当前：新 API 契约可用；旧组件标识需映射 |
+| 部门 | 部门树、CRUD、组织画布、成员预览 | Organization | `/system/depts*`, `/system/users?deptId=` | `/api/v1/admin/organization/departments*` | 当前：新 API 契约可用；旧字段需映射 |
+| 岗位 | 岗位 CRUD、成员、阶梯视图 | Organization | `/system/posts*`, `/system/users?postId=` | `/api/v1/admin/organization/positions*` | 当前：新 API 契约可用；旧字段需映射 |
+| 字典 | 类型/数据 CRUD、选项缓存 | System | `/system/dict/*` | `/api/v1/admin/dictionaries*` | 当前：新 API 契约可用；旧字段需映射 |
+| 系统配置 | 参数分组、批量更新、AI 测试、知识库 | System + Integrations | `/system/configs*`, `/vuln/ai/*` | `/api/v1/admin/settings*`; AI 端点新增 | 当前：settings 契约可用；AI 仍待产品决策 |
+| 通知 | 我的通知、发送记录、已读、发送、删除 | Notification | `/notices/*` | `/api/v1/notices*` | 当前：新 API 契约可用；旧字段需 adapter |
+| 定时任务 | 任务 CRUD、暂停/恢复、立即执行、cron、日志 | Scheduler | `/monitor/jobs*`, `/monitor/job-logs`, `/monitor/cron-check` | `/api/v1/admin/scheduler/jobs*` | 当前：新 API 契约可用；旧字段需映射 |
+| 操作日志 | 列表、统计、泳道、导出、删除/清空 | Audit + Monitoring | `/monitor/oper-logs*` | `/api/v1/admin/audit/events`, `/logins`; 统计端点需补齐 | 当前：events/logins 可用；stats/timeline 仍缺 canonical 端点 |
+| 登录日志 | 列表、统计、热力、异常、导出、删除/清空 | Audit | `/monitor/login-logs*` | `/api/v1/admin/audit/logins`; 统计/热力端点需补齐 | 当前：login page 可用；heatmap/stats 仍缺 canonical 端点 |
 | 代码生成 | 表导入、字段、预览、生成、ZIP | Codegen | `/tool/generator/*` | `/api/v1/admin/codegen/*` | 旧生成器模型（Java/Vue）与新 Go/OpenAPI 生成模型不同 |
 | 资产 | 资产 CRUD、详情、导出、关联漏洞 | 目标 Vulnerability | `/vuln/assets*` | **Go 当前无等价模块** | P1 功能缺口 |
 | 漏洞 | 漏洞 CRUD、详情、关联工单、导出 | 目标 Vulnerability | `/vuln/vulnerabilities*` | **Go 当前无等价模块** | P1 功能缺口 |
@@ -102,30 +102,36 @@ Go native:     { page, pageSize, total, items }
 - 旧浏览器：Bearer in storage + WebSocket query token，仅兼容期。
 - 处理：React 禁止读取/写入长期 token；CSRF token 由登录响应/独立端点下发。
 
-## 4. OpenAPI Completeness Checklist
+## 4. OpenAPI Completeness: Historical vs Current
 
-每个新 API 必须包含：
+### Historical Audit State
 
-- `operationId`。
-- tags。
-- 认证/权限声明。
-- path/query/header 参数。
-- requestBody schema。
-- 成功响应 schema。
-- 错误响应 schema。
-- 分页/排序/过滤白名单。
-- 文件上传/下载 content type。
-- WebSocket 消息协议（在 OpenAPI 之外单独文档化）。
+The first-round audit found that many operations had only descriptions, `CurrentUser.menus` was a broad dynamic object, and the contract could not yet be treated as a stable generated-type source.
 
-当前只有 operationId 和部分 schema，不能声称“OpenAPI 完整”。
+### Phase 1 Remediation
+
+- All current 2xx responses have content and a valid media-type schema.
+- Local `$ref` targets are resolved by the existing kin-openapi loader and schema validation.
+- Every protected operation has `x-required-permission` or `x-auth-required`.
+- Group member management is represented in OpenAPI.
+- Canonical route paths are cross-checked against actual handler registrations.
+
+### Current Limits
+
+- Dynamic business metadata, setting values, workflow variables and similar maps remain intentionally open where the domain is dynamic.
+- Audit stats/timeline and login heatmap canonical endpoints are not yet implemented.
+- Vulnerability, AI and payment business APIs remain product-scoped gaps.
+- WebSocket protocol is documented separately from OpenAPI.
+- The database is currently single-tenant: it has no `tenant_id` or tenant model. Existing department and role scopes must not be described as cross-tenant isolation.
 
 ## 5. Page Acceptance Status
 
 | 状态 | 含义 |
 | --- | --- |
 | `inventory` | 已从 Vue 源码盘点 |
-| `contract-gap` | 目标 Go API 或 schema 不完整 |
+| `contract-ready` | 当前 Go canonical 契约已具备，旧 Vue 仍需 adapter |
+| `contract-gap` | 目标 Go API、schema 或产品能力仍不完整 |
 | `migrated` | React 页面实现且使用真实 API |
 | `verified` | 通过 Playwright/E2E/截图/权限/错误分支 |
 
-当前全部页面处于 `inventory` 或 `contract-gap`；没有任何页面达到 `migrated` 或 `verified`。
+Phase 1 后，登录、用户、角色、菜单、部门、岗位、字典、配置、通知、定时任务和代码生成达到 `contract-ready`；日志统计/热力、漏洞和 AI 仍为 `contract-gap`。所有页面仍未达到 `migrated` 或 `verified`。

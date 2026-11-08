@@ -797,7 +797,9 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 		initiatorA := createIdentityUserInDepartment(t, ctx, repo, "wf_scope_a", passwordHash, departmentA, nil)
 		initiatorB := createIdentityUserInDepartment(t, ctx, repo, "wf_scope_b", passwordHash, departmentB, nil)
 		approver := createIdentityUserInDepartment(t, ctx, repo, "wf_scope_approver", passwordHash, departmentB, nil)
-		outsider := createIdentityUserInDepartment(t, ctx, repo, "wf_scope_outsider", passwordHash, departmentB, nil)
+		approverRoleCode := "workflow_approver_" + suffix
+		approverRole := createTestRole(t, ctx, pool, approverRoleCode, "self")
+		roleMember := createIdentityUserInDepartment(t, ctx, repo, "wf_scope_role_member", passwordHash, departmentB, []uuid.UUID{approverRole})
 
 		definition, err := workflowService.CreateDefinition(ctx, initiatorA.ID, workflowdomain.CreateDefinitionInput{
 			Code: "scope_" + suffix, Name: "Scope Workflow", Version: 1,
@@ -806,7 +808,7 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 				Nodes: []workflowdomain.Node{
 					{
 						Code: "approval", Name: "Approval", Type: "approval",
-						AssigneeID: &approver.ID, AssigneeRole: "workflow_approver", Next: "end",
+						AssigneeID: &approver.ID, AssigneeRole: approverRoleCode, Next: "end",
 					},
 					{Code: "end", Name: "End", Type: "end"},
 				},
@@ -849,7 +851,10 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 		require.True(t, assigneeIDs[instanceA.ID])
 		require.True(t, assigneeIDs[instanceB.ID])
 
-		roleActor := workflowdomain.Actor{UserID: outsider.ID, Roles: []string{"workflow_approver"}, DataScope: "self"}
+		roleAccess, err := repo.GetAccess(ctx, roleMember.ID)
+		require.NoError(t, err)
+		require.Contains(t, roleAccess.Roles, approverRoleCode)
+		roleActor := workflowdomain.Actor{UserID: roleMember.ID, Roles: roleAccess.Roles, DataScope: "self"}
 		roleVisible, _, err := workflowService.Instances(ctx, roleActor, 1, 20)
 		require.NoError(t, err)
 		require.Len(t, roleVisible, 2)
@@ -863,6 +868,281 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 		}
 		require.True(t, superIDs[instanceA.ID])
 		require.True(t, superIDs[instanceB.ID])
+	})
+
+	t.Run("workflow department tree, custom scope and role boundaries", func(t *testing.T) {
+		workflowService := workflowapp.New(workflowpostgres.New(pool))
+		suffix := uuid.NewString()[:8]
+		rootCode := "wf_root_" + suffix
+		childCode := "wf_child_" + suffix
+		grandchildCode := "wf_grandchild_" + suffix
+		siblingCode := "wf_sibling_" + suffix
+		otherRootCode := "wf_other_" + suffix
+		rootID := createTestDepartment(t, ctx, pool, rootCode, rootCode)
+		childID := createTestDepartment(t, ctx, pool, childCode, rootCode+"."+childCode)
+		grandchildID := createTestDepartment(t, ctx, pool, grandchildCode, rootCode+"."+childCode+"."+grandchildCode)
+		siblingID := createTestDepartment(t, ctx, pool, siblingCode, rootCode+"."+siblingCode)
+		otherRootID := createTestDepartment(t, ctx, pool, otherRootCode, otherRootCode)
+		passwordHash, err := security.HashPassword("identity-test-password-123")
+		require.NoError(t, err)
+
+		customRole := createTestRole(t, ctx, pool, "wf_custom_"+suffix, "custom")
+		customActor := createIdentityUserInDepartment(t, ctx, repo, "wf_custom_actor", passwordHash, rootID, []uuid.UUID{customRole})
+		childActor := createIdentityUserInDepartment(t, ctx, repo, "wf_child_actor", passwordHash, childID, nil)
+		approver := createIdentityUserInDepartment(t, ctx, repo, "wf_tree_approver", passwordHash, childID, nil)
+		candidateRoleCode := "workflow_tree_approver_" + suffix
+		candidateRole := createTestRole(t, ctx, pool, candidateRoleCode, "self")
+		candidate := createIdentityUserInDepartment(t, ctx, repo, "wf_tree_candidate", passwordHash, childID, []uuid.UUID{candidateRole})
+		initiatorRoot := createIdentityUserInDepartment(t, ctx, repo, "wf_init_root", passwordHash, rootID, nil)
+		initiatorChild := createIdentityUserInDepartment(t, ctx, repo, "wf_init_child", passwordHash, childID, nil)
+		initiatorGrandchild := createIdentityUserInDepartment(t, ctx, repo, "wf_init_grandchild", passwordHash, grandchildID, nil)
+		initiatorSibling := createIdentityUserInDepartment(t, ctx, repo, "wf_init_sibling", passwordHash, siblingID, nil)
+		initiatorOther := createIdentityUserInDepartment(t, ctx, repo, "wf_init_other", passwordHash, otherRootID, nil)
+
+		definition, err := workflowService.CreateDefinition(ctx, initiatorRoot.ID, workflowdomain.CreateDefinitionInput{
+			Code: "scope_tree_" + suffix, Name: "Scope Tree Workflow", Version: 1,
+			Document: workflowdomain.DefinitionDocument{
+				Start: "approval",
+				Nodes: []workflowdomain.Node{
+					{
+						Code: "approval", Name: "Approval", Type: "approval",
+						AssigneeID: &approver.ID, AssigneeRole: candidateRoleCode, Next: "end",
+					},
+					{Code: "end", Name: "End", Type: "end"},
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.NoError(t, workflowService.Publish(ctx, definition.ID))
+		start := func(initiator identitydomain.User, businessID string) workflowdomain.Instance {
+			instance, _, startErr := workflowService.Start(ctx, initiator.ID, workflowdomain.StartInput{
+				DefinitionID: definition.ID, BusinessID: businessID + "-" + suffix,
+			})
+			require.NoError(t, startErr)
+			return instance
+		}
+		instanceRoot := start(initiatorRoot, "tree-root")
+		instanceChild := start(initiatorChild, "tree-child")
+		instanceGrandchild := start(initiatorGrandchild, "tree-grandchild")
+		instanceSibling := start(initiatorSibling, "tree-sibling")
+		instanceOther := start(initiatorOther, "tree-other")
+
+		instanceIDs := func(instances []workflowdomain.Instance) map[uuid.UUID]bool {
+			ids := make(map[uuid.UUID]bool, len(instances))
+			for _, instance := range instances {
+				ids[instance.ID] = true
+			}
+			return ids
+		}
+
+		childActorSelf := workflowdomain.Actor{UserID: childActor.ID, DataScope: "self"}
+		selfInstances, _, err := workflowService.Instances(ctx, childActorSelf, 1, 20)
+		require.NoError(t, err)
+		require.Empty(t, selfInstances)
+		initiatorChildSelf := workflowdomain.Actor{UserID: initiatorChild.ID, DataScope: "self"}
+		initiatorChildInstances, initiatorChildTotal, err := workflowService.Instances(ctx, initiatorChildSelf, 1, 20)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), initiatorChildTotal)
+		require.True(t, instanceIDs(initiatorChildInstances)[instanceChild.ID])
+
+		childActorDepartment := workflowdomain.Actor{UserID: childActor.ID, DataScope: "department"}
+		departmentInstances, departmentTotal, err := workflowService.Instances(ctx, childActorDepartment, 1, 20)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), departmentTotal)
+		require.True(t, instanceIDs(departmentInstances)[instanceChild.ID])
+		require.False(t, instanceIDs(departmentInstances)[instanceGrandchild.ID])
+		require.False(t, instanceIDs(departmentInstances)[instanceSibling.ID])
+
+		treeActor := workflowdomain.Actor{UserID: childActor.ID, DataScope: "department_tree"}
+		treePage1, treeTotal, err := workflowService.Instances(ctx, treeActor, 1, 1)
+		require.NoError(t, err)
+		require.Equal(t, int64(2), treeTotal)
+		require.Len(t, treePage1, 1)
+		treePage2, _, err := workflowService.Instances(ctx, treeActor, 2, 1)
+		require.NoError(t, err)
+		require.Len(t, treePage2, 1)
+		treeIDs := instanceIDs(append(treePage1, treePage2...))
+		require.True(t, treeIDs[instanceChild.ID])
+		require.True(t, treeIDs[instanceGrandchild.ID])
+		require.False(t, treeIDs[instanceRoot.ID])
+		require.False(t, treeIDs[instanceSibling.ID])
+		require.False(t, treeIDs[instanceOther.ID])
+
+		_, err = pool.Exec(ctx, `
+			UPDATE organization_departments
+			SET path = $2::ltree
+			WHERE id = $1`, grandchildID, otherRootCode+"."+grandchildCode)
+		require.NoError(t, err)
+		movedTreeInstances, movedTreeTotal, err := workflowService.Instances(ctx, treeActor, 1, 20)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), movedTreeTotal)
+		require.True(t, instanceIDs(movedTreeInstances)[instanceChild.ID])
+		require.False(t, instanceIDs(movedTreeInstances)[instanceGrandchild.ID])
+		_, err = pool.Exec(ctx, `
+			UPDATE organization_departments
+			SET path = $2::ltree
+			WHERE id = $1`, grandchildID, rootCode+"."+childCode+"."+grandchildCode)
+		require.NoError(t, err)
+
+		assigneeActor := workflowdomain.Actor{UserID: approver.ID, DataScope: "self"}
+		assigneeInstances, assigneeTotal, err := workflowService.Instances(ctx, assigneeActor, 1, 20)
+		require.NoError(t, err)
+		require.Equal(t, int64(5), assigneeTotal)
+		require.Len(t, assigneeInstances, 5)
+
+		candidateAccess, err := repo.GetAccess(ctx, candidate.ID)
+		require.NoError(t, err)
+		require.Contains(t, candidateAccess.Roles, candidateRoleCode)
+		roleActor := workflowdomain.Actor{UserID: candidate.ID, Roles: candidateAccess.Roles, DataScope: "self"}
+		roleInstances, roleTotal, err := workflowService.Instances(ctx, roleActor, 1, 20)
+		require.NoError(t, err)
+		require.Equal(t, int64(5), roleTotal)
+		require.Len(t, roleInstances, 5)
+		roleTodo, roleTodoTotal, err := workflowService.Todo(ctx, roleActor, 1, 20)
+		require.NoError(t, err)
+		require.Equal(t, int64(5), roleTodoTotal)
+		require.Len(t, roleTodo, 5)
+
+		nonRoleAccess, err := repo.GetAccess(ctx, childActor.ID)
+		require.NoError(t, err)
+		require.Empty(t, nonRoleAccess.Roles)
+		nonRoleActor := workflowdomain.Actor{UserID: childActor.ID, Roles: nonRoleAccess.Roles, DataScope: "self"}
+		nonRoleInstances, nonRoleTotal, err := workflowService.Instances(ctx, nonRoleActor, 1, 20)
+		require.NoError(t, err)
+		require.Zero(t, nonRoleTotal)
+		require.Empty(t, nonRoleInstances)
+		nonRoleTodo, nonRoleTodoTotal, err := workflowService.Todo(ctx, nonRoleActor, 1, 20)
+		require.NoError(t, err)
+		require.Zero(t, nonRoleTodoTotal)
+		require.Empty(t, nonRoleTodo)
+
+		multiRoleActor := workflowdomain.Actor{UserID: candidate.ID, Roles: append(candidateAccess.Roles, "unrelated_role"), DataScope: "self"}
+		multiRoleInstances, multiRoleTotal, err := workflowService.Instances(ctx, multiRoleActor, 1, 20)
+		require.NoError(t, err)
+		require.Equal(t, int64(5), multiRoleTotal)
+		require.Len(t, multiRoleInstances, 5)
+
+		_, err = pool.Exec(ctx, `UPDATE access_roles SET status = 'disabled' WHERE id = $1`, candidateRole)
+		require.NoError(t, err)
+		disabledCandidateAccess, err := repo.GetAccess(ctx, candidate.ID)
+		require.NoError(t, err)
+		require.NotContains(t, disabledCandidateAccess.Roles, candidateRoleCode)
+		disabledRoleActor := workflowdomain.Actor{UserID: candidate.ID, Roles: disabledCandidateAccess.Roles, DataScope: "self"}
+		disabledRoleInstances, disabledRoleTotal, err := workflowService.Instances(ctx, disabledRoleActor, 1, 20)
+		require.NoError(t, err)
+		require.Zero(t, disabledRoleTotal)
+		require.Empty(t, disabledRoleInstances)
+		disabledRoleTodo, disabledRoleTodoTotal, err := workflowService.Todo(ctx, disabledRoleActor, 1, 20)
+		require.NoError(t, err)
+		require.Zero(t, disabledRoleTodoTotal)
+		require.Empty(t, disabledRoleTodo)
+
+		_, err = pool.Exec(ctx, `UPDATE access_roles SET status = 'active', deleted_at = now() WHERE id = $1`, candidateRole)
+		require.NoError(t, err)
+		deletedCandidateAccess, err := repo.GetAccess(ctx, candidate.ID)
+		require.NoError(t, err)
+		require.NotContains(t, deletedCandidateAccess.Roles, candidateRoleCode)
+		deletedRoleActor := workflowdomain.Actor{UserID: candidate.ID, Roles: deletedCandidateAccess.Roles, DataScope: "self"}
+		deletedRoleInstances, deletedRoleTotal, err := workflowService.Instances(ctx, deletedRoleActor, 1, 20)
+		require.NoError(t, err)
+		require.Zero(t, deletedRoleTotal)
+		require.Empty(t, deletedRoleInstances)
+		deletedRoleTodo, deletedRoleTodoTotal, err := workflowService.Todo(ctx, deletedRoleActor, 1, 20)
+		require.NoError(t, err)
+		require.Zero(t, deletedRoleTodoTotal)
+		require.Empty(t, deletedRoleTodo)
+
+		_, err = pool.Exec(ctx, `UPDATE access_roles SET deleted_at = NULL WHERE id = $1`, candidateRole)
+		require.NoError(t, err)
+		_, err = pool.Exec(ctx, `DELETE FROM access_user_roles WHERE user_id = $1 AND role_id = $2`, candidate.ID, candidateRole)
+		require.NoError(t, err)
+		removedCandidateAccess, err := repo.GetAccess(ctx, candidate.ID)
+		require.NoError(t, err)
+		require.Empty(t, removedCandidateAccess.Roles)
+		removedCandidateActor := workflowdomain.Actor{UserID: candidate.ID, Roles: removedCandidateAccess.Roles, DataScope: "self"}
+		removedCandidateInstances, removedCandidateTotal, err := workflowService.Instances(ctx, removedCandidateActor, 1, 20)
+		require.NoError(t, err)
+		require.Zero(t, removedCandidateTotal)
+		require.Empty(t, removedCandidateInstances)
+		removedCandidateTodo, removedCandidateTodoTotal, err := workflowService.Todo(ctx, removedCandidateActor, 1, 20)
+		require.NoError(t, err)
+		require.Zero(t, removedCandidateTodoTotal)
+		require.Empty(t, removedCandidateTodo)
+
+		customActorScope := workflowdomain.Actor{UserID: customActor.ID, DataScope: "custom"}
+		_, err = pool.Exec(ctx, `
+			INSERT INTO access_role_departments (role_id, department_id)
+			VALUES ($1, $2), ($1, $3)
+			ON CONFLICT DO NOTHING`, customRole, siblingID, otherRootID)
+		require.NoError(t, err)
+		customInstances, customTotal, err := workflowService.Instances(ctx, customActorScope, 1, 20)
+		require.NoError(t, err)
+		require.Equal(t, int64(2), customTotal)
+		customIDs := instanceIDs(customInstances)
+		require.True(t, customIDs[instanceSibling.ID])
+		require.True(t, customIDs[instanceOther.ID])
+		require.False(t, customIDs[instanceRoot.ID])
+		require.False(t, customIDs[instanceChild.ID])
+		require.False(t, customIDs[instanceGrandchild.ID])
+
+		_, err = pool.Exec(ctx, `DELETE FROM access_role_departments WHERE role_id = $1`, customRole)
+		require.NoError(t, err)
+		_, err = pool.Exec(ctx, `
+			INSERT INTO access_role_departments (role_id, department_id)
+			VALUES ($1, $2)`, customRole, rootID)
+		require.NoError(t, err)
+		parentScopeInstances, parentScopeTotal, err := workflowService.Instances(ctx, customActorScope, 1, 20)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), parentScopeTotal)
+		require.True(t, instanceIDs(parentScopeInstances)[instanceRoot.ID])
+		require.False(t, instanceIDs(parentScopeInstances)[instanceChild.ID])
+
+		_, err = pool.Exec(ctx, `DELETE FROM access_role_departments WHERE role_id = $1`, customRole)
+		require.NoError(t, err)
+		_, err = pool.Exec(ctx, `
+			INSERT INTO access_role_departments (role_id, department_id)
+			VALUES ($1, $2)`, customRole, childID)
+		require.NoError(t, err)
+		childScopeInstances, childScopeTotal, err := workflowService.Instances(ctx, customActorScope, 1, 20)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), childScopeTotal)
+		require.True(t, instanceIDs(childScopeInstances)[instanceChild.ID])
+		require.False(t, instanceIDs(childScopeInstances)[instanceRoot.ID])
+		require.False(t, instanceIDs(childScopeInstances)[instanceGrandchild.ID])
+
+		_, err = pool.Exec(ctx, `DELETE FROM access_role_departments WHERE role_id = $1`, customRole)
+		require.NoError(t, err)
+		emptyScopeInstances, emptyScopeTotal, err := workflowService.Instances(ctx, customActorScope, 1, 20)
+		require.NoError(t, err)
+		require.Zero(t, emptyScopeTotal)
+		require.Empty(t, emptyScopeInstances)
+		_, err = pool.Exec(ctx, `
+			INSERT INTO access_role_departments (role_id, department_id)
+			VALUES ($1, $2)`, customRole, uuid.New())
+		require.Error(t, err)
+
+		_, err = pool.Exec(ctx, `UPDATE access_roles SET status = 'disabled' WHERE id = $1`, customRole)
+		require.NoError(t, err)
+		disabledInstances, disabledTotal, err := workflowService.Instances(ctx, customActorScope, 1, 20)
+		require.NoError(t, err)
+		require.Zero(t, disabledTotal)
+		require.Empty(t, disabledInstances)
+
+		_, err = pool.Exec(ctx, `UPDATE access_roles SET status = 'active', deleted_at = now() WHERE id = $1`, customRole)
+		require.NoError(t, err)
+		deletedInstances, deletedTotal, err := workflowService.Instances(ctx, customActorScope, 1, 20)
+		require.NoError(t, err)
+		require.Zero(t, deletedTotal)
+		require.Empty(t, deletedInstances)
+
+		_, err = pool.Exec(ctx, `UPDATE access_roles SET deleted_at = NULL WHERE id = $1`, customRole)
+		require.NoError(t, err)
+		_, err = pool.Exec(ctx, `DELETE FROM access_user_roles WHERE user_id = $1 AND role_id = $2`, customActor.ID, customRole)
+		require.NoError(t, err)
+		removedMembership, removedTotal, err := workflowService.Instances(ctx, customActorScope, 1, 20)
+		require.NoError(t, err)
+		require.Zero(t, removedTotal)
+		require.Empty(t, removedMembership)
 	})
 
 	t.Run("department hierarchy rejects cycles and rolls back", func(t *testing.T) {

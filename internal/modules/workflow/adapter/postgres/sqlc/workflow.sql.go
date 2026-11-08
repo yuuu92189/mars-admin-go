@@ -46,7 +46,19 @@ SELECT count(*)
 FROM workflow_tasks t
 WHERE t.status = 'completed'
   AND t.decision IS NOT NULL
-  AND (t.assignee_id = $1 OR t.assignee_role = ANY($2::text[]))
+  AND (
+    t.assignee_id = $1
+    OR (
+      t.assignee_role = ANY($2::text[])
+      AND EXISTS (
+        SELECT 1
+        FROM access_roles assigned_role
+        WHERE assigned_role.code = t.assignee_role
+          AND assigned_role.status = 'active'
+          AND assigned_role.deleted_at IS NULL
+      )
+    )
+  )
 `
 
 type CountDoneTasksParams struct {
@@ -65,7 +77,19 @@ const countTodoTasks = `-- name: CountTodoTasks :one
 SELECT count(*)
 FROM workflow_tasks t
 WHERE t.status = 'pending'
-  AND (t.assignee_id = $1 OR t.assignee_role = ANY($2::text[]))
+  AND (
+    t.assignee_id = $1
+    OR (
+      t.assignee_role = ANY($2::text[])
+      AND EXISTS (
+        SELECT 1
+        FROM access_roles assigned_role
+        WHERE assigned_role.code = t.assignee_role
+          AND assigned_role.status = 'active'
+          AND assigned_role.deleted_at IS NULL
+      )
+    )
+  )
 `
 
 type CountTodoTasksParams struct {
@@ -359,7 +383,19 @@ JOIN workflow_instances i ON i.id = t.instance_id
 JOIN workflow_definitions d ON d.id = i.definition_id
 WHERE t.status = 'completed'
   AND t.decision IS NOT NULL
-  AND (t.assignee_id = $1 OR t.assignee_role = ANY($2::text[]))
+  AND (
+    t.assignee_id = $1
+    OR (
+      t.assignee_role = ANY($2::text[])
+      AND EXISTS (
+        SELECT 1
+        FROM access_roles assigned_role
+        WHERE assigned_role.code = t.assignee_role
+          AND assigned_role.status = 'active'
+          AND assigned_role.deleted_at IS NULL
+      )
+    )
+  )
 ORDER BY t.completed_at DESC
 LIMIT $3 OFFSET $4
 `
@@ -436,7 +472,19 @@ FROM workflow_tasks t
 JOIN workflow_instances i ON i.id = t.instance_id
 JOIN workflow_definitions d ON d.id = i.definition_id
 WHERE t.status = 'pending'
-  AND (t.assignee_id = $1 OR t.assignee_role = ANY($2::text[]))
+  AND (
+    t.assignee_id = $1
+    OR (
+      t.assignee_role = ANY($2::text[])
+      AND EXISTS (
+        SELECT 1
+        FROM access_roles assigned_role
+        WHERE assigned_role.code = t.assignee_role
+          AND assigned_role.status = 'active'
+          AND assigned_role.deleted_at IS NULL
+      )
+    )
+  )
 ORDER BY t.created_at DESC
 LIMIT $3 OFFSET $4
 `

@@ -35,7 +35,7 @@
 | P1-02 Login contract | 已实现、已测试 | canonical DTO + legacy adapter tests |
 | P1-03 Permission catalog | 已实现、已测试 | permission catalog + route/seed tests |
 | P1-04 UUID/pagination/error | 已实现、已测试 | HTTP boundary tests |
-| P1-05 OpenAPI schema | 已实现关键契约；所有 2xx 有 content | 99 paths / 134 operations |
+| P1-05 OpenAPI schema | 已实现关键契约；所有需要响应体的 2xx 有 content | 100 paths / 135 operations |
 | P1-06 Group management | 已实现、已测试 | OpenAPI + contract test |
 | P1-07 Vulnerability API | 待产品决策 | no domain module |
 | P1-08 AI assistant API | 待产品决策 | no provider decision |

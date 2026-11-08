@@ -7,7 +7,8 @@
 | 项目 | 基线 | 证据 |
 | --- | --- | --- |
 | 前端参考 | `KernelC1130/scaffold-master`，`main`，提交 `e1488bf85935ec19f1ebae89703d151f2feddd3f` | GitHub `git ls-remote`；本地 `scaffold-vue/src` 与精确克隆在规范化换行后逐文件 SHA-256 一致 |
-| Go 后端 | `yuuu92189/mars-admin-go`，`main`，提交 `8c5ff1d3440fa565baf716a1e02e850be88b8b77` | `git rev-parse HEAD`，工作树干净，`origin/main` 同提交 |
+| Go 后端第一轮审计 | `yuuu92189/mars-admin-go`，`main`，提交 `8c5ff1d3440fa565baf716a1e02e850be88b8b77` | `git rev-parse HEAD`，工作树干净，`origin/main` 同提交 |
+| Phase 1 验收基线 | `yuuu92189/mars-admin-go`，`main`，提交 `c423c3d83882cc5c6c20934a5367d91d1c274152` | `git rev-parse HEAD`；本轮补强基于该提交的工作树 |
 | 前端技术栈 | Vue 3.5、Vite 6、TypeScript、Vue Router、GSAP 3.15，自有 UI 组件 | `scaffold-vue/package.json` |
 | 后端技术栈 | Go 1.27.3、Chi 5.2、pgx 5.12、sqlc 1.30、Goose 3.29、PostgreSQL 18.6、Redis 8.10.1、River 0.48 | `mars-admin-go/go.mod`、`docs/status.md` |
 
@@ -27,6 +28,7 @@
 | [10-implementation-roadmap.md](10-implementation-roadmap.md) | 分阶段任务、文件范围、依赖和验收门禁 |
 | [11-risk-and-decision-log.md](11-risk-and-decision-log.md) | P0/P1/P2 风险、技术决策和待确认事项 |
 | [12-phase-1-implementation-report.md](12-phase-1-implementation-report.md) | Phase 1 实际修改、契约变化、测试证据和剩余风险 |
+| [13-phase-1-final-acceptance.md](13-phase-1-final-acceptance.md) | Phase 1 最终验收、四项补强、真实测试结果和 Phase 2 准入结论 |
 
 ## First-Round Status
 
@@ -45,13 +47,14 @@ Phase 1 已实施已确认的技术基线：
 - 登录新 API 使用 `captchaId`/`captchaCode` 和 `expiresAt`；旧 `/api` 客户端只在兼容层映射 `captcha`/`captchaUuid` 和 `expiresIn`。
 - 分页统一为 `items`/`total`/`page`/`pageSize`。
 - PostgreSQL SQLSTATE 在统一 HTTP 错误边界映射为 RFC 9457 Problem。
-- OpenAPI 当前为 99 paths、134 operations；所有 2xx response 都有 content schema，110 个 operation 声明 required permission，12 个 operation 声明仅认证。
+- OpenAPI 当前为 100 paths、135 operations；所有需要响应体的 2xx response 都有 content schema，111 个 operation 声明 required permission，12 个 operation 声明仅认证。
 - 群组删除成员、成员角色、禁言和转让群主已进入 OpenAPI。
 - Identity 和 Notification 的已知跨模块 sqlc 引用已移除。
 - Access 和 Workflow 的 Repository 已按用例拆分；Identity/Notification 仍保留较大接口，列为后续治理。
 - Workflow 实例、详情和事件读取已执行实例级 Data Scope。
 - Legacy Stub 已改为真实统计或明确 501 Problem。
 - `frontend-api/` 可从 OpenAPI 生成 TypeScript 严格类型，当前生成结果为 0 个 `any`。
+- Phase 1 最终验收报告记录真实测试、单租户限制和 Phase 2 前置条件；结论为 `ACCEPTED WITH CONDITIONS`。
 
 Phase 1 不包含 React 页面实现、漏洞领域、AI Provider、支付账本、生产数据切换和外部 Provider 认证。详细状态见 [12-phase-1-implementation-report.md](12-phase-1-implementation-report.md)。
 
@@ -70,7 +73,7 @@ Phase 1 不包含 React 页面实现、漏洞领域、AI Provider、支付账本
 | `golangci-lint run` | `0 issues.` |
 | `govulncheck ./...` | 无可达漏洞；存在非可达依赖公告 |
 | `npm run check`（`frontend-api`） | 通过；TypeScript strict；生成 schema 0 个 `any` |
-| OpenAPI contract tests | 通过；99 paths，134 operations，所有 2xx 有 content，权限元数据完整 |
+| OpenAPI contract tests | 通过；100 paths，135 operations，所有需要响应体的 2xx 有 content，权限元数据完整 |
 
 更早的 PostgreSQL/Redis/MySQL Testcontainers、Race、lint、漏洞扫描、Compose 和 Helm 记录见 `docs/go-standard-audit/verification.md` 与 `docs/audit-round-3/verification-report.md`。本轮没有把历史记录替代为当前运行态证明；本轮重新执行的命令以上表为准。
 

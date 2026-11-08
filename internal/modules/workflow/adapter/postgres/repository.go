@@ -570,7 +570,16 @@ func visibilitySQL(actorParam, rolesParam, scopeParam int) string {
 		SELECT 1
 		FROM workflow_tasks visible_task
 		WHERE visible_task.instance_id = i.id
-		  AND (visible_task.assignee_id = $%d OR visible_task.assignee_role = ANY($%d::text[]))
+		  AND visible_task.assignee_id = $%d
+	)
+	OR EXISTS (
+		SELECT 1
+		FROM workflow_tasks visible_task
+		JOIN access_roles visible_role ON visible_role.code = visible_task.assignee_role
+		WHERE visible_task.instance_id = i.id
+		  AND visible_task.assignee_role = ANY($%d::text[])
+		  AND visible_role.status = 'active'
+		  AND visible_role.deleted_at IS NULL
 	)
 	OR (
 		$%d::text = 'department'
@@ -597,9 +606,13 @@ func visibilitySQL(actorParam, rolesParam, scopeParam int) string {
 		AND EXISTS (
 			SELECT 1
 			FROM access_user_roles actor_role
+			JOIN access_roles actor_access ON actor_access.id = actor_role.role_id
 			JOIN access_role_departments allowed ON allowed.role_id = actor_role.role_id
 			JOIN organization_memberships target ON target.department_id = allowed.department_id
-			WHERE actor_role.user_id = $%d AND target.user_id = i.initiator_id
+			WHERE actor_role.user_id = $%d
+			  AND actor_access.status = 'active'
+			  AND actor_access.deleted_at IS NULL
+			  AND target.user_id = i.initiator_id
 		)
 	)
 )`, scopeParam, actorParam, actorParam, rolesParam, scopeParam, actorParam, scopeParam, actorParam, scopeParam, actorParam)

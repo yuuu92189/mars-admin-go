@@ -12,7 +12,7 @@ Phase 1 targeted the engineering baseline and API contract needed before React/N
 | Canonical login contract | Implemented and tested |
 | Legacy login adapter | Implemented and tested |
 | UUID/pagination/error baseline | Implemented |
-| OpenAPI success response schemas | Completed for all 2xx responses |
+| OpenAPI success response schemas | Completed for all response-body-bearing 2xx responses |
 | Group management OpenAPI | Completed for existing canonical routes |
 | Permission catalog and route/seed checks | Implemented |
 | Workflow instance Data Scope | Implemented and integration-tested |
@@ -147,9 +147,9 @@ Database constraint names, table names and SQL text are not returned to clients.
 
 Current contract:
 
-- 99 paths.
-- 134 operations.
-- 110 operation-level required-permission declarations.
+- 100 paths.
+- 135 operations.
+- 111 operation-level required-permission declarations.
 - 12 authenticated-only operations using `x-auth-required`.
 - All 2xx responses declare content.
 - All operations have unique operationId values.
@@ -273,7 +273,7 @@ These items are not silently invented or marked complete.
 | `go tool sqlc generate` | Passed |
 | `go tool oapi-codegen ...` | Passed |
 | `npm run check` in `frontend-api` | Passed; generated schema has 0 `any` |
-| OpenAPI contract tests | Passed: 99 paths, 134 operations, all 2xx content, permissions present |
+| OpenAPI contract tests | Passed: 100 paths, 135 operations, all response-body-bearing 2xx content, permissions present |
 | `git diff --check` | Passed after final formatting |
 
 Not executed:
@@ -331,6 +331,8 @@ Not executed:
 - Architecture audit updates.
 
 ## 12. Next Phase
+
+最终验收和当前单租户限制见 [13-phase-1-final-acceptance.md](13-phase-1-final-acceptance.md)。
 
 Phase 2 can start only for the implemented contract baseline. It should:
 

@@ -60,8 +60,8 @@ C:\Users\admin\Desktop\admin\
 | Go files | 163 | 递归清点 |
 | Goose migrations | 23，编号 `000001` 至 `000023` | `db/migrations` |
 | SQL query files | 11 | `db/queries` |
-| OpenAPI paths | 99（Phase 1 后） | `api/openapi/v1/openapi.yaml` |
-| OpenAPI operations | 134（Phase 1 后） | `operationId` 清点 |
+| OpenAPI paths | 100（Phase 1 后） | `api/openapi/v1/openapi.yaml` |
+| OpenAPI operations | 135（Phase 1 后） | `operationId` 清点 |
 | Entrypoints | API、Worker、Migrate、Legacy Import、Outbox | `cmd/*` |
 | Domain modules | Identity、Access、Organization、System、Audit、Monitoring、Storage、Messaging、Notification、Scheduler、Workflow、Codegen、Integrations、Outbox | `internal/modules` |
 | Platform | Config、Database、Cache、Logging、Telemetry、HTTP、Security、Request Context、Outbox、Shutdown | `internal/platform` |
@@ -133,7 +133,7 @@ go tool oapi-codegen -config api/oapi-codegen.yaml api/openapi/v1/openapi.yaml
 | Vue 源码完整盘点 | 已完成 |
 | Vue 组件/样式/动画盘点 | 已完成 |
 | Go 模块/数据库/认证盘点 | 已完成 |
-| OpenAPI 基础结构 | 已完成，但契约完整性不足 |
+| OpenAPI 基础结构 | Phase 1 canonical 契约已补强；产品范围缺口仍保留 |
 | React/Next.js 工程 | 未开始 |
 | React 页面与真实 Go API 联调 | 未开始 |
 | 视觉截图回归 | 未开始 |
