@@ -58,6 +58,8 @@ Phase 1 已实施已确认的技术基线：
 
 Phase 1 不包含 React 页面实现、漏洞领域、AI Provider、支付账本、生产数据切换和外部 Provider 认证。详细状态见 [12-phase-1-implementation-report.md](12-phase-1-implementation-report.md)。
 
+Phase 2 前端基础工程的审计、设计系统、实现和验收证据见 [../frontend/README.md](../frontend/README.md)。
+
 ## Evidence Commands
 
 以下命令在本次审计中实际执行：

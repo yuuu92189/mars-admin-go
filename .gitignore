@@ -8,6 +8,10 @@ coverage.html
 bin/
 dist/
 node_modules/
+.next/
+playwright-report/
+test-results/
+*.tsbuildinfo
 mars-admin-api
 mars-admin-worker
 mars-admin-migrate

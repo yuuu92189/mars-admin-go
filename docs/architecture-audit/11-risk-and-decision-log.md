@@ -28,7 +28,7 @@
 - `RISK-006`：外部 Provider 仍不能宣称 exactly-once。
 - `RISK-010`：Monitoring 跨模块 read model 仍是当前架构的已知边界。
 - `RISK-012`：Identity/Notification application、adapter 和部分错误分支覆盖率仍需补强。
-- `RISK-013`：React 组件测试、Playwright 和视觉回归尚未开始。
+- `RISK-013`：Phase 2 已建立 React 基础组件测试、Playwright 和登录/Dashboard 视觉证据；Phase 3 业务页面仍需逐页补齐回归。
 - `RISK-014`：生产数据切换仍未批准。
 - `RISK-015`：当前系统是单租户模型，数据库没有 `tenant_id`；Phase 2 可以继续，但多租户产品化前必须新增租户模型、租户绑定和跨租户隔离测试。
 

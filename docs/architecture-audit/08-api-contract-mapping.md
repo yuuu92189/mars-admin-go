@@ -134,4 +134,4 @@ The first-round audit found that many operations had only descriptions, `Current
 | `migrated` | React 页面实现且使用真实 API |
 | `verified` | 通过 Playwright/E2E/截图/权限/错误分支 |
 
-Phase 1 后，登录、用户、角色、菜单、部门、岗位、字典、配置、通知、定时任务和代码生成达到 `contract-ready`；日志统计/热力、漏洞和 AI 仍为 `contract-gap`。所有页面仍未达到 `migrated` 或 `verified`。
+Phase 1 后，登录、用户、角色、菜单、部门、岗位、字典、配置、通知、定时任务和代码生成达到 `contract-ready`；日志统计/热力、漏洞和 AI 仍为 `contract-gap`。Phase 2 已完成登录、工作台和主 Shell 的 React 基础实现与本地截图验证；其余业务页面仍未达到 `migrated` 或 `verified`。

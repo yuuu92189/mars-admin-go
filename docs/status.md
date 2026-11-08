@@ -4,6 +4,7 @@
 
 - Phase 1 contract baseline: canonical login fields, metrics authorization, UUID/pagination/error rules, permission metadata, group management OpenAPI, generated TypeScript types and response-body-bearing 2xx OpenAPI content.
 - Phase 1 Go governance: Workflow instance Data Scope, SQLSTATE mapping, Identity/Notification sqlc boundary cleanup, Access/Workflow use-case interfaces and explicit Legacy Stub handling.
+- Phase 2 frontend foundation: Next.js App Router, React strict UI foundation, current Vue Kintsugi/Pearl Glass login reconstruction, responsive shell, canonical API proxy, Vitest/RTL/Playwright, direct Vue/React visual comparison and frontend CI definitions.
 - Independent Go module targeting Go 1.27.3.
 - Explicit dependency injection and modular monolith boundaries.
 - PostgreSQL schema, Goose migrations, sqlc-generated data access and UUIDv7 identifiers.
@@ -33,6 +34,7 @@
 - A live S3/MinIO/OSS integration test. The MinIO-compatible adapter builds but was not exercised against a bucket.
 - Production cutover of the legacy data. The full dump has been imported into an isolated validation database; applying it to a production database still requires data-owner approval, secret rotation and downtime/cutover planning.
 - UniApp runtime E2E against a real WeChat toolchain.
+- Vue business-page migration into React is Phase 3+; Phase 2 intentionally ships foundation pages and explicit placeholders.
 - SSH server credential management and web terminal were intentionally excluded as unsafe/out of scope.
 - JVM/JDBC console and server credential management are intentionally not reproduced. Go runtime and Prometheus replace JVM metrics.
 - The compatibility browser UI still stores the access token in Pinia persistence and uses the legacy WebSocket query token. New clients should migrate to HttpOnly cookies and CSRF tokens.

@@ -1,0 +1,121 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+@import "../styles/base.css";
+@import "../styles/materials.css";
+@import "../styles/components.css";
+@import "../styles/instruments.css";
+@import "../styles/layout.css";
+@import "../styles/pages.css";
+
+/* React-specific layout glue around the original Vue design system. */
+.app-root {
+  min-height: 100dvh;
+}
+
+.user-chip-wrap {
+  position: relative;
+}
+
+.nav-thumb {
+  transition:
+    transform 0.32s var(--ease-premium),
+    opacity 0.2s ease;
+  will-change: transform;
+}
+
+.brand-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.brand-mark circle {
+  filter: drop-shadow(0 0 3px rgba(130, 221, 45, 0.55));
+}
+
+[data-theme="dark"] .captcha-img--single {
+  display: block !important;
+}
+
+.user-menu {
+  position: absolute;
+  top: 48px;
+  right: 0;
+  z-index: 140;
+}
+
+.select-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.select-wrap .select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+}
+
+.select-wrap .select-search .input-shell {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  padding: 0 10px;
+}
+
+.tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip-wrap::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 160;
+  translate: -50% 0;
+  padding: 5px 8px;
+  border-radius: 7px;
+  color: var(--plate-ink);
+  background: var(--plate-bg);
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.tooltip-wrap:hover::after,
+.tooltip-wrap:focus-within::after {
+  opacity: 1;
+}
+
+.login-neural {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+.page-host {
+  min-height: 100%;
+}
+
+.readout-strip {
+  align-items: start;
+}
+
+@media (max-width: 820px) {
+  .user-menu {
+    position: fixed;
+    top: 64px;
+    right: 12px;
+  }
+}

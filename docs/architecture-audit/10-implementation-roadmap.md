@@ -16,7 +16,7 @@
 | --- | --- | --- |
 | Phase 0 审计 | 已完成 | 本目录 11 份审计文档、Go 既有专题报告 |
 | Phase 1 契约基线 | 已完成已确认技术范围；P1-07/P1-08 待产品决策 | OpenAPI/权限/ID/分页/错误统一、Go 治理、TypeScript 生成 |
-| Phase 2 前端基础 | 未开始 | Next.js、Tailwind、CSS 令牌、UI 原语 |
+| Phase 2 前端基础 | 已完成 Phase 2 基础工程 | Next.js、React、Tailwind、CSS 令牌、UI 原语、登录/Shell/Dashboard、测试与 CI |
 | Phase 3 认证与外壳 | 未开始 | 登录、Cookie/CSRF、动态菜单、Admin layout |
 | Phase 4 核心系统页 | 未开始 | 工作台、用户、角色、菜单、部门、岗位、字典、配置、通知 |
 | Phase 5 监控/任务/代码生成 | 未开始 | 日志、任务、生成器 |

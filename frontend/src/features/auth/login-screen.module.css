@@ -1,0 +1,58 @@
+.loginStage {
+  container-type: inline-size;
+  background: var(--stage);
+}
+
+.loginPearl {
+  grid-template-columns: minmax(0, 1.3fr) minmax(400px, 1fr);
+  padding: 16px;
+}
+
+.loginPearl:not(.isEntranceReady) :global(.brand-top),
+.loginPearl:not(.isEntranceReady) :global(.brand-copy),
+.loginPearl:not(.isEntranceReady) :global(.journey),
+.loginPearl:not(.isEntranceReady) :global(.brand-footer),
+.loginPearl:not(.isEntranceReady) .loginCard {
+  opacity: 0;
+}
+
+.loginSide {
+  padding-inline: clamp(20px, 4vw, 64px);
+}
+
+.loginCard {
+  transform-style: preserve-3d;
+}
+
+@container (max-width: 1160px) {
+  .loginPearl {
+    grid-template-columns: minmax(0, 1.15fr) minmax(360px, 1fr);
+  }
+
+  .loginSide {
+    min-height: auto;
+    padding-inline: 22px;
+  }
+}
+
+@container (max-width: 900px) {
+  .loginPearl {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .loginSide {
+    flex: 1;
+    min-height: auto;
+    padding: 0 18px 26px;
+    background: var(--canvas);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loginCard {
+    transform: none !important;
+    will-change: auto;
+  }
+}
