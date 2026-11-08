@@ -10,14 +10,20 @@ test.skip(
   "Set E2E_ADMIN_USERNAME and E2E_ADMIN_PASSWORD to run the real API flow.",
 );
 
+async function hideDevelopmentOverlays(page: Page) {
+  await page.addStyleTag({
+    content: "nextjs-portal { display: none !important; }",
+  });
+}
+
 async function login(page: Page) {
   await page.goto("/login");
   await page.getByRole("textbox", { name: "账号" }).fill(username ?? "");
   await page.getByLabel("密码").fill(password ?? "");
   const captcha = page.getByPlaceholder("请输入计算结果");
   if (await captcha.isVisible()) await captcha.fill("1");
-  await page.getByRole("button", { name: "登录" }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
+  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
   await expect(page.getByRole("heading", { name: "登录脉搏" })).toBeVisible();
   await page.waitForTimeout(900);
 }
@@ -33,6 +39,7 @@ test("admin can log in, load the shell and fetch dashboard counters", async ({
   );
   await login(page);
   await expect(page.getByText("真实运行数据")).toBeVisible();
+  await hideDevelopmentOverlays(page);
   await page.screenshot({
     path: `visual-baselines/dashboard-${testInfo.project.name}-light.png`,
     fullPage: true,
@@ -57,6 +64,7 @@ test("admin can log in, load the shell and fetch dashboard counters", async ({
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
   await page.waitForTimeout(500);
+  await hideDevelopmentOverlays(page);
   await page.screenshot({
     path: `visual-baselines/dashboard-${testInfo.project.name}-dark.png`,
     fullPage: true,
@@ -86,6 +94,7 @@ test("desktop shell supports rail collapse and command palette keyboard flow", a
   await expect(frame).toHaveClass(/is-collapsed/);
   await page.reload();
   await expect(frame).toHaveClass(/is-collapsed/);
+  await hideDevelopmentOverlays(page);
   await page.screenshot({
     path: "visual-baselines/dashboard-desktop-collapsed-light.png",
     fullPage: true,
@@ -145,6 +154,7 @@ test("mobile navigation opens and closes with the scrim", async ({ page }, testI
   await page.getByRole("button", { name: "切换导航" }).click();
   await expect(frame).toHaveClass(/is-mobile-open/);
   await expect(page.locator(".rail-scrim")).toBeVisible();
+  await hideDevelopmentOverlays(page);
   await page.screenshot({
     path: "visual-baselines/dashboard-mobile-open-light.png",
     fullPage: true,
@@ -214,6 +224,7 @@ test("dashboard has no horizontal overflow at required viewports", async ({ page
       () => document.documentElement.scrollWidth > window.innerWidth + 1,
     );
     expect(hasHorizontalOverflow, `dashboard overflow at ${viewport.width}px`).toBe(false);
+    await hideDevelopmentOverlays(page);
     await page.screenshot({
       path: `visual-baselines/dashboard-${viewport.width}-light.png`,
       fullPage: true,

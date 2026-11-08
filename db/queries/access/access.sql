@@ -3,7 +3,12 @@ SELECT DISTINCT m.*
 FROM access_menus m
 JOIN access_role_menus rm ON rm.menu_id = m.id
 JOIN access_user_roles ur ON ur.role_id = rm.role_id
-WHERE ur.user_id = $1 AND m.status = 'active' AND m.visible = true
+JOIN access_roles role ON role.id = ur.role_id
+WHERE ur.user_id = $1
+  AND role.status = 'active'
+  AND role.deleted_at IS NULL
+  AND m.status = 'active'
+  AND m.visible = true
 ORDER BY m.sort_order, m.name;
 
 -- name: ListAllMenus :many
@@ -57,6 +62,25 @@ SELECT * FROM access_permissions ORDER BY module, code;
 
 -- name: ListRoleMenus :many
 SELECT menu_id FROM access_role_menus WHERE role_id = $1;
+
+-- name: ListRolePermissionCodes :many
+SELECT permission.code
+FROM access_role_permissions AS role_permission
+JOIN access_permissions AS permission ON permission.id = role_permission.permission_id
+WHERE role_permission.role_id = $1
+ORDER BY permission.code;
+
+-- name: ListMenuDescendantIDs :many
+WITH RECURSIVE descendants AS (
+    SELECT access_menus.id
+    FROM access_menus
+    WHERE access_menus.parent_id = $1
+    UNION ALL
+    SELECT child.id
+    FROM access_menus child
+    JOIN descendants parent ON child.parent_id = parent.id
+)
+SELECT id FROM descendants ORDER BY id;
 
 -- name: SetRoleMenus :exec
 DELETE FROM access_role_menus WHERE role_id = $1;

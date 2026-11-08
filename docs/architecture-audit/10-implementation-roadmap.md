@@ -1,5 +1,9 @@
 # 10 Implementation Roadmap
 
+> Historical planning record. Current implementation and acceptance status are in
+> [`../phase-4/README.md`](../phase-4/README.md). Asset Management, Vulnerability Management and
+> Remediation Work Orders are explicitly excluded from the product and are not planned phases.
+
 ## 1. Guiding Rules
 
 - 先契约，后页面。
@@ -15,12 +19,12 @@
 | 阶段 | 状态 | 交付 |
 | --- | --- | --- |
 | Phase 0 审计 | 已完成 | 本目录 11 份审计文档、Go 既有专题报告 |
-| Phase 1 契约基线 | 已完成已确认技术范围；P1-07/P1-08 待产品决策 | OpenAPI/权限/ID/分页/错误统一、Go 治理、TypeScript 生成 |
+| Phase 1 契约基线 | 已完成已确认技术范围；P1-07 EXCLUDED，P1-08 待产品决策 | OpenAPI/权限/ID/分页/错误统一、Go 治理、TypeScript 生成 |
 | Phase 2 前端基础 | 已完成 Phase 2 基础工程 | Next.js、React、Tailwind、CSS 令牌、UI 原语、登录/Shell/Dashboard、测试与 CI |
 | Phase 3 认证与外壳 | 未开始 | 登录、Cookie/CSRF、动态菜单、Admin layout |
 | Phase 4 核心系统页 | 未开始 | 工作台、用户、角色、菜单、部门、岗位、字典、配置、通知 |
 | Phase 5 监控/任务/代码生成 | 未开始 | 日志、任务、生成器 |
-| Phase 6 漏洞业务 | 未开始 | 资产、漏洞、修复工单、统计 |
+| Phase 6 漏洞业务 | EXCLUDED | 资产、漏洞、修复工单、统计均不属于本项目 |
 | Phase 7 实时/工作流/文件 | 未开始 | 消息、通知推送、WebSocket、工作流、文件 |
 | Phase 8 验收 | 未开始 | E2E、截图、性能、安全、可访问性 |
 | Phase 9 部署/迁移 | 未开始 | 生产部署、数据切换、Provider 认证 |
@@ -37,7 +41,7 @@
 | P1-04 UUID/pagination/error | 已实现、已测试 | HTTP boundary tests |
 | P1-05 OpenAPI schema | 已实现关键契约；所有需要响应体的 2xx 有 content | 100 paths / 135 operations |
 | P1-06 Group management | 已实现、已测试 | OpenAPI + contract test |
-| P1-07 Vulnerability API | 待产品决策 | no domain module |
+| P1-07 Vulnerability API | EXCLUDED | Phase 4 business-scope decision |
 | P1-08 AI assistant API | 待产品决策 | no provider decision |
 | Cross-module sqlc | 已完成已知两项 | dependency test |
 | Workflow Data Scope | 已实现、已测试 | PostgreSQL integration test |
@@ -56,7 +60,7 @@
 | P1-04 | 统一 UUID/分页/错误 | OpenAPI schemas, generated types, compat adapter | 前端迁移方案 | 无 `Number(uuid)`、分页契约一致 |
 | P1-05 | 补齐页面实际消费的 OpenAPI schema | OpenAPI + generated TS | 页面清单 | 无 `additionalProperties: true` 的业务主模型 |
 | P1-06 | 补齐群组管理 operation | OpenAPI + messaging handler tests | 消息权限模型 | 路由与文档逐条一致 |
-| P1-07 | 设计漏洞领域 API/schema | OpenAPI + migration plan + module design | 业务确认 | 资产/漏洞/工单/统计契约可生成 TS |
+| P1-07 | EXCLUDED: 漏洞领域 API/schema | None | Phase 4 business-scope decision | 不新增表、API、权限、菜单或页面 |
 | P1-08 | 设计 AI assistant API（如保留） | OpenAPI + provider contract | 模型/知识库供应商 | 未配置返回 typed error |
 
 ### Gate
@@ -131,23 +135,11 @@
 
 Gate：真实数据分页、时间线/热力、任务执行记录和下载不靠 mock。
 
-## 8. Phase 6: Vulnerability Domain
+## 8. Phase 6: Excluded Security Domains
 
-如果保留 `scaffold-vue` 的安全业务：
-
-- 新增 Go `vulnerability` 模块和 PostgreSQL 表。
-- 资产、漏洞、修复工单状态机。
-- 统计 summary/风险/月度/TOP。
-- 资产详情关联漏洞、漏洞详情关联工单、工单接单/修复/复测/关闭。
-- 数据权限和操作审计。
-- React 三页及工作台安全态势。
-
-Gate：
-
-- 状态机并发测试。
-- 资产/漏洞/工单关联一致性。
-- 风险等级自动计算与权限。
-- 三页 E2E 和截图。
+Asset Management, Vulnerability Management and Remediation Work Orders are not part of this
+project. The Vue reference pages are retained only for visual comparison. No database table,
+API, permission, menu, mock data, scanner or React page is to be added for these domains.
 
 ## 9. Phase 7: Realtime, Workflow, Files
 
@@ -205,7 +197,7 @@ Gate：
 | 优先级 | 工作 |
 | --- | --- |
 | P0 | 目标架构/契约/安全基线；不完成不进入大规模页面实现 |
-| P1 | 认证、权限、核心系统页、漏洞领域、真实 API 联调 |
+| P1 | 认证、权限、核心系统页、真实 API 联调 |
 | P2 | 工作流 Data Scope、跨模块 sqlc 依赖、覆盖率、legacy stub 清理 |
 | P3 | 性能优化、动画细节、运维体验 |
 

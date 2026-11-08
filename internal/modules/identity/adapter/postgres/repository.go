@@ -101,6 +101,22 @@ func (r *Repository) CountPrivilegedRoles(ctx context.Context, roleIDs []uuid.UU
 	return identitysqlc.New(r.pool).CountPrivilegedRoles(ctx, pgUUIDs(roleIDs))
 }
 
+func (r *Repository) CountRolesOutsidePermissions(
+	ctx context.Context,
+	roleIDs []uuid.UUID,
+	permissions []string,
+	actorScope string,
+) (int64, error) {
+	return identitysqlc.New(r.pool).CountRolesOutsidePermissions(
+		ctx,
+		identitysqlc.CountRolesOutsidePermissionsParams{
+			Column1: pgUUIDs(roleIDs),
+			Column2: permissions,
+			Column3: actorScope,
+		},
+	)
+}
+
 func (r *Repository) ListUsers(ctx context.Context, filter domain.UserFilter) ([]domain.User, int64, error) {
 	q := identitysqlc.New(r.pool)
 	offset := int32((filter.Page - 1) * filter.PageSize) // #nosec G115 -- application layer caps page size at 100.

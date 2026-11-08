@@ -146,7 +146,8 @@ func (h *Handler) legacyCreateRole(w http.ResponseWriter, r *http.Request) {
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
-	role, err := h.service.CreateRole(r.Context(), domain.CreateRoleInput{
+	actor, _ := requestctx.ActorFrom(r.Context())
+	role, err := h.service.CreateRole(r.Context(), actor, domain.CreateRoleInput{
 		Name: input.Role.Name, Code: input.Role.Code,
 		Description: firstAccessString(input.Role.Description, input.Role.Remark),
 		DataScope:   legacyDataScope(input.Role.DataScope),
@@ -156,7 +157,6 @@ func (h *Handler) legacyCreateRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(input.MenuIDs) > 0 {
-		actor, _ := requestctx.ActorFrom(r.Context())
 		if err := h.service.SetRoleMenus(r.Context(), actor, role.ID, input.MenuIDs); err != nil {
 			httpserver.WriteError(w, r, h.logger, err)
 			return
@@ -484,7 +484,8 @@ func (h *Handler) createRole(w http.ResponseWriter, r *http.Request) {
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
-	role, err := h.service.CreateRole(r.Context(), input)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	role, err := h.service.CreateRole(r.Context(), actor, input)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return

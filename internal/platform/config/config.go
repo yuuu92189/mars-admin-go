@@ -117,6 +117,7 @@ type WeChatPayConfig struct {
 	PrivateKeyPEM        string
 	PlatformPublicKeyPEM string
 	PlatformSerialNumber string
+	APIv3Key             string
 }
 
 type AlipayConfig struct {
@@ -224,6 +225,7 @@ func Load() (Config, error) {
 			PrivateKeyPEM:        os.Getenv("WECHAT_PAY_PRIVATE_KEY_PEM"),
 			PlatformPublicKeyPEM: os.Getenv("WECHAT_PAY_PLATFORM_PUBLIC_KEY_PEM"),
 			PlatformSerialNumber: os.Getenv("WECHAT_PAY_PLATFORM_SERIAL_NUMBER"),
+			APIv3Key:             os.Getenv("WECHAT_PAY_API_V3_KEY"),
 		},
 		Alipay: AlipayConfig{
 			Endpoint: os.Getenv("ALIPAY_ENDPOINT"), AppID: os.Getenv("ALIPAY_APP_ID"),

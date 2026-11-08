@@ -106,6 +106,11 @@ func (s *SettingsService) Update(ctx context.Context, groupCode string, values m
 		if err != nil {
 			return apperror.Validation("settings."+key, err.Error())
 		}
+		existingSensitive, err := s.repo.SettingIsSensitive(ctx, groupCode, key)
+		if err != nil {
+			return err
+		}
+		sensitive = sensitive || existingSensitive
 		if sensitive {
 			if s.secretBox == nil {
 				return apperror.New(apperror.KindNotConfigured, "settings_encryption_not_configured", "Sensitive settings encryption is not configured.")

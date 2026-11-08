@@ -1,5 +1,8 @@
 # 11 Risk and Decision Log
 
+> Historical risk log. Phase 4 resolved the business-scope question: Asset Management,
+> Vulnerability Management and Remediation Work Orders are excluded, not pending work.
+
 ## 1. Severity
 
 | 级别 | 含义 |
@@ -19,11 +22,11 @@
 - `RISK-009`：Access 和 Workflow Repository 已按用例拆分；Identity/Notification 仍未拆分，保留为后续债务。
 - `RISK-011`：已确认的 Legacy Stub 已改为真实统计或明确 501 Problem。
 - `RISK-007`：OpenAPI 当前所有需要响应体的 2xx response 都有 content schema；剩余动态 map 均有明确业务原因。
+- `RISK-003`：资产、漏洞和修复工单已由 Phase 4 明确排除；不进入路线图、待办或验收扣分项。
 
 ### Still Open
 
 - `RISK-001`：React 前端尚未实现，因此旧的明文密码和浏览器 Token 问题仍存在于参考 Vue。
-- `RISK-003`：漏洞领域未实现，等待产品确认。
 - `RISK-005`：支付订单账本未实现，等待产品确认。
 - `RISK-006`：外部 Provider 仍不能宣称 exactly-once。
 - `RISK-010`：Monitoring 跨模块 read model 仍是当前架构的已知边界。
@@ -56,9 +59,9 @@ Phase 1 的 OpenAPI 和 TypeScript 基线已可支撑 Phase 2 前端工程；未
 
 #### RISK-003 `scaffold-vue` 的安全业务没有 Go 等价模块
 
-- 资产、漏洞、修复工单、统计和 AI 端点存在于 Vue 参考，Go 当前没有完整领域。
-- 影响：不能实现真实漏洞页面；不能用 mock 代替。
-- 处理：新增 `vulnerability` 模块或书面确认排除该业务。
+- 资产、漏洞、修复工单和统计端点只存在于 Vue 参考，不属于 Go 目标业务。
+- 结论：Phase 4 已书面确认排除该业务；不新增模块、表、API、权限、菜单或页面。
+- 影响：这些 Vue 页面只保留为视觉参考，不属于本项目待办。
 
 #### RISK-004 Workflow 缺少实例级 Data Scope
 
@@ -159,7 +162,8 @@ Phase 1 的 OpenAPI 和 TypeScript 基线已可支撑 Phase 2 前端工程；未
 ### DEC-007 旧兼容层保留到迁移完成
 
 - 决策：不立即删除 `/api/*`、envelope、query-token WebSocket。
-- 理由：现有 Vue/UniApp 仍依赖；先建立调用者清单和契约测试。
+- 更新：Phase 4 已关闭 raw Authorization 和 query-token WebSocket；`/api/*` envelope
+  仅保留给尚未迁移的旧客户端，且必须使用 Bearer 或 Cookie。
 
 ### DEC-008 外部 Provider 不宣称 exactly-once
 
@@ -170,15 +174,14 @@ Phase 1 的 OpenAPI 和 TypeScript 基线已可支撑 Phase 2 前端工程；未
 
 以下问题需要产品/数据所有者确认，不能由代码助手擅自决定：
 
-1. 是否保留 `scaffold-vue` 的漏洞资产/漏洞/修复工单业务？
-2. AI 助手是否进入目标产品？使用哪个模型/知识库 Provider？
-3. 支付/订单是否在目标范围？如保留，订单状态和结算规则是什么？
-4. 目标前端是独立仓库、monorepo，还是与 Go 后端同仓？
-5. 旧 Vue/UniApp 的在线兼容窗口多长？哪些客户端必须支持？
-6. 旧数据生产切换的时间、停机窗口、回滚责任人和审批人是谁？
-7. 生产部署是否必须 Kubernetes/Helm，还是 Compose/Nginx 即可？
-8. 是否保留工作流 Data Scope 之外的审批/会签/转交能力？
-9. 是否将当前单租户管理平台扩展为多租户产品？如是，租户边界、数据迁移和隔离验收必须单独设计。
+1. AI 助手是否进入目标产品？使用哪个模型/知识库 Provider？
+2. 支付/订单是否在目标范围？如保留，订单状态和结算规则是什么？
+3. 目标前端是独立仓库、monorepo，还是与 Go 后端同仓？
+4. 旧 Vue/UniApp 的在线兼容窗口多长？哪些客户端必须支持？
+5. 旧数据生产切换的时间、停机窗口、回滚责任人和审批人是谁？
+6. 生产部署是否必须 Kubernetes/Helm，还是 Compose/Nginx 即可？
+7. 是否保留工作流 Data Scope 之外的审批/会签/转交能力？
+8. 是否将当前单租户管理平台扩展为多租户产品？如是，租户边界、数据迁移和隔离验收必须单独设计。
 
 ## 5. Do Not Modify Without Explicit Approval
 

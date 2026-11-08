@@ -26,3 +26,13 @@ go run ./cmd/legacy-import \
 9. Do not mark migration successful until relationship and authorization checks pass.
 
 Live import is intentionally blocked until those policies are reviewed. This prevents accidental ingestion of exposed secrets and personal data.
+
+## Backup And Restore Rehearsal
+
+`scripts/cutover-rehearsal.sh` creates a custom-format backup, restores it into an explicitly
+separate rehearsal database, verifies the migration version and representative row counts, and
+writes a JSON report. The Phase 4 local rehearsal passed against PostgreSQL 18.6; evidence is in
+[`cutover-rehearsal.md`](cutover-rehearsal.md).
+
+Production cutover remains a separately approved operation. The script refuses to run when the
+source and rehearsal database URLs are identical.

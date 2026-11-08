@@ -23,10 +23,12 @@ type RoleRepository interface {
 	SetRolePermissions(ctx context.Context, roleID uuid.UUID, permissionCodes []string) error
 	SetRoleMenus(ctx context.Context, roleID uuid.UUID, menuIDs []uuid.UUID) error
 	RoleMenuIDs(ctx context.Context, roleID uuid.UUID) ([]uuid.UUID, error)
+	RolePermissionCodes(ctx context.Context, roleID uuid.UUID) ([]string, error)
 }
 
 type MenuRepository interface {
 	Menus(ctx context.Context, userID uuid.UUID, superAdmin bool) ([]domain.Menu, error)
+	MenuIsDescendant(ctx context.Context, menuID, descendantID uuid.UUID) (bool, error)
 	CreateMenu(ctx context.Context, input domain.MenuInput) (domain.Menu, error)
 	UpdateMenu(ctx context.Context, id uuid.UUID, input domain.MenuInput) (domain.Menu, error)
 	DeleteMenu(ctx context.Context, id uuid.UUID) error
@@ -73,7 +75,7 @@ func (s *Service) Role(ctx context.Context, id uuid.UUID) (domain.Role, error) {
 	return role, err
 }
 
-func (s *Service) CreateRole(ctx context.Context, input domain.CreateRoleInput) (domain.Role, error) {
+func (s *Service) CreateRole(ctx context.Context, actor requestctx.Actor, input domain.CreateRoleInput) (domain.Role, error) {
 	input.Name = strings.TrimSpace(input.Name)
 	input.Code = strings.ToLower(strings.TrimSpace(input.Code))
 	if input.Name == "" {
@@ -84,6 +86,9 @@ func (s *Service) CreateRole(ctx context.Context, input domain.CreateRoleInput) 
 	}
 	if !validScope(input.DataScope) {
 		return domain.Role{}, apperror.Validation("dataScope", "Unsupported data scope.")
+	}
+	if !scopeAllowed(actor, input.DataScope) {
+		return domain.Role{}, apperror.Forbidden("A role cannot have a broader data scope than the administrator who creates it.")
 	}
 	role, err := s.roles.CreateRole(ctx, input)
 	s.invalidateAccess(ctx)
@@ -100,6 +105,9 @@ func (s *Service) UpdateRole(ctx context.Context, actor requestctx.Actor, id uui
 	}
 	if !validScope(input.DataScope) {
 		return domain.Role{}, apperror.Validation("dataScope", "Unsupported data scope.")
+	}
+	if !scopeAllowed(actor, input.DataScope) {
+		return domain.Role{}, apperror.Forbidden("A role cannot have a broader data scope than the administrator who updates it.")
 	}
 	if input.Status != "active" && input.Status != "disabled" {
 		return domain.Role{}, apperror.Validation("status", "status must be active or disabled.")
@@ -125,6 +133,17 @@ func (s *Service) Permissions(ctx context.Context) ([]domain.Permission, error) 
 func (s *Service) SetRolePermissions(ctx context.Context, actor requestctx.Actor, roleID uuid.UUID, codes []string) error {
 	if err := s.authorizeRoleMutation(ctx, actor, roleID); err != nil {
 		return err
+	}
+	if !actor.IsSuperAdmin {
+		allowed := make(map[string]struct{}, len(actor.Permissions))
+		for _, permission := range actor.Permissions {
+			allowed[permission] = struct{}{}
+		}
+		for _, code := range codes {
+			if _, ok := allowed[strings.TrimSpace(code)]; !ok {
+				return apperror.Forbidden("A non-super administrator cannot grant permissions they do not hold.")
+			}
+		}
 	}
 	for i, code := range codes {
 		codes[i] = strings.TrimSpace(code)
@@ -166,6 +185,15 @@ func (s *Service) UpdateMenu(ctx context.Context, id uuid.UUID, input domain.Men
 	if input.ParentID != nil && *input.ParentID == id {
 		return domain.Menu{}, apperror.Validation("parentId", "A menu cannot be its own parent.")
 	}
+	if input.ParentID != nil {
+		descendant, err := s.menus.MenuIsDescendant(ctx, id, *input.ParentID)
+		if err != nil {
+			return domain.Menu{}, err
+		}
+		if descendant {
+			return domain.Menu{}, apperror.Validation("parentId", "A menu hierarchy cannot contain a cycle.")
+		}
+	}
 	menu, err := s.menus.UpdateMenu(ctx, id, input)
 	s.invalidateAccess(ctx)
 	return menu, err
@@ -197,6 +225,19 @@ func (s *Service) authorizeRoleMutation(ctx context.Context, actor requestctx.Ac
 	if role.IsSuperAdmin {
 		return apperror.Forbidden("Only a super administrator can modify the super administrator role.")
 	}
+	rolePermissions, err := s.roles.RolePermissionCodes(ctx, roleID)
+	if err != nil {
+		return err
+	}
+	allowed := make(map[string]struct{}, len(actor.Permissions))
+	for _, permission := range actor.Permissions {
+		allowed[permission] = struct{}{}
+	}
+	for _, permission := range rolePermissions {
+		if _, ok := allowed[permission]; !ok {
+			return apperror.Forbidden("A non-super administrator cannot modify a role with permissions they do not hold.")
+		}
+	}
 	return nil
 }
 
@@ -217,5 +258,27 @@ func validScope(value string) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func scopeAllowed(actor requestctx.Actor, target string) bool {
+	if actor.IsSuperAdmin {
+		return true
+	}
+	return scopeRank(target) <= scopeRank(actor.DataScope)
+}
+
+func scopeRank(value string) int {
+	switch value {
+	case "department":
+		return 2
+	case "department_tree":
+		return 3
+	case "custom":
+		return 4
+	case "all":
+		return 5
+	default:
+		return 1
 	}
 }

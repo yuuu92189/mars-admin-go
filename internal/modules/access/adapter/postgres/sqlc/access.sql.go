@@ -219,12 +219,50 @@ func (q *Queries) ListAllMenus(ctx context.Context) ([]AccessMenu, error) {
 	return items, nil
 }
 
+const listMenuDescendantIDs = `-- name: ListMenuDescendantIDs :many
+WITH RECURSIVE descendants AS (
+    SELECT access_menus.id
+    FROM access_menus
+    WHERE access_menus.parent_id = $1
+    UNION ALL
+    SELECT child.id
+    FROM access_menus child
+    JOIN descendants parent ON child.parent_id = parent.id
+)
+SELECT id FROM descendants ORDER BY id
+`
+
+func (q *Queries) ListMenuDescendantIDs(ctx context.Context, parentID pgtype.UUID) ([]pgtype.UUID, error) {
+	rows, err := q.db.Query(ctx, listMenuDescendantIDs, parentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []pgtype.UUID{}
+	for rows.Next() {
+		var id pgtype.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMenusForUser = `-- name: ListMenusForUser :many
 SELECT DISTINCT m.id, m.parent_id, m.name, m.menu_type, m.route_path, m.component, m.permission_code, m.icon, m.sort_order, m.visible, m.external_url, m.status, m.created_at, m.updated_at
 FROM access_menus m
 JOIN access_role_menus rm ON rm.menu_id = m.id
 JOIN access_user_roles ur ON ur.role_id = rm.role_id
-WHERE ur.user_id = $1 AND m.status = 'active' AND m.visible = true
+JOIN access_roles role ON role.id = ur.role_id
+WHERE ur.user_id = $1
+  AND role.status = 'active'
+  AND role.deleted_at IS NULL
+  AND m.status = 'active'
+  AND m.visible = true
 ORDER BY m.sort_order, m.name
 `
 
@@ -311,6 +349,34 @@ func (q *Queries) ListRoleMenus(ctx context.Context, roleID pgtype.UUID) ([]pgty
 			return nil, err
 		}
 		items = append(items, menu_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRolePermissionCodes = `-- name: ListRolePermissionCodes :many
+SELECT permission.code
+FROM access_role_permissions AS role_permission
+JOIN access_permissions AS permission ON permission.id = role_permission.permission_id
+WHERE role_permission.role_id = $1
+ORDER BY permission.code
+`
+
+func (q *Queries) ListRolePermissionCodes(ctx context.Context, roleID pgtype.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, listRolePermissionCodes, roleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var code string
+		if err := rows.Scan(&code); err != nil {
+			return nil, err
+		}
+		items = append(items, code)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

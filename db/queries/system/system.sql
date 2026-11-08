@@ -70,7 +70,7 @@ INSERT INTO system_settings (
 ON CONFLICT (group_id, key) DO UPDATE
 SET value_type = excluded.value_type,
     value_text = excluded.value_text,
-    is_sensitive = excluded.is_sensitive,
+    is_sensitive = system_settings.is_sensitive OR excluded.is_sensitive,
     validation = excluded.validation,
     version = system_settings.version + 1,
     updated_at = now()

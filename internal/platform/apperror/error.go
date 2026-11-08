@@ -10,6 +10,7 @@ type Kind string
 
 const (
 	KindValidation      Kind = "validation"
+	KindBadRequest      Kind = "bad_request"
 	KindNotFound        Kind = "not_found"
 	KindConflict        Kind = "conflict"
 	KindUnauthorized    Kind = "unauthorized"
@@ -80,6 +81,8 @@ func HTTPStatus(err error) int {
 		return http.StatusInternalServerError
 	}
 	switch appErr.Kind {
+	case KindBadRequest:
+		return http.StatusBadRequest
 	case KindValidation:
 		return http.StatusUnprocessableEntity
 	case KindNotFound:

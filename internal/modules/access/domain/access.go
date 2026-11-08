@@ -81,6 +81,8 @@ type Repository interface {
 	SetRolePermissions(ctx context.Context, roleID uuid.UUID, permissionCodes []string) error
 	SetRoleMenus(ctx context.Context, roleID uuid.UUID, menuIDs []uuid.UUID) error
 	RoleMenuIDs(ctx context.Context, roleID uuid.UUID) ([]uuid.UUID, error)
+	RolePermissionCodes(ctx context.Context, roleID uuid.UUID) ([]string, error)
+	MenuIsDescendant(ctx context.Context, menuID, descendantID uuid.UUID) (bool, error)
 	CreateMenu(ctx context.Context, input MenuInput) (Menu, error)
 	UpdateMenu(ctx context.Context, id uuid.UUID, input MenuInput) (Menu, error)
 	DeleteMenu(ctx context.Context, id uuid.UUID) error

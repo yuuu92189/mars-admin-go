@@ -86,6 +86,7 @@ type Repository interface {
 	DeleteDictionaryItem(ctx context.Context, id uuid.UUID) error
 	SettingGroups(ctx context.Context) ([]SettingGroup, error)
 	SettingGroupByCode(ctx context.Context, code string, includeSensitive bool) (SettingGroup, error)
+	SettingIsSensitive(ctx context.Context, groupCode, key string) (bool, error)
 	PublicSettings(ctx context.Context) (map[string]any, error)
 	UpsertSettings(ctx context.Context, groupCode string, updates []SettingUpdate, changedBy uuid.UUID) error
 }

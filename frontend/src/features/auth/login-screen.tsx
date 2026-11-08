@@ -267,8 +267,15 @@ export function LoginScreen() {
       else localStorage.removeItem("mars:last-username");
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get("redirect");
+      const destination =
+        redirect &&
+        redirect.startsWith("/") &&
+        !redirect.startsWith("//") &&
+        !redirect.includes("\\")
+          ? redirect
+          : "/dashboard";
       void playSuccess();
-      router.replace(redirect?.startsWith("/") ? redirect : "/dashboard");
+      router.replace(destination);
     } catch (error) {
       setSucceeded(false);
       const message = error instanceof ApiError ? error.message : "登录失败，请稍后重试";

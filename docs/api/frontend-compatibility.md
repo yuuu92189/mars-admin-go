@@ -30,7 +30,7 @@ The wrapper is an HTTP adapter. No legacy response type is stored in domain or a
 | `/api/monitor/api-access/*` | in-memory HTTP access statistics |
 | `/api/workflow/*` | `workflow` handlers |
 | `/api/tool/gen/*` | PostgreSQL codegen handlers |
-| `/ws/message?token=...` | authenticated WebSocket hub |
+| `/ws/message` | authenticated WebSocket hub using `Authorization: Bearer` or the session cookie |
 
 ## UniApp
 
@@ -38,9 +38,12 @@ The `/api/app/auth`, `/api/sys/chat`, `/api/chat/group`, `/api/sys/notice` and u
 
 ## Token Migration
 
-The compatibility adapter accepts the legacy raw `Authorization` value. New browser clients should use the `mars_session` HttpOnly cookie and send `X-CSRF-Token` for unsafe `/api/v1` requests. App clients may keep Bearer tokens.
+The compatibility adapter no longer accepts a raw `Authorization` value. API clients must send
+`Authorization: Bearer <token>`; browser clients use the `mars_session` HttpOnly cookie and send
+`X-CSRF-Token` for unsafe requests.
 
-The WebSocket query-token form is retained only for compatibility. New clients should rely on the session cookie.
+The WebSocket query-token form is rejected. WebSocket clients must send a Bearer header or use the
+session cookie.
 
 ## Phase 1 Canonical Contract
 

@@ -220,13 +220,31 @@ func compatibleTypes(declared, detected string) bool {
 	if declaredType == "application/octet-stream" {
 		return true
 	}
-	if declaredType == "application/zip" {
+	if detectedType == "application/octet-stream" {
+		return true
+	}
+	if isZipBasedDocumentType(declaredType) {
 		return detectedType == "application/zip" || detectedType == "application/octet-stream"
 	}
 	if declaredType == "application/pdf" && detectedType == "application/pdf" {
 		return true
 	}
 	return false
+}
+
+func isZipBasedDocumentType(value string) bool {
+	switch value {
+	case "application/zip",
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		"application/vnd.openxmlformats-officedocument.presentationml.presentation",
+		"application/vnd.oasis.opendocument.text",
+		"application/vnd.oasis.opendocument.spreadsheet",
+		"application/vnd.oasis.opendocument.presentation":
+		return true
+	default:
+		return false
+	}
 }
 
 func validateContentType(name, contentType string) error {

@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -16,6 +17,15 @@ type recordedPolicy struct {
 
 type recordingRateLimiter struct {
 	policies []recordedPolicy
+}
+
+type staticCaptchaPolicy struct {
+	enabled bool
+	err     error
+}
+
+func (p staticCaptchaPolicy) Enabled(context.Context) (bool, error) {
+	return p.enabled, p.err
 }
 
 func (r *recordingRateLimiter) Allow(context.Context, string) (bool, error) {
@@ -54,5 +64,37 @@ func TestEnforceLoginSourceRateLimitsUsesConfiguredLimit(t *testing.T) {
 		if policy.window != 5*time.Minute {
 			t.Fatalf("expected 5 minute window for %s, got %s", policy.key, policy.window)
 		}
+	}
+}
+
+func TestCaptchaPolicyOverridesStaticConfiguration(t *testing.T) {
+	service := &Service{
+		captchaEnabled: false,
+		captchaPolicy:  staticCaptchaPolicy{enabled: true},
+	}
+	enabled, err := service.captchaRequired(context.Background())
+	if err != nil {
+		t.Fatalf("captcha policy: %v", err)
+	}
+	if !enabled {
+		t.Fatal("expected dynamic captcha policy to enable captcha")
+	}
+
+	expected := errors.New("settings unavailable")
+	service.captchaPolicy = staticCaptchaPolicy{err: expected}
+	if _, err := service.captchaRequired(context.Background()); !errors.Is(err, expected) {
+		t.Fatalf("expected policy error, got %v", err)
+	}
+}
+
+func TestRegistrationPolicyFailsClosed(t *testing.T) {
+	service := &Service{
+		registrationPolicy: staticCaptchaPolicy{enabled: false},
+	}
+	if _, err := service.Register(context.Background(), domain.RegisterInput{
+		Username: "registration-test",
+		Password: "identity-test-password-123",
+	}); err == nil {
+		t.Fatal("expected disabled registration policy to reject registration")
 	}
 }

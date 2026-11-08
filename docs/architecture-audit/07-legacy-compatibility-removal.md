@@ -1,5 +1,8 @@
 # 07 Legacy Compatibility Removal
 
+> Historical compatibility plan. Raw Authorization and WebSocket query-token acceptance was
+> removed in the Phase 4 follow-up; legacy clients must now use Bearer or session cookies.
+
 ## 1. Boundary
 
 兼容层分为两类，不能混为一谈：
@@ -26,7 +29,7 @@
 | `/api/monitor/*` | 旧日志、服务监控、缓存、在线用户 | `/api/v1/admin/audit/*`、`/api/v1/admin/monitoring/*` | 监控页面和 Prometheus 认证方案确认 |
 | `/api/workflow/*` | 旧 Warm-Flow 流程 API | `/api/v1/workflows` | 工作流前端与 JSONB 定义转换 |
 | `/api/tool/gen/*` | 旧代码生成 | `/api/v1/admin/codegen/*` | 代码生成页面与新表结构迁移 |
-| `/ws/message?token=...` | 旧 WebSocket Query Token | `/ws/message` + Cookie/Origin 校验 | 所有旧客户端断线重连迁移 |
+| `/ws/message?token=...` | 已拒绝；旧客户端必须迁移 | `/ws/message` + Cookie/Bearer/Origin 校验 | 已完成后端关闭 |
 | `{code,message,data}` envelope | 旧 HTTP 包装 | 直接 JSON + RFC 9457 Problem | 旧 Vue/UniApp 客户端全部迁移 |
 | HTTP 200 包装应用错误 | 旧业务错误兼容 | 正确 HTTP 状态码 | 旧客户端错误处理迁移 |
 
@@ -51,7 +54,7 @@
 
 - `scaffold-vue` 当前仍使用 `/api` envelope 和 Bearer token 存储。
 - `scaffold-vue` 登录页把明文密码写入 `localStorage`（`views/Login.vue`），必须在 React 版本删除。
-- 旧客户端仍可能通过 WebSocket query token 连接。
+- 旧客户端必须迁移到 Bearer 或 Cookie；WebSocket query token 已被拒绝。
 - 旧权限码与新 Go 权限码不一致，不能只删除兼容路由。
 
 ### Medium
@@ -103,7 +106,7 @@
 2. React/UniApp 客户端迁移到 `/api/v1` 和 Cookie/CSRF。
 3. 把旧权限码映射到新权限码并验证 403 分支。
 4. 修复 ID/分页/错误字段差异。
-5. 关闭 legacy envelope 和 query-token WebSocket。
+5. query-token WebSocket 已关闭；legacy envelope 仍待旧客户端迁移后关闭。
 6. 删除在线兼容 handler 和 route mounts。
 7. 保留离线 importer，直到生产数据切换完成并归档。
 

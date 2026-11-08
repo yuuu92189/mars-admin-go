@@ -1,5 +1,10 @@
 # Phase 3 Readiness Audit
 
+> Historical Phase 3 record. Phase 4 later made the business boundary explicit: Asset
+> Management, Vulnerability Management and Remediation Work Orders are excluded from this
+> project, not pending or blocked deliverables. References below are retained only as historical
+> evidence of the reference-Vue inventory.
+
 ## Repository Baseline
 
 | Item | Evidence |
@@ -31,9 +36,9 @@
 | Operation Logs | `/monitor/operlog` | Audit | READY |
 | Login Logs | `/monitor/loginlog` | Audit | READY |
 | Codegen | `/tool/generator` | Codegen | READY |
-| Assets | Vue-only `/vuln/asset` | None | BLOCKED |
-| Vulnerabilities | Vue-only `/vuln/vuln` | None | BLOCKED |
-| Repair Tasks | Vue-only `/vuln/repair` | None | BLOCKED |
+| Assets | Vue-only `/vuln/asset` | None | EXCLUDED |
+| Vulnerabilities | Vue-only `/vuln/vuln` | None | EXCLUDED |
+| Repair Tasks | Vue-only `/vuln/repair` | None | EXCLUDED |
 
 The Vue reference has 17 business views including the three vulnerability views. The Go repository has complete business APIs for 13 of those views and no complete vulnerability domain.
 
@@ -55,8 +60,8 @@ The Vue reference has 17 business views including the three vulnerability views.
 | Scheduler jobs / runs | Present | Present | `scheduler:read/manage` | Present | READY |
 | Audit events / login events | Present | Present | `audit:read` | Present | READY |
 | Codegen import / preview / sync / ZIP | Present | Present | `codegen:read/manage` | Present | READY |
-| Vulnerability assets/vulns/repairs | Missing | Missing | Missing | Missing | BLOCKED |
-| Vulnerability AI endpoints | Missing | Missing | Missing | Missing | BLOCKED |
+| Vulnerability assets/vulns/repairs | Not applicable | Not applicable | Not applicable | Not applicable | EXCLUDED |
+| Vulnerability AI endpoints | Not applicable | Not applicable | Not applicable | Not applicable | EXCLUDED |
 
 ## Contract Gaps Corrected
 
@@ -86,7 +91,7 @@ The initial OpenAPI document did not describe several real request bodies or que
 1. Audit trend and login heatmap currently aggregate the latest 100 returned events rather than dedicated statistics endpoints. The UI labels this sample scope.
 2. The canonical user list now enriches role, department, and position IDs in batch queries. This adds three read queries per user page.
 3. Sensitive settings are write-only in the browser. Empty sensitive values preserve the stored secret.
-4. The three vulnerability pages remain blocked by product and domain design, not by frontend work.
+4. The three vulnerability pages are explicitly excluded by the Phase 4 business-scope decision.
 5. Visual comparison and full Go-backed E2E remain required before final acceptance.
 
 ## Migration Order

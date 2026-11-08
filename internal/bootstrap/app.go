@@ -23,6 +23,7 @@ import (
 	identityapp "mars-admin-go/internal/modules/identity/application"
 	identitydomain "mars-admin-go/internal/modules/identity/domain"
 	"mars-admin-go/internal/modules/integrations"
+	integrationpostgres "mars-admin-go/internal/modules/integrations/adapter/postgres"
 	messaginghttp "mars-admin-go/internal/modules/messaging/adapter/http"
 	messagingpostgres "mars-admin-go/internal/modules/messaging/adapter/postgres"
 	messagingapp "mars-admin-go/internal/modules/messaging/application"
@@ -85,23 +86,30 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	cleanupOnError := func(cause error) (*App, error) {
+	cleanupOnError := func(cause error) error {
 		pool.Close()
-		return nil, cause
+		return cause
 	}
 	if cfg.App.AutoMigrate {
 		if err := database.RunMigrations(ctx, pool, "up"); err != nil {
-			return cleanupOnError(err)
+			return nil, cleanupOnError(err)
 		}
 	}
 	redisClient, err := cache.Open(ctx, cfg.Redis)
 	if err != nil {
-		return cleanupOnError(err)
+		return nil, cleanupOnError(err)
 	}
 	telemetryProvider, err := telemetry.Setup(ctx, cfg.Telemetry, logger)
 	if err != nil {
 		_ = redisClient.Close()
-		return cleanupOnError(err)
+		return nil, cleanupOnError(err)
+	}
+	cleanupBase := func(cause error) error {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = telemetryProvider.Shutdown(shutdownCtx)
+		_ = redisClient.Close()
+		return cleanupOnError(cause)
 	}
 
 	registry := prometheus.NewRegistry()
@@ -124,8 +132,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	if cfg.Auth.SensitiveDataKey != "" {
 		secretBox, err = security.NewSecretBox(cfg.Auth.SensitiveDataKey)
 		if err != nil {
-			_ = redisClient.Close()
-			return cleanupOnError(err)
+			return nil, cleanupBase(err)
 		}
 	}
 	settingsService := systemapp.NewSettingsService(systemRepo, secretBox, settingsCache)
@@ -134,9 +141,10 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 
 	providerRegistry, smsProvider, err := integrations.Configure(cfg.Integrations, logger, cfg.IsProduction())
 	if err != nil {
-		_ = redisClient.Close()
-		return cleanupOnError(err)
+		return nil, cleanupBase(err)
 	}
+	paymentStore := integrationpostgres.New(pool)
+	paymentService := integrations.NewPaymentService(providerRegistry, paymentStore)
 	var codeSender identityapp.CodeSender
 	if smsProvider != nil {
 		codeSender = smsProvider
@@ -159,6 +167,12 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		MaxLoginAttempts:   cfg.Auth.LoginMaxAttempts, LoginRateLimit: loginRateLimit,
 		LockDuration: cfg.Auth.LoginLockDuration,
 		CodeSender:   codeSender, CaptchaEnabled: cfg.Auth.CaptchaEnabled,
+		CaptchaPolicy: publicSettingPolicy{
+			settings: settingsService, key: "security.auth.captcha_enabled", fallback: cfg.Auth.CaptchaEnabled,
+		},
+		RegistrationPolicy: publicSettingPolicy{
+			settings: settingsService, key: "site.site.registration_enabled", fallback: false,
+		},
 		SecretBox: secretBox, SocialProviders: socialProviders, AccessCache: accessCache,
 	})
 	organizationService := organizationapp.New(organizationRepo, identityService)
@@ -174,8 +188,13 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	messagingService := messagingapp.New(messagingRepo)
 	hub = realtime.New(logger, identityService, messagingService, redisClient, registry, cfg.App.CORSOrigins...)
 	if err := hub.Start(ctx); err != nil {
-		_ = redisClient.Close()
-		return cleanupOnError(err)
+		return nil, cleanupBase(err)
+	}
+	cleanupRuntime := func(cause error) error {
+		closeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = hub.Close(closeCtx)
+		return cleanupBase(cause)
 	}
 
 	notificationRepo := notificationpostgres.New(pool)
@@ -183,16 +202,14 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 
 	storageBackend, err := buildStorageBackend(cfg, logger)
 	if err != nil {
-		_ = redisClient.Close()
-		return cleanupOnError(err)
+		return nil, cleanupRuntime(err)
 	}
 	storageRepo := storagepostgres.New(pool)
 	storageService := storageapp.New(storageRepo, storageBackend, cfg.Storage.MaxUploadBytes)
 
 	enqueuer, err := schedulerriver.NewEnqueuer(ctx, pool)
 	if err != nil {
-		_ = redisClient.Close()
-		return cleanupOnError(fmt.Errorf("create scheduler enqueuer: %w", err))
+		return nil, cleanupRuntime(fmt.Errorf("create scheduler enqueuer: %w", err))
 	}
 	schedulerRepo := schedulerpostgres.New(pool)
 	schedulerService := schedulerapp.New(schedulerRepo, enqueuer, []string{"system.health_probe", "storage.cleanup"})
@@ -214,7 +231,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	schedulerHandler := schedulerhttp.New(schedulerService, authMiddleware, logger)
 	workflowHandler := workflowhttp.New(workflowService, authMiddleware, logger)
 	codegenHandler := codegenhttp.New(codegenService, authMiddleware, logger)
-	integrationHandler := integrations.NewHandler(providerRegistry, authMiddleware, logger)
+	integrationHandler := integrations.NewHandler(providerRegistry, paymentService, authMiddleware, logger)
 
 	router := chi.NewRouter()
 	router.Use(httpserver.Tracing(cfg.Telemetry.ServiceName))
@@ -307,6 +324,40 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 
 type wechatMiniAdapter struct {
 	provider *integrations.WeChatMiniProgram
+}
+
+type publicSettingPolicy struct {
+	settings publicSettingsReader
+	key      string
+	fallback bool
+}
+
+type publicSettingsReader interface {
+	Public(ctx context.Context) (map[string]any, error)
+}
+
+func (p publicSettingPolicy) Enabled(ctx context.Context) (bool, error) {
+	if p.settings == nil {
+		return p.fallback, nil
+	}
+	values, err := p.settings.Public(ctx)
+	if err != nil {
+		return false, err
+	}
+	key := p.key
+	if key == "" {
+		key = "security.auth.captcha_enabled"
+	}
+	keys := []string{key}
+	if key == "site.site.registration_enabled" {
+		keys = append(keys, "site.registration_enabled", "system.site.registration_enabled")
+	}
+	for _, candidate := range keys {
+		if enabled, ok := values[candidate].(bool); ok {
+			return enabled, nil
+		}
+	}
+	return p.fallback, nil
 }
 
 func (a wechatMiniAdapter) Exchange(ctx context.Context, code string) (identitydomain.SocialIdentity, error) {

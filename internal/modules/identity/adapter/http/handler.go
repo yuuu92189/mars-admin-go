@@ -1060,13 +1060,7 @@ func (h *Handler) captcha(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) setSessionCookies(w http.ResponseWriter, result identitydomain.LoginResult) {
-	sameSite := http.SameSiteLaxMode
-	switch h.config.Auth.CookieSameSite {
-	case "strict":
-		sameSite = http.SameSiteStrictMode
-	case "none":
-		sameSite = http.SameSiteNoneMode
-	}
+	sameSite := h.sessionSameSite()
 	maxAge := int(time.Until(result.ExpiresAt).Seconds())
 	http.SetCookie(w, &http.Cookie{ // #nosec G124 -- HttpOnly, Secure and SameSite are explicitly configured below.
 		Name: "mars_session", Value: result.AccessToken, Path: "/", HttpOnly: true,
@@ -1095,8 +1089,19 @@ func (h *Handler) clearSessionCookies(w http.ResponseWriter) {
 	for _, cookie := range cookies {
 		http.SetCookie(w, &http.Cookie{ // #nosec G124 -- deletion mirrors the original cookie scope.
 			Name: cookie.name, Value: "", Path: cookie.path, MaxAge: -1,
-			HttpOnly: cookie.httpOnly, Secure: h.config.Auth.CookieSecure, SameSite: http.SameSiteLaxMode,
+			HttpOnly: cookie.httpOnly, Secure: h.config.Auth.CookieSecure, SameSite: h.sessionSameSite(),
 		})
+	}
+}
+
+func (h *Handler) sessionSameSite() http.SameSite {
+	switch h.config.Auth.CookieSameSite {
+	case "strict":
+		return http.SameSiteStrictMode
+	case "none":
+		return http.SameSiteNoneMode
+	default:
+		return http.SameSiteLaxMode
 	}
 }
 

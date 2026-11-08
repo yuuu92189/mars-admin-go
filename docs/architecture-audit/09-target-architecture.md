@@ -1,5 +1,8 @@
 # 09 Target Architecture
 
+> Historical target design. The current Phase 4 scope excludes Asset Management, Vulnerability
+> Management and Remediation Work Orders. The `security/*` paths below are not target routes.
+
 ## 1. Product Shape
 
 目标是一个同源部署的管理平台：
@@ -53,9 +56,6 @@ frontend/
 │   │   ├── (admin)/monitor/operation-logs/page.tsx
 │   │   ├── (admin)/monitor/login-logs/page.tsx
 │   │   ├── (admin)/codegen/page.tsx
-│   │   ├── (admin)/security/assets/page.tsx
-│   │   ├── (admin)/security/vulnerabilities/page.tsx
-│   │   ├── (admin)/security/repairs/page.tsx
 │   │   ├── forbidden/page.tsx
 │   │   ├── not-found.tsx
 │   │   ├── layout.tsx
@@ -76,7 +76,6 @@ frontend/
 │   │   ├── notices/
 │   │   ├── monitoring/
 │   │   ├── codegen/
-│   │   └── security/
 │   ├── lib/
 │   │   ├── api/
 │   │   ├── auth/
@@ -151,13 +150,12 @@ App/UniApp 可以使用受控 Bearer，但必须使用独立客户端策略和 T
 - 指定部门。
 - 自定义范围。
 
-Data Scope 必须下推到 SQL，不得在 Handler 取全量后过滤。Workflow、漏洞、审计等新读接口也要显式接入，不能只给用户列表做。
+Data Scope 必须下推到 SQL，不得在 Handler 取全量后过滤。Workflow、审计等新读接口也要显式接入，不能只给用户列表做。
 
 ## 7. Go Backend Target
 
-保留现有模块化单体，新增：
+保留现有模块化单体。资产、漏洞和修复工单不新增模块。若产品明确保留以下能力，再新增：
 
-- `vulnerability`：资产、漏洞、修复工单、统计、状态机。
 - `assistant`（如保留 AI 助手）：会话、知识库、模型 Provider、权限。
 - `payment`/`billing`（如保留支付）：订单、支付尝试、回调账本、幂等键、金额校验。
 

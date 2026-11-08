@@ -1,6 +1,8 @@
 # Mars Admin Frontend
 
-Phase 2.1 Next.js frontend foundation for Mars Admin Go Edition.
+Next.js frontend for Mars Admin Go Edition. Phase 2.1 supplied the shell and foundation; Phase 3
+migrated all 13 Go-supported business pages, and Phase 4 hardened streaming, redirects and test
+determinism.
 
 ## Run
 
@@ -46,6 +48,7 @@ Appearance Dialog, user menu and mobile Dashboard pairs. It requires a local tes
 
 ## Scope
 
-Phase 2.1 includes the design system, core UI primitives, shell, login, dashboard, unified API
-target, Cookie refresh, real password/logout flows and test infrastructure. Business pages
-intentionally remain Phase 3 placeholders.
+The frontend includes the design system, core UI primitives, shell, login, dashboard, unified API
+target, Cookie refresh, real password/logout flows, all Go-supported business pages and test
+infrastructure. See [`../docs/phase-4/03-frontend-audit.md`](../docs/phase-4/03-frontend-audit.md)
+for the current audit and residual visual conditions.

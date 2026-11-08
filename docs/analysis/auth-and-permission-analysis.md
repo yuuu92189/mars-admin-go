@@ -1,5 +1,8 @@
 # Authentication And Permission Analysis
 
+> Historical reference analysis. Phase 4 removed raw Authorization and WebSocket query-token
+> acceptance; current clients must use Bearer or session cookies.
+
 ## Legacy Flow
 
 1. Frontend sends `Authorization` containing a Sa-Token value.

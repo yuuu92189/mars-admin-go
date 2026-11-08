@@ -33,7 +33,8 @@ func TestWebSocketServerHeartbeatKeepsConnectionUsable(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	connection, response, err := websocket.Dial(
-		ctx, "ws"+strings.TrimPrefix(server.URL, "http")+"/ws/message?token=test", nil,
+		ctx, "ws"+strings.TrimPrefix(server.URL, "http")+"/ws/message",
+		&websocket.DialOptions{HTTPHeader: map[string][]string{"Authorization": {"Bearer test"}}},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -55,5 +56,30 @@ func TestWebSocketServerHeartbeatKeepsConnectionUsable(t *testing.T) {
 	}
 	if !strings.Contains(string(payload), `"type":"pong"`) {
 		t.Fatalf("unexpected websocket response: %s", payload)
+	}
+}
+
+func TestWebSocketRejectsQueryToken(t *testing.T) {
+	hub := New(
+		slog.Default(), heartbeatAuth{}, nil, nil, prometheus.NewRegistry(),
+		"http://localhost",
+	)
+	server := httptest.NewServer(hub)
+	defer server.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	connection, response, err := websocket.Dial(
+		ctx, "ws"+strings.TrimPrefix(server.URL, "http")+"/ws/message?token=test", nil,
+	)
+	if response != nil {
+		defer func() { _ = response.Body.Close() }()
+	}
+	if err == nil {
+		_ = connection.CloseNow()
+		t.Fatal("query-token WebSocket must be rejected")
+	}
+	if response == nil || response.StatusCode != 401 {
+		t.Fatalf("status = %v, want 401", response)
 	}
 }

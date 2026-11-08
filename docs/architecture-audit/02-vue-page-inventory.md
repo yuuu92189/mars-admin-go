@@ -1,5 +1,8 @@
 # 02 Vue Page Inventory
 
+> Historical Vue reference inventory. Asset Management, Vulnerability Management and
+> Remediation Work Orders are excluded from the target product and are not migration backlog.
+
 ## 1. Route Model
 
 静态路由来自 `scaffold-vue/src/router/index.ts`：
@@ -80,7 +83,7 @@ Go 后端当前种子权限使用另一套命名，例如 `user:read`、`role:re
 
 - 登录、工作台、用户、角色、菜单、部门、岗位、字典、配置、通知。
 - 定时任务、操作日志、登录日志、代码生成。
-- 漏洞资产、漏洞、修复工单。
+- Vue-only reference: 漏洞资产、漏洞、修复工单（EXCLUDED）。
 - 全局 AI 助手和权限溯源/导航星系/组织画布/岗位阶梯等可视化版式。
 
 ### Not Present as Dedicated Pages in `scaffold-vue`
@@ -94,7 +97,7 @@ Go 后端当前种子权限使用另一套命名，例如 `user:read`、`role:re
 
 ### Missing in Go Backend Relative to `scaffold-vue`
 
-- 没有完整的漏洞资产、漏洞、修复工单领域模块和 API。
+- 漏洞资产、漏洞、修复工单不属于 Go 目标范围，不要求补齐模块或 API。
 - 没有与 `scaffold-vue` 的 `/system/*`、`/monitor/job/*`、`/tool/generator/*` 完全一致的原生契约。
 - 没有 `scaffold-vue` 的 `/vuln/ai/*` 等价接口。
 - 没有与 `scaffold-vue` 旧 envelope、权限码和 UUID/数字 ID 字段完全一致的适配层。

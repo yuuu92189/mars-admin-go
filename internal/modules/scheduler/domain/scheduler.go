@@ -48,12 +48,13 @@ type Input struct {
 }
 
 type Command struct {
-	RunID   uuid.UUID
-	JobID   uuid.UUID
-	Handler string
-	Payload map[string]any
-	Timeout time.Duration
-	Attempt int
+	RunID          uuid.UUID
+	JobID          uuid.UUID
+	Handler        string
+	Payload        map[string]any
+	Timeout        time.Duration
+	ConcurrencyKey string
+	Attempt        int
 }
 
 type Enqueuer interface {

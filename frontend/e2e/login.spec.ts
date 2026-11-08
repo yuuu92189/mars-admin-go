@@ -5,7 +5,10 @@ test("login page renders the canonical form", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "登录" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "账号" })).toBeVisible();
   await expect(page.getByLabel("密码")).toBeVisible();
-  await expect(page.getByRole("button", { name: "登录" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "登录", exact: true })).toBeVisible();
+  await expect(page.getByText("资产管理", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("漏洞分级", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("修复工单", { exact: true })).toHaveCount(0);
 });
 
 test("default appearance matches the Vue reference", async ({ page }) => {
@@ -48,7 +51,7 @@ test("wrong password stays on login and reports the API error", async ({ page })
   await page.getByLabel("密码").fill("definitely-wrong-password");
   const captcha = page.getByPlaceholder("请输入计算结果");
   if (await captcha.isVisible()) await captcha.fill("1");
-  await page.getByRole("button", { name: "登录" }).click();
+  await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL(/\/login/);
   await expect(page.getByRole("status")).toContainText("登录失败", { timeout: 10_000 });
 });

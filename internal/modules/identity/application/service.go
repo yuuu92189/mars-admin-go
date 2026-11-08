@@ -30,6 +30,8 @@ type Service struct {
 	now                func() time.Time
 	codeSender         CodeSender
 	captchaEnabled     bool
+	captchaPolicy      CaptchaPolicy
+	registrationPolicy CaptchaPolicy
 	secretBox          *security.SecretBox
 	socialProviders    map[string]domain.SocialProvider
 	accessCache        domain.Cache
@@ -45,6 +47,8 @@ type Options struct {
 	Now                func() time.Time
 	CodeSender         CodeSender
 	CaptchaEnabled     bool
+	CaptchaPolicy      CaptchaPolicy
+	RegistrationPolicy CaptchaPolicy
 	SecretBox          *security.SecretBox
 	SocialProviders    map[string]domain.SocialProvider
 	AccessCache        domain.Cache
@@ -52,6 +56,10 @@ type Options struct {
 
 type CodeSender interface {
 	SendCode(ctx context.Context, phone, code string) error
+}
+
+type CaptchaPolicy interface {
+	Enabled(ctx context.Context) (bool, error)
 }
 
 type policyRateLimiter interface {
@@ -92,10 +100,26 @@ func New(repo domain.Repository, rateLimiter domain.RateLimiter, opts Options) *
 		now:                opts.Now,
 		codeSender:         opts.CodeSender,
 		captchaEnabled:     opts.CaptchaEnabled,
+		captchaPolicy:      opts.CaptchaPolicy,
+		registrationPolicy: opts.RegistrationPolicy,
 		secretBox:          opts.SecretBox,
 		socialProviders:    opts.SocialProviders,
 		accessCache:        opts.AccessCache,
 	}
+}
+
+func (s *Service) captchaRequired(ctx context.Context) (bool, error) {
+	if s.captchaPolicy != nil {
+		return s.captchaPolicy.Enabled(ctx)
+	}
+	return s.captchaEnabled, nil
+}
+
+func (s *Service) registrationEnabled(ctx context.Context) (bool, error) {
+	if s.registrationPolicy != nil {
+		return s.registrationPolicy.Enabled(ctx)
+	}
+	return false, nil
 }
 
 func (s *Service) accessFor(ctx context.Context, userID uuid.UUID) (domain.Access, error) {
@@ -380,7 +404,16 @@ func (s *Service) Login(ctx context.Context, input domain.LoginInput) (domain.Lo
 		s.recordEvent(ctx, nil, input.Username, input.ClientType, "failure", "source rate limited", input)
 		return domain.LoginResult{}, err
 	}
-	if s.captchaEnabled {
+	captchaRequired, err := s.captchaRequired(ctx)
+	if err != nil {
+		return domain.LoginResult{}, apperror.Wrap(
+			apperror.KindUnavailable,
+			"captcha_policy_unavailable",
+			"Login is temporarily unavailable.",
+			err,
+		)
+	}
+	if captchaRequired {
 		if input.CaptchaID == "" || input.CaptchaCode == "" {
 			return domain.LoginResult{}, apperror.Validation("code", "A captcha is required.")
 		}
@@ -899,6 +932,18 @@ func (s *Service) RevokeUserSessions(ctx context.Context, actor requestctx.Actor
 }
 
 func (s *Service) Register(ctx context.Context, input domain.RegisterInput) (domain.User, error) {
+	enabled, err := s.registrationEnabled(ctx)
+	if err != nil {
+		return domain.User{}, apperror.Wrap(
+			apperror.KindUnavailable,
+			"registration_policy_unavailable",
+			"Registration is temporarily unavailable.",
+			err,
+		)
+	}
+	if !enabled {
+		return domain.User{}, apperror.Forbidden("Self-registration is disabled.")
+	}
 	if err := s.enforceRegistrationRateLimits(ctx, input); err != nil {
 		return domain.User{}, err
 	}
@@ -951,6 +996,13 @@ func (s *Service) SetupMFA(ctx context.Context, userID uuid.UUID) (MFASetup, err
 	user, err := s.Profile(ctx, userID)
 	if err != nil {
 		return MFASetup{}, err
+	}
+	_, enabled, err := s.repo.MFASecret(ctx, userID)
+	if err != nil {
+		return MFASetup{}, err
+	}
+	if enabled {
+		return MFASetup{}, apperror.Conflict("MFA is already enabled. Disable it before creating a new secret.")
 	}
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer: "Mars Admin", AccountName: user.Username,
@@ -1101,6 +1153,13 @@ func (s *Service) validateRoleAssignment(ctx context.Context, access domain.Acce
 	}
 	if privileged > 0 {
 		return apperror.Forbidden("Only a super administrator can assign super administrator roles.")
+	}
+	outside, err := s.repo.CountRolesOutsidePermissions(ctx, roleIDs, access.Permissions, access.DataScope)
+	if err != nil {
+		return err
+	}
+	if outside > 0 {
+		return apperror.Forbidden("A non-super administrator cannot assign roles with permissions they do not hold.")
 	}
 	return nil
 }

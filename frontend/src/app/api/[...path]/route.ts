@@ -13,20 +13,17 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   headers.delete("host");
   headers.delete("origin");
   headers.delete("content-length");
-  const contentType = headers.get("content-type") ?? "";
-  const body = BODYLESS_METHODS.has(request.method)
-    ? undefined
-    : contentType.includes("application/json")
-      ? await request.text()
-      : await request.arrayBuffer();
-
-  const response = await fetch(upstream, {
+  const body = BODYLESS_METHODS.has(request.method) ? undefined : request.body;
+  const init: RequestInit & { duplex?: "half" } = {
     method: request.method,
     headers,
     body,
     redirect: "manual",
     cache: "no-store",
-  });
+  };
+  if (body) init.duplex = "half";
+
+  const response = await fetch(upstream, init);
 
   const responseHeaders = new Headers(response.headers);
   responseHeaders.delete("content-length");

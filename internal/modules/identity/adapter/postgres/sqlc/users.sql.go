@@ -67,8 +67,12 @@ WHERE department.deleted_at IS NULL
       AND EXISTS (
         SELECT 1
         FROM access_user_roles role
+        JOIN access_roles scope_role ON scope_role.id = role.role_id
         JOIN access_role_departments allowed ON allowed.role_id = role.role_id
-        WHERE role.user_id = $1 AND allowed.department_id = department.id
+        WHERE role.user_id = $1
+          AND scope_role.status = 'active'
+          AND scope_role.deleted_at IS NULL
+          AND allowed.department_id = department.id
       )
     )
   )
@@ -97,6 +101,54 @@ WHERE id = ANY($1::uuid[])
 
 func (q *Queries) CountPrivilegedRoles(ctx context.Context, dollar_1 []pgtype.UUID) (int64, error) {
 	row := q.db.QueryRow(ctx, countPrivilegedRoles, dollar_1)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const countRolesOutsidePermissions = `-- name: CountRolesOutsidePermissions :one
+SELECT count(DISTINCT role.id)::bigint
+FROM access_roles AS role
+WHERE role.id = ANY($1::uuid[])
+  AND role.deleted_at IS NULL
+  AND (
+    role.is_super_admin
+    OR (
+      CASE role.data_scope
+        WHEN 'self' THEN 1
+        WHEN 'department' THEN 2
+        WHEN 'department_tree' THEN 3
+        WHEN 'custom' THEN 4
+        WHEN 'all' THEN 5
+        ELSE 0
+      END
+      > CASE $3::text
+          WHEN 'self' THEN 1
+          WHEN 'department' THEN 2
+          WHEN 'department_tree' THEN 3
+          WHEN 'custom' THEN 4
+          WHEN 'all' THEN 5
+          ELSE 1
+        END
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM access_role_permissions AS role_permission
+      JOIN access_permissions AS permission ON permission.id = role_permission.permission_id
+      WHERE role_permission.role_id = role.id
+        AND NOT (permission.code = ANY($2::text[]))
+    )
+  )
+`
+
+type CountRolesOutsidePermissionsParams struct {
+	Column1 []pgtype.UUID `json:"column_1"`
+	Column2 []string      `json:"column_2"`
+	Column3 string        `json:"column_3"`
+}
+
+func (q *Queries) CountRolesOutsidePermissions(ctx context.Context, arg CountRolesOutsidePermissionsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countRolesOutsidePermissions, arg.Column1, arg.Column2, arg.Column3)
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
@@ -151,9 +203,13 @@ WHERE u.deleted_at IS NULL
       AND EXISTS (
         SELECT 1
         FROM access_user_roles aur
+        JOIN access_roles scope_role ON scope_role.id = aur.role_id
         JOIN access_role_departments ard ON ard.role_id = aur.role_id
         JOIN organization_memberships target ON target.department_id = ard.department_id
-        WHERE aur.user_id = $5 AND target.user_id = u.id
+        WHERE aur.user_id = $5
+          AND scope_role.status = 'active'
+          AND scope_role.deleted_at IS NULL
+          AND target.user_id = u.id
       )
     )
   )
@@ -505,9 +561,13 @@ WHERE u.id = $1
       AND EXISTS (
         SELECT 1
         FROM access_user_roles aur
+        JOIN access_roles scope_role ON scope_role.id = aur.role_id
         JOIN access_role_departments ard ON ard.role_id = aur.role_id
         JOIN organization_memberships target ON target.department_id = ard.department_id
-        WHERE aur.user_id = $2 AND target.user_id = u.id
+        WHERE aur.user_id = $2
+          AND scope_role.status = 'active'
+          AND scope_role.deleted_at IS NULL
+          AND target.user_id = u.id
       )
     )
   )
@@ -698,9 +758,13 @@ WHERE u.deleted_at IS NULL
       AND EXISTS (
         SELECT 1
         FROM access_user_roles aur
+        JOIN access_roles scope_role ON scope_role.id = aur.role_id
         JOIN access_role_departments ard ON ard.role_id = aur.role_id
         JOIN organization_memberships target ON target.department_id = ard.department_id
-        WHERE aur.user_id = $5 AND target.user_id = u.id
+        WHERE aur.user_id = $5
+          AND scope_role.status = 'active'
+          AND scope_role.deleted_at IS NULL
+          AND target.user_id = u.id
       )
     )
   )

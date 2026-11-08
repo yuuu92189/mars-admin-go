@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const viewports = [
   { width: 1920, height: 1080 },
@@ -9,6 +9,12 @@ const viewports = [
   { width: 390, height: 844 },
   { width: 360, height: 800 },
 ];
+
+async function hideDevelopmentOverlays(page: Page) {
+  await page.addStyleTag({
+    content: "nextjs-portal { display: none !important; }",
+  });
+}
 
 for (const viewport of viewports) {
   test(`login has no horizontal overflow at ${viewport.width}px`, async ({ page }, testInfo) => {
@@ -23,6 +29,7 @@ for (const viewport of viewports) {
       () => document.documentElement.scrollWidth > window.innerWidth + 1,
     );
     expect(hasHorizontalOverflow).toBe(false);
+    await hideDevelopmentOverlays(page);
     await page.screenshot({
       path: `visual-baselines/login-${viewport.width}-light.png`,
       fullPage: true,

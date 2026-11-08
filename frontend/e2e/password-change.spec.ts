@@ -17,7 +17,7 @@ async function login(page: Page, username: string, password: string) {
   await page.getByLabel("密码").fill(password);
   const captcha = page.getByPlaceholder("请输入计算结果");
   if (await captcha.isVisible()) await captcha.fill("1");
-  await page.getByRole("button", { name: "登录" }).click();
+  await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
 }
 
@@ -103,14 +103,14 @@ test("a temporary user can change password and sign in with the new credential",
         await userPage.getByLabel("密码").fill(initialPassword);
         const captchaOldPassword = userPage.getByPlaceholder("请输入计算结果");
         if (await captchaOldPassword.isVisible()) await captchaOldPassword.fill("1");
-        await userPage.getByRole("button", { name: "登录" }).click();
+        await userPage.getByRole("button", { name: "登录", exact: true }).click();
         await expect(userPage.getByRole("status").filter({ hasText: "登录失败" })).toBeVisible();
         await expect(userPage).toHaveURL(/\/login/);
 
         await userPage.getByLabel("密码").fill(changedPassword);
         const captchaNewPassword = userPage.getByPlaceholder("请输入计算结果");
         if (await captchaNewPassword.isVisible()) await captchaNewPassword.fill("1");
-        await userPage.getByRole("button", { name: "登录" }).click();
+        await userPage.getByRole("button", { name: "登录", exact: true }).click();
         await expect(userPage.locator(".app-frame")).toBeVisible({ timeout: 15_000 });
       });
     } finally {

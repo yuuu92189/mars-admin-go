@@ -2,7 +2,6 @@ package http
 
 import (
 	"archive/zip"
-	"bytes"
 	"fmt"
 	"io"
 	"log/slog"
@@ -277,8 +276,11 @@ func (h *Handler) legacySync(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) legacyDownload(w http.ResponseWriter, r *http.Request) {
 	ids := strings.Split(r.URL.Query().Get("ids"), ",")
-	var buffer bytes.Buffer
-	archive := zip.NewWriter(&buffer)
+	if len(ids) == 0 || len(ids) > 50 {
+		httpserver.WriteError(w, r, h.logger, apperror.Validation("ids", "Select between 1 and 50 imported tables."))
+		return
+	}
+	outputs := make([]domain.Output, 0, len(ids))
 	for _, raw := range ids {
 		id, err := uuid.Parse(strings.TrimSpace(raw))
 		if err != nil {
@@ -290,25 +292,26 @@ func (h *Handler) legacyDownload(w http.ResponseWriter, r *http.Request) {
 			httpserver.WriteError(w, r, h.logger, err)
 			return
 		}
+		outputs = append(outputs, output)
+	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", `attachment; filename="mars-admin-codegen.zip"`)
+	archive := zip.NewWriter(w)
+	for _, output := range outputs {
 		for name, content := range output.Files {
 			entry, err := archive.Create(name)
 			if err != nil {
-				httpserver.WriteError(w, r, h.logger, err)
 				return
 			}
 			if _, err := io.WriteString(entry, content); err != nil {
-				httpserver.WriteError(w, r, h.logger, err)
 				return
 			}
 		}
 	}
 	if err := archive.Close(); err != nil {
-		httpserver.WriteError(w, r, h.logger, err)
+		h.logger.ErrorContext(r.Context(), "close codegen zip", "error", err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", `attachment; filename="mars-admin-codegen.zip"`)
-	_, _ = w.Write(buffer.Bytes())
 }
 
 func legacyImportedTable(item domain.ImportedTable) map[string]any {

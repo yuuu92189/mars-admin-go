@@ -17,8 +17,9 @@ test("login desktop light baseline", async ({ page }) => {
   await page.goto("/login");
   await hideDevelopmentOverlays(page);
   await expect(page.getByRole("heading", { name: "登录" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "登录", exact: true })).toBeEnabled();
   if ((page.viewportSize()?.width ?? 0) >= 900) {
-    await expect(page.getByText("inventory synced · 0 drift")).toBeVisible();
+    await expect(page.getByText("session issued · mfa ready")).toBeVisible();
   }
   await expect(page).toHaveScreenshot("login-desktop-light.png", {
     fullPage: true,
@@ -39,6 +40,7 @@ test("login mobile dark baseline", async ({ page }) => {
   await page.goto("/login");
   await hideDevelopmentOverlays(page);
   await expect(page.getByRole("heading", { name: "登录" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "登录", exact: true })).toBeEnabled();
   await expect(page).toHaveScreenshot("login-mobile-dark.png", {
     fullPage: true,
     animations: "disabled",

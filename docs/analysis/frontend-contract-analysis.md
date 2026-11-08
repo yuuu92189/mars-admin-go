@@ -1,5 +1,8 @@
 # Frontend Contract Analysis
 
+> Historical reference analysis. The current backend rejects the old raw Authorization and
+> WebSocket query-token forms; use Bearer or session cookies.
+
 ## Vue Admin
 
 - Axios base URL is `/api`; responses are unwrapped from `{code,message,data}`.

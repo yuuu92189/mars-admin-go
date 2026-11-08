@@ -2,6 +2,11 @@
 
 这是 Mars Admin 平台第一轮前后端架构审计的统一入口。审计结论以源码、GitHub 提交和实际命令结果为依据，不以 README 或目录名称代替验证。
 
+> Historical scope notice: documents 01-13 are first-round audits completed before Phase 4.
+> Phase 4 explicitly excludes Asset Management, Vulnerability Management and Remediation Work
+> Orders. Any old wording such as "blocked", "missing" or "Phase 6" for those domains is
+> historical and must not be treated as a current backlog item.
+
 ## Audit Baseline
 
 | 项目 | 基线 | 证据 |
@@ -37,7 +42,7 @@
 - 目标架构与实施路线已形成。
 - React/Next.js 页面尚未实现；本轮没有用静态假页面冒充迁移完成。
 - `scaffold-vue` 当前连接的是参考仓库内的 Spring Boot `scaffold-system`，不是 Go 后端。Go 集成仍需独立适配或新 API 实现。
-- 当前 Go 后端没有与 `scaffold-vue` 漏洞资产、漏洞和修复工单页面等价的完整领域模块。
+- `scaffold-vue` 的资产、漏洞和修复工单页面只属于参考项目；Phase 4 已明确排除这些业务。
 
 ## Phase 1 Status
 
@@ -47,7 +52,7 @@ Phase 1 已实施已确认的技术基线：
 - 登录新 API 使用 `captchaId`/`captchaCode` 和 `expiresAt`；旧 `/api` 客户端只在兼容层映射 `captcha`/`captchaUuid` 和 `expiresIn`。
 - 分页统一为 `items`/`total`/`page`/`pageSize`。
 - PostgreSQL SQLSTATE 在统一 HTTP 错误边界映射为 RFC 9457 Problem。
-- OpenAPI 当前为 100 paths、135 operations；所有需要响应体的 2xx response 都有 content schema，111 个 operation 声明 required permission，12 个 operation 声明仅认证。
+- Phase 4 当前 OpenAPI 为 137 operations；所有需要响应体的 2xx response 都有 content schema，113 个 operation 声明 required permission，12 个 operation 声明仅认证。
 - 群组删除成员、成员角色、禁言和转让群主已进入 OpenAPI。
 - Identity 和 Notification 的已知跨模块 sqlc 引用已移除。
 - Access 和 Workflow 的 Repository 已按用例拆分；Identity/Notification 仍保留较大接口，列为后续治理。
@@ -56,7 +61,9 @@ Phase 1 已实施已确认的技术基线：
 - `frontend-api/` 可从 OpenAPI 生成 TypeScript 严格类型，当前生成结果为 0 个 `any`。
 - Phase 1 最终验收报告记录真实测试、单租户限制和 Phase 2 前置条件；结论为 `ACCEPTED WITH CONDITIONS`。
 
-Phase 1 不包含 React 页面实现、漏洞领域、AI Provider、支付账本、生产数据切换和外部 Provider 认证。详细状态见 [12-phase-1-implementation-report.md](12-phase-1-implementation-report.md)。
+Phase 1 不包含 React 页面实现、AI Provider、支付账本、生产数据切换和外部 Provider 认证。
+资产、漏洞和修复工单属于明确排除项，不是未完成项。详细状态见
+[12-phase-1-implementation-report.md](12-phase-1-implementation-report.md)。
 
 Phase 2 前端基础工程的审计、设计系统、实现和验收证据见 [../frontend/README.md](../frontend/README.md)。
 
@@ -75,10 +82,13 @@ Phase 2 前端基础工程的审计、设计系统、实现和验收证据见 [.
 | `golangci-lint run` | `0 issues.` |
 | `govulncheck ./...` | 无可达漏洞；存在非可达依赖公告 |
 | `npm run check`（`frontend-api`） | 通过；TypeScript strict；生成 schema 0 个 `any` |
-| OpenAPI contract tests | 通过；100 paths，135 operations，所有需要响应体的 2xx 有 content，权限元数据完整 |
+| OpenAPI contract tests | 通过；137 operations，所有需要响应体的 2xx 有 content，权限元数据完整 |
 
 更早的 PostgreSQL/Redis/MySQL Testcontainers、Race、lint、漏洞扫描、Compose 和 Helm 记录见 `docs/go-standard-audit/verification.md` 与 `docs/audit-round-3/verification-report.md`。本轮没有把历史记录替代为当前运行态证明；本轮重新执行的命令以上表为准。
 
 ## Reading Rule
 
-文档中的“已实现”表示当前代码路径存在；“已验证”表示本次或明确标注的历史证据可复核；“缺口”表示不能用于生产验收或目标功能尚未完成。外部 Provider、生产数据切换和前端视觉回归在没有真实凭证、生产批准或截图基线时不得标记完成。
+文档中的“已实现”表示当前代码路径存在；“已验证”表示本次或明确标注的历史证据可复核；
+“缺口”表示不能用于生产验收或目标功能尚未完成。资产、漏洞和修复工单不是缺口，而是 Phase
+4 明确排除的业务。外部 Provider、生产数据切换和前端视觉回归在没有真实凭证、生产批准或
+截图基线时不得标记完成。

@@ -1,109 +1,92 @@
 # Final Engineering Report
 
-```text
-项目名称：
-Mars Admin Go Edition
+Updated: 2026-11-09
 
-开发语言：
-Go 1.27.3
+## Overall Conclusion
 
-数据库：
-PostgreSQL 18.6
+The repository remains a coherent Go modular monolith with a React/Next.js App Router frontend.
+The architecture is suitable for continued development: domain boundaries are explicit, SQL is
+parameterized, PostgreSQL is the source of truth, Redis is ephemeral coordination, and API
+contracts are generated from OpenAPI.
 
-缓存：
-Redis 8.10.1
+Phase 4 found and fixed security and correctness defects in MFA setup, role/data-scope
+assignment, workflow termination visibility, registration policy enforcement, menu hierarchy
+cycles, sensitive-setting downgrade handling, group membership transitions, upload handling and
+Codegen ZIP generation. No P0 issue remains in the audited surface.
 
-架构：
-Modular Monolith + Feature-oriented + Pragmatic DDD
+Production deployment is not certified. External provider credentials, production payment
+settlement, legacy cutover approval and a live S3-compatible bucket remain external conditions.
+The appropriate conclusion is **PASS WITH CONDITIONS**, not an unqualified production PASS.
 
-API：
-REST + OpenAPI 3.1
+## Verified Statistics
 
-数据访问：
-pgx v5.12.0 + sqlc v1.30.0
+- Go files: 176.
+- Go module directories: 14.
+- Canonical OpenAPI operations: 137.
+- Goose migrations: 25.
+- React App Router pages: 18.
+- Migrated Go-supported business pages: 13.
+- Go test functions: 91.
+- Frontend test files: 20.
+- Frontend Vitest tests: 58.
 
-异步任务：
-River v0.48.0
+## Completed Remediation
 
-实时通信：
-coder/websocket v1.8.15 + Redis Pub/Sub + PostgreSQL catch-up
+- MFA setup now refuses to replace an already-enabled secret.
+- Captcha and self-registration are enforced from the public setting source on the server.
+- Role assignment checks requested permissions and data scope against the actor.
+- Role mutation and menu hierarchy operations reject privilege and cycle escalation paths.
+- Workflow termination requires visibility through the same data-scope predicate used for reads.
+- Messaging rejects client-supplied system messages and validates group ownership transitions.
+- Payment orders now have a PostgreSQL ledger, callback event deduplication, amount/currency
+  binding and replay-safe paid-state transitions.
+- Scheduler concurrency keys are enforced with PostgreSQL advisory locks and bounded River
+  snoozes.
+- Raw legacy Authorization headers and WebSocket query tokens are rejected; Bearer and session
+  cookie authentication remain supported.
+- Login branding now describes Identity, Access, Workflow and Audit instead of excluded reference
+  domains.
+- Historical Phase 1/3 and architecture documents now mark excluded security domains as
+  EXCLUDED rather than blocked or pending work.
+- E2E login navigation assertions are bounded and deterministic under the parallel suite.
+- Multipart uploads are bounded and temporary files are removed after parsing.
+- ZIP generation streams to the response and rejects unbounded table selections.
+- Existing sensitive settings remain encrypted when updated through the settings API.
+- Legacy notice retry/send-log routes return explicit not-configured errors instead of fake
+  success.
+- The backend Docker context now excludes frontend, dependency and test artifacts; the verified
+  build context is 1.82 MB.
 
-构建：
-Docker Multi-stage
+## Verification
 
-测试：
-Unit + Integration + Contract + Security + Race + Fuzz + Benchmark
-```
+The current evidence is recorded in [`docs/phase-4/11-test-acceptance.md`](phase-4/11-test-acceptance.md):
 
-## Implemented Modules
+- `gofmt -l .`: clean.
+- `go vet ./...`: PASS.
+- `go test ./...`: PASS.
+- `go test -tags=integration ./test/integration -count=1`: PASS.
+- Linux container `go test -race ./...`: PASS.
+- `golangci-lint run`: PASS after remediation.
+- `govulncheck ./...`: no reachable vulnerabilities.
+- `sqlc generate` and `oapi-codegen`: PASS.
+- Frontend format, lint, typecheck, Vitest, API type check and production build: PASS.
+- Docker Compose backend image build: PASS.
+- Helm lint and template rendering: PASS.
+- Backend CI workflow syntax: PASS; remote run pending an authorized push.
+- Payment ledger, callback replay, scheduler concurrency and legacy token rejection tests: PASS.
+- Isolated backup/restore rehearsal: PASS, migration version 25.
+- Go-backed Playwright and visual baselines: see the Phase 4 acceptance report for the final
+  run evidence.
 
-- Identity and session authentication
-- Access control and dynamic menu tree
-- Organization
-- Dictionary
-- Settings
-- Audit
-- Monitoring
-- Storage
-- Messaging and WebSocket
-- Notification
-- Scheduler and River Worker
-- Workflow
-- Codegen
-- Integration provider contracts
-- Legacy HTTP compatibility
+## Remaining Conditions
 
-## Passed Checks
+- Rotate and live-test all legacy/provider credentials.
+- Complete production cutover approval; the isolated backup/restore rehearsal passed locally.
+- Certify a real S3/MinIO/OSS bucket and external notification/payment providers.
+- Upgrade legacy Vue/UniApp clients to Bearer or Cookie authentication.
+- Certify real payment provider settlement with production credentials.
+- Push the new Backend CI workflow and confirm its remote run.
 
-- `gofmt`
-- `go vet ./...`
-- `go test ./...`
-- `go test -race ./...` in the Go 1.27.3 Linux container
-- `golangci-lint run`
-- `govulncheck ./...`
-- sqlc and oapi-codegen generation
-- OpenAPI validation test
-- Testcontainers PostgreSQL/Redis integration test
-- 3-second workflow fuzz test
-- Argon2id benchmark
-- Docker multi-stage build
-- Compose PostgreSQL/Redis/API/Worker smoke test
-- Goose migrations through version 15
-- complete legacy dump import into an isolated PostgreSQL validation database
-- second full import run with zero inserted/failed rows
-- Vue production build and page-by-page browser compatibility run
+## Final Status
 
-## Not Completed
-
-- Live third-party SMS/payment/social/push/mail integrations
-- Live S3/MinIO/OSS bucket certification
-- Approved production legacy data cutover
-- UniApp runtime E2E against a real WeChat toolchain
-
-## Known Issues
-
-- GCR is unreachable from this host; the default distroless runtime image could not be pulled here. Compose uses an Alpine runtime fallback for local verification while the production Dockerfile default remains distroless.
-- Helm is provided as a chart but could not be linted because Helm is not installed on this host.
-- Legacy token-in-header and WebSocket query-token compatibility remain until the frontends migrate to cookies.
-- The legacy SQL dump contains exposed credentials and personal data. It has only been imported into an isolated validation database and must be rotated/minimized before production cutover.
-- Nine legacy file records reference objects missing from the supplied upload tree; their metadata was skipped. One orphan chat group was skipped, and two positions with missing parents were imported as roots.
-
-## Start
-
-```bash
-cd C:\Users\admin\Desktop\admin\mars-admin-go
-docker compose up --build
-```
-
-API: `http://localhost:8080`  
-Docs: `http://localhost:8080/docs`  
-Readiness: `http://localhost:8080/health/ready`
-
-Existing Vue admin UI (already running in this environment):
-
-```bash
-cd ..\mars-admin-master\mars-ui
-npm run dev
-```
-
-UI: `http://127.0.0.1:3000`
+**PASS WITH CONDITIONS**

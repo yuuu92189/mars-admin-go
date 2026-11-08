@@ -141,8 +141,10 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	_ = response.Body.Close()
 
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws/message?token=" + login.Token
-	connection, _, err := websocket.Dial(ctx, wsURL, nil)
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws/message"
+	connection, _, err := websocket.Dial(ctx, wsURL, &websocket.DialOptions{
+		HTTPHeader: http.Header{"Authorization": []string{"Bearer " + login.Token}},
+	})
 	require.NoError(t, err)
 	defer connection.CloseNow()
 	_, data, err := connection.Read(ctx)

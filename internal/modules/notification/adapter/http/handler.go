@@ -6,6 +6,7 @@ import (
 
 	"mars-admin-go/internal/modules/notification/application"
 	"mars-admin-go/internal/modules/notification/domain"
+	"mars-admin-go/internal/platform/apperror"
 	"mars-admin-go/internal/platform/httpserver"
 	"mars-admin-go/internal/platform/requestctx"
 
@@ -216,12 +217,20 @@ func (h *Handler) legacyReadAll(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) legacySendLogs(w http.ResponseWriter, _ *http.Request) {
-	httpserver.WriteJSON(w, http.StatusOK, []map[string]any{})
+func (h *Handler) legacySendLogs(w http.ResponseWriter, r *http.Request) {
+	httpserver.WriteError(w, r, h.logger, apperror.New(
+		apperror.KindNotConfigured,
+		"legacy_notice_send_logs_not_supported",
+		"Notice delivery logs are not available in this compatibility API.",
+	))
 }
 
-func (h *Handler) legacyRetry(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusNoContent)
+func (h *Handler) legacyRetry(w http.ResponseWriter, r *http.Request) {
+	httpserver.WriteError(w, r, h.logger, apperror.New(
+		apperror.KindNotConfigured,
+		"legacy_notice_retry_not_supported",
+		"Notice delivery retry is not available in this compatibility API.",
+	))
 }
 
 func legacyNotice(item domain.Notice) map[string]any {

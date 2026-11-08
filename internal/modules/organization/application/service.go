@@ -60,8 +60,18 @@ func (s *Service) Departments(ctx context.Context, actor requestctx.Actor) ([]do
 }
 
 func buildDepartmentTree(nodes []domain.Department, children map[uuid.UUID][]domain.Department) []domain.Department {
+	return buildDepartmentTreeSafe(nodes, children, make(map[uuid.UUID]bool))
+}
+
+func buildDepartmentTreeSafe(nodes []domain.Department, children map[uuid.UUID][]domain.Department, visiting map[uuid.UUID]bool) []domain.Department {
 	for i := range nodes {
-		nodes[i].Children = buildDepartmentTree(children[nodes[i].ID], children)
+		if visiting[nodes[i].ID] {
+			nodes[i].Children = nil
+			continue
+		}
+		visiting[nodes[i].ID] = true
+		nodes[i].Children = buildDepartmentTreeSafe(children[nodes[i].ID], children, visiting)
+		delete(visiting, nodes[i].ID)
 	}
 	return nodes
 }

@@ -1,5 +1,8 @@
 # 08 API Contract Mapping
 
+> Historical first-round mapping. Phase 4 explicitly excludes Asset Management, Vulnerability
+> Management and Remediation Work Orders; rows marked EXCLUDED are not implementation gaps.
+
 ## 1. Contract Layers
 
 当前存在三套相关契约：
@@ -31,14 +34,16 @@ Current canonical OpenAPI:
 - Group member removal, role update, mute and owner transfer are now documented.
 - Generated TypeScript types live in `frontend-api/src/schema.ts` and contain 0 `any` tokens.
 
-The canonical response shape is now stable enough for React page work, but product-scoped pages such as vulnerability and payment remain absent. The counts above are Phase 1 current state; the original audit snapshot remains in the historical sections below.
+The canonical response shape is now stable enough for React page work. AI and payment remain
+product-scoped decisions; vulnerability is explicitly excluded. The counts above are Phase 1
+current state; the original audit snapshot remains in the historical sections below.
 
 ## 2. Page-to-API Matrix
 
 | 页面 | 业务能力 | Go 模块 | 当前 Vue API | 目标 Go API | 状态/缺口 |
 | --- | --- | --- | --- | --- | --- |
 | 登录 | 验证码、密码登录、当前用户、动态路由 | Identity + Access | `/auth/captcha`, `/auth/login`, `/auth/me`, `/auth/routes` | `/api/v1/auth/captcha`, `/login`, `/me`, Access menus | 契约已固化；旧 Vue 仍需适配新字段/Cookie |
-| 工作台 | 统计、趋势、操作泳道、安全态势 | Monitoring + Audit + Vulnerability | `/dashboard/summary`, `/monitor/oper-logs/timeline`, `/vuln/statistics/*` | `/api/v1/admin/monitoring/dashboard`, `/api/v1/admin/audit/*`; vulnerability 新增 | 当前：监控/审计契约可用；漏洞统计仍是产品缺口 |
+| 工作台 | 统计、趋势、操作泳道 | Monitoring + Audit | `/dashboard/summary`, `/monitor/oper-logs/timeline` | `/api/v1/admin/monitoring/dashboard`, `/api/v1/admin/audit/*` | 当前：监控/审计契约可用；漏洞态势不属于本项目 |
 | 用户 | 用户 CRUD、状态、密码、角色/部门/岗位选项、导出 | Identity + Organization + Access | `/system/users*`, `/system/permissions/graph` | `/api/v1/admin/users*` | 当前：新 API 契约可用；旧 Vue 数字 ID/分页需 adapter |
 | 角色 | 角色 CRUD、菜单授权、数据范围、权限矩阵 | Access | `/system/roles*`, `/system/menus/tree` | `/api/v1/admin/access/roles*`, `/menus` | 当前：新 API 契约可用；旧权限码需映射 |
 | 菜单 | 菜单树、CRUD、显示状态、权限图 | Access | `/system/menus*` | `/api/v1/admin/access/menus*` | 当前：新 API 契约可用；旧组件标识需映射 |
@@ -51,9 +56,9 @@ The canonical response shape is now stable enough for React page work, but produ
 | 操作日志 | 列表、统计、泳道、导出、删除/清空 | Audit + Monitoring | `/monitor/oper-logs*` | `/api/v1/admin/audit/events`, `/logins`; 统计端点需补齐 | 当前：events/logins 可用；stats/timeline 仍缺 canonical 端点 |
 | 登录日志 | 列表、统计、热力、异常、导出、删除/清空 | Audit | `/monitor/login-logs*` | `/api/v1/admin/audit/logins`; 统计/热力端点需补齐 | 当前：login page 可用；heatmap/stats 仍缺 canonical 端点 |
 | 代码生成 | 表导入、字段、预览、生成、ZIP | Codegen | `/tool/generator/*` | `/api/v1/admin/codegen/*` | 旧生成器模型（Java/Vue）与新 Go/OpenAPI 生成模型不同 |
-| 资产 | 资产 CRUD、详情、导出、关联漏洞 | 目标 Vulnerability | `/vuln/assets*` | **Go 当前无等价模块** | P1 功能缺口 |
-| 漏洞 | 漏洞 CRUD、详情、关联工单、导出 | 目标 Vulnerability | `/vuln/vulnerabilities*` | **Go 当前无等价模块** | P1 功能缺口 |
-| 修复工单 | 工单 CRUD、接单、修复、复测、关闭 | 目标 Vulnerability | `/vuln/repair-tasks*` | **Go 当前无等价模块** | P1 功能缺口 |
+| 资产 | Vue 参考资产 CRUD、详情、导出、关联漏洞 | None | `/vuln/assets*` | **不属于本项目** | EXCLUDED |
+| 漏洞 | Vue 参考漏洞 CRUD、详情、关联工单、导出 | None | `/vuln/vulnerabilities*` | **不属于本项目** | EXCLUDED |
+| 修复工单 | Vue 参考工单 CRUD、接单、修复、复测、关闭 | None | `/vuln/repair-tasks*` | **不属于本项目** | EXCLUDED |
 | 无权限 | 空状态 | 前端路由 | 无 | 无 | 前端迁移 |
 | 未找到 | 404 | 前端路由 | 无 | 无 | 前端迁移 |
 
@@ -85,7 +90,7 @@ Go native:     { page, pageSize, total, items }
 | 配置 | `system:config:*` | `settings:read/manage` |
 | 日志/监控 | `monitor:*` | `audit:read` |
 | 代码生成 | `tool:gen:list` | `codegen:read/manage` |
-| 漏洞 | `vuln:*` | 尚未定义 |
+| 漏洞 | `vuln:*` | Excluded domain; no canonical permission |
 
 处理：建立一次性迁移表，页面按钮和 Go Handler 必须引用同一权限码；不能让前端仅隐藏按钮。
 
@@ -120,7 +125,7 @@ The first-round audit found that many operations had only descriptions, `Current
 
 - Dynamic business metadata, setting values, workflow variables and similar maps remain intentionally open where the domain is dynamic.
 - Audit stats/timeline and login heatmap canonical endpoints are not yet implemented.
-- Vulnerability, AI and payment business APIs remain product-scoped gaps.
+- AI and payment business APIs remain product-scoped gaps; vulnerability is explicitly excluded.
 - WebSocket protocol is documented separately from OpenAPI.
 - The database is currently single-tenant: it has no `tenant_id` or tenant model. Existing department and role scopes must not be described as cross-tenant isolation.
 
@@ -134,4 +139,7 @@ The first-round audit found that many operations had only descriptions, `Current
 | `migrated` | React 页面实现且使用真实 API |
 | `verified` | 通过 Playwright/E2E/截图/权限/错误分支 |
 
-Phase 1 后，登录、用户、角色、菜单、部门、岗位、字典、配置、通知、定时任务和代码生成达到 `contract-ready`；日志统计/热力、漏洞和 AI 仍为 `contract-gap`。Phase 2 已完成登录、工作台和主 Shell 的 React 基础实现与本地截图验证；其余业务页面仍未达到 `migrated` 或 `verified`。
+Phase 1 后，登录、用户、角色、菜单、部门、岗位、字典、配置、通知、定时任务和代码生成达到
+`contract-ready`；日志统计/热力和 AI 仍为 `contract-gap`，漏洞业务为 `EXCLUDED`。Phase 2
+已完成登录、工作台和主 Shell 的 React 基础实现与本地截图验证；其余业务页面仍未达到
+`migrated` 或 `verified`。

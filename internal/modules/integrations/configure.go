@@ -58,6 +58,7 @@ func Configure(cfg config.IntegrationConfig, logger *slog.Logger, production boo
 			PrivateKeyPEM:        cfg.WeChatPay.PrivateKeyPEM,
 			PlatformPublicKeyPEM: cfg.WeChatPay.PlatformPublicKeyPEM,
 			PlatformSerialNumber: cfg.WeChatPay.PlatformSerialNumber,
+			APIv3Key:             cfg.WeChatPay.APIv3Key,
 		})
 		if err != nil {
 			return nil, nil, fmt.Errorf("configure WeChat Pay: %w", err)

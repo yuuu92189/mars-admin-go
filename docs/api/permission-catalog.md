@@ -61,7 +61,7 @@ Phase 1 final acceptance adds a route-level cross-check in `internal/platform/ht
 - Seed permissions back to this catalog.
 - Public, authenticated-only and business-permission routes.
 
-The current matrix is 135 canonical operations: 12 public, 12 authenticated-only and 111 business-permission routes. `RequireAnyPermission` OR semantics have a separate HTTP middleware test.
+The current matrix is 137 canonical operations: 12 public, 12 authenticated-only and 113 business-permission routes. `RequireAnyPermission` OR semantics have a separate HTTP middleware test.
 
 ## Legacy Vue Mapping
 
@@ -88,7 +88,7 @@ The reference Vue application uses older permission strings. The mapping is docu
 | `monitor:loginlog:list/remove` | `audit:read` |
 | `monitor:job:*` | `scheduler:read/manage` |
 | `tool:gen:list` | `codegen:read/manage` |
-| `vuln:*` | Pending product decision; no canonical vulnerability module yet |
+| `vuln:*` | Excluded domain; no canonical permission or API is planned in this project |
 
 ## Migration Rules
 

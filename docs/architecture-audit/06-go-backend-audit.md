@@ -1,5 +1,8 @@
 # 06 Go Backend Audit
 
+> Historical first-round backend audit. The current Phase 4 business boundary excludes Asset
+> Management, Vulnerability Management and Remediation Work Orders.
+
 ## 1. Current Structure
 
 `mars-admin-go` 是按业务模块组织的 modular monolith：
@@ -96,7 +99,8 @@ OpenAPI 当前主要覆盖 list/add members、messages、quit、dissolve 等，�
 
 Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:read`、`role:read`、`department:read`、`dictionary:read`、`settings:read`、`audit:read`、`message:read`、`notice:read`、`scheduler:read`、`workflow:read`、`codegen:read`。
 
-`scaffold-vue` 页面使用 `system:user:*`、`monitor:operlog:*`、`tool:gen:*`、`vuln:*` 等旧码。两者不能直接共用授权菜单。
+`scaffold-vue` 页面使用 `system:user:*`、`monitor:operlog:*`、`tool:gen:*` 等旧码；
+`vuln:*` 仅为参考项目旧码，已排除，不属于 Go 目标权限。两者不能直接共用授权菜单。
 
 处理：建立明确的权限码迁移表，或让兼容层做只读映射；不要同时接受两套码导致权限膨胀。
 
@@ -203,7 +207,7 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 ### Remaining
 
 - Identity 和 Notification 的 Repository 仍然偏大，未做无收益的全量重写。
-- 漏洞资产、漏洞和修复工单没有 Go 领域模块，属于产品决策后的 Phase 6。
+- 漏洞资产、漏洞和修复工单不属于 Go 目标范围；Phase 4 已明确排除，不进入待办或路线图。
 - 支付没有订单状态账本和回调 replay ledger；本轮没有虚构支付结算。
 - 外部 Provider 仍然只保证至少一次投递和显式 not-configured。
 - 生产数据切换、Provider 认证、真实对象存储测试和 React 视觉回归未执行。

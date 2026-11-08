@@ -194,6 +194,7 @@ type Repository interface {
 	FindUserByIDInDataScope(ctx context.Context, targetID, actorID uuid.UUID, dataScope string) (User, error)
 	CountDepartmentsWithinScope(ctx context.Context, actorID uuid.UUID, dataScope string, departmentIDs []uuid.UUID) (int64, error)
 	CountPrivilegedRoles(ctx context.Context, roleIDs []uuid.UUID) (int64, error)
+	CountRolesOutsidePermissions(ctx context.Context, roleIDs []uuid.UUID, permissions []string, actorScope string) (int64, error)
 	ListUsers(ctx context.Context, filter UserFilter) ([]User, int64, error)
 	CreateUser(ctx context.Context, user User, roleIDs, departmentIDs, positionIDs []uuid.UUID, primaryDepartmentID *uuid.UUID) (User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, input UpdateUserInput, passwordHash string) (User, error)

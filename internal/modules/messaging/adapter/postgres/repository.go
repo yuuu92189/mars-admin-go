@@ -247,17 +247,29 @@ func (r *Repository) RemoveMember(ctx context.Context, groupID, memberID uuid.UU
 }
 
 func (r *Repository) SetMemberRole(ctx context.Context, groupID, memberID uuid.UUID, role string) error {
-	_, err := sqlc.New(r.pool).UpdateGroupMemberRole(ctx, sqlc.UpdateGroupMemberRoleParams{
+	affected, err := sqlc.New(r.pool).UpdateGroupMemberRole(ctx, sqlc.UpdateGroupMemberRoleParams{
 		GroupID: pgUUID(groupID), UserID: pgUUID(memberID), MemberRole: role,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return apperror.Conflict("The member is no longer active or the group owner cannot be demoted.")
+	}
+	return nil
 }
 
 func (r *Repository) MuteMember(ctx context.Context, groupID, memberID uuid.UUID, until *time.Time) error {
-	_, err := sqlc.New(r.pool).SetGroupMemberMuted(ctx, sqlc.SetGroupMemberMutedParams{
+	affected, err := sqlc.New(r.pool).SetGroupMemberMuted(ctx, sqlc.SetGroupMemberMutedParams{
 		GroupID: pgUUID(groupID), UserID: pgUUID(memberID), MutedUntil: optionalTimestamp(until),
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return apperror.Conflict("The member is no longer active.")
+	}
+	return nil
 }
 
 func (r *Repository) TransferOwner(ctx context.Context, groupID, currentOwnerID, newOwnerID uuid.UUID) error {
@@ -274,6 +286,17 @@ func (r *Repository) TransferOwner(ctx context.Context, groupID, currentOwnerID,
 	if uuid.UUID(group.OwnerID.Bytes) != currentOwnerID {
 		return errors.New("only the group owner can transfer ownership")
 	}
+	var newOwnerIsMember bool
+	if err := tx.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM messaging_group_members
+			WHERE group_id = $1 AND user_id = $2 AND left_at IS NULL
+		)`, groupID, newOwnerID).Scan(&newOwnerIsMember); err != nil {
+		return err
+	}
+	if !newOwnerIsMember {
+		return apperror.Conflict("The new owner must be an active group member.")
+	}
 	if err := q.TransferGroupMemberRoles(ctx, sqlc.TransferGroupMemberRolesParams{
 		GroupID: pgUUID(groupID), UserID: pgUUID(newOwnerID), UserID_2: pgUUID(currentOwnerID),
 	}); err != nil {
@@ -286,13 +309,25 @@ func (r *Repository) TransferOwner(ctx context.Context, groupID, currentOwnerID,
 }
 
 func (r *Repository) QuitGroup(ctx context.Context, groupID, userID uuid.UUID) error {
-	_, err := sqlc.New(r.pool).QuitGroup(ctx, sqlc.QuitGroupParams{GroupID: pgUUID(groupID), UserID: pgUUID(userID)})
-	return err
+	affected, err := sqlc.New(r.pool).QuitGroup(ctx, sqlc.QuitGroupParams{GroupID: pgUUID(groupID), UserID: pgUUID(userID)})
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return apperror.Conflict("The group owner cannot quit or the membership is no longer active.")
+	}
+	return nil
 }
 
 func (r *Repository) DissolveGroup(ctx context.Context, groupID, ownerID uuid.UUID) error {
-	_, err := sqlc.New(r.pool).DissolveGroup(ctx, sqlc.DissolveGroupParams{ID: pgUUID(groupID), OwnerID: pgUUID(ownerID)})
-	return err
+	affected, err := sqlc.New(r.pool).DissolveGroup(ctx, sqlc.DissolveGroupParams{ID: pgUUID(groupID), OwnerID: pgUUID(ownerID)})
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return apperror.Conflict("Only the active group owner can dissolve the group.")
+	}
+	return nil
 }
 
 func (r *Repository) SendGroup(ctx context.Context, message domain.Message) (domain.Message, error) {

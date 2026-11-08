@@ -28,7 +28,7 @@ type RuntimeRepository interface {
 	Done(ctx context.Context, actor domain.Actor, page, pageSize int) ([]domain.Task, int64, error)
 	TaskContext(ctx context.Context, taskID uuid.UUID, actor domain.Actor) (domain.Task, domain.Instance, domain.Definition, domain.Node, error)
 	Decide(ctx context.Context, actor domain.Actor, input domain.DecisionInput, decision domain.DOMDecision) (domain.Task, domain.Instance, error)
-	Terminate(ctx context.Context, instanceID, actorID uuid.UUID, comment string) (domain.Instance, error)
+	Terminate(ctx context.Context, instanceID uuid.UUID, actor domain.Actor, comment string) (domain.Instance, error)
 	Events(ctx context.Context, instanceID uuid.UUID, actor domain.Actor) ([]domain.Event, error)
 }
 
@@ -198,11 +198,18 @@ func (s *Service) Decide(ctx context.Context, actor domain.Actor, input domain.D
 	return task, updatedInstance, nil
 }
 
-func (s *Service) Terminate(ctx context.Context, instanceID, actorID uuid.UUID, comment string) (domain.Instance, error) {
+func (s *Service) Terminate(ctx context.Context, actor domain.Actor, instanceID uuid.UUID, comment string) (domain.Instance, error) {
 	if len(comment) > 2000 {
 		return domain.Instance{}, apperror.Validation("comment", "Comment must not exceed 2000 characters.")
 	}
-	instance, err := s.runtime.Terminate(ctx, instanceID, actorID, comment)
+	normalized := normalizeActor(actor)
+	if _, err := s.runtime.GetInstance(ctx, instanceID, normalized); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Instance{}, apperror.NotFound("Workflow instance")
+		}
+		return domain.Instance{}, err
+	}
+	instance, err := s.runtime.Terminate(ctx, instanceID, normalized, comment)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Instance{}, apperror.Conflict("Only a running workflow instance can be terminated.")
 	}

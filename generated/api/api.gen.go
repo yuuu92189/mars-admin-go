@@ -49,6 +49,45 @@ func (e CreateRoleDataScope) Valid() bool {
 	}
 }
 
+// Defines values for DashboardRange.
+const (
+	DashboardRangeN24h DashboardRange = "24h"
+	DashboardRangeN30d DashboardRange = "30d"
+	DashboardRangeN7d  DashboardRange = "7d"
+)
+
+// Valid indicates whether the value is a known member of the DashboardRange enum.
+func (e DashboardRange) Valid() bool {
+	switch e {
+	case DashboardRangeN24h:
+		return true
+	case DashboardRangeN30d:
+		return true
+	case DashboardRangeN7d:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DepartmentStatus.
+const (
+	DepartmentStatusActive   DepartmentStatus = "active"
+	DepartmentStatusDisabled DepartmentStatus = "disabled"
+)
+
+// Valid indicates whether the value is a known member of the DepartmentStatus enum.
+func (e DepartmentStatus) Valid() bool {
+	switch e {
+	case DepartmentStatusActive:
+		return true
+	case DepartmentStatusDisabled:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DepartmentInputStatus.
 const (
 	DepartmentInputStatusActive   DepartmentInputStatus = "active"
@@ -79,6 +118,24 @@ func (e DictionaryItemStatus) Valid() bool {
 	case DictionaryItemStatusActive:
 		return true
 	case DictionaryItemStatusDisabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DictionaryItemInputStatus.
+const (
+	DictionaryItemInputStatusActive   DictionaryItemInputStatus = "active"
+	DictionaryItemInputStatusDisabled DictionaryItemInputStatus = "disabled"
+)
+
+// Valid indicates whether the value is a known member of the DictionaryItemInputStatus enum.
+func (e DictionaryItemInputStatus) Valid() bool {
+	switch e {
+	case DictionaryItemInputStatusActive:
+		return true
+	case DictionaryItemInputStatusDisabled:
 		return true
 	default:
 		return false
@@ -213,19 +270,40 @@ func (e LoginRequestLoginType) Valid() bool {
 
 // Defines values for MenuType.
 const (
-	N1 MenuType = 1
-	N2 MenuType = 2
-	N3 MenuType = 3
+	MenuTypeN1 MenuType = 1
+	MenuTypeN2 MenuType = 2
+	MenuTypeN3 MenuType = 3
 )
 
 // Valid indicates whether the value is a known member of the MenuType enum.
 func (e MenuType) Valid() bool {
 	switch e {
-	case N1:
+	case MenuTypeN1:
 		return true
-	case N2:
+	case MenuTypeN2:
 		return true
-	case N3:
+	case MenuTypeN3:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MenuInputType.
+const (
+	MenuInputTypeN1 MenuInputType = 1
+	MenuInputTypeN2 MenuInputType = 2
+	MenuInputTypeN3 MenuInputType = 3
+)
+
+// Valid indicates whether the value is a known member of the MenuInputType enum.
+func (e MenuInputType) Valid() bool {
+	switch e {
+	case MenuInputTypeN1:
+		return true
+	case MenuInputTypeN2:
+		return true
+	case MenuInputTypeN3:
 		return true
 	default:
 		return false
@@ -234,19 +312,55 @@ func (e MenuType) Valid() bool {
 
 // Defines values for NoticeStatus.
 const (
-	Draft     NoticeStatus = "draft"
-	Published NoticeStatus = "published"
-	Withdrawn NoticeStatus = "withdrawn"
+	NoticeStatusDraft     NoticeStatus = "draft"
+	NoticeStatusPublished NoticeStatus = "published"
+	NoticeStatusWithdrawn NoticeStatus = "withdrawn"
 )
 
 // Valid indicates whether the value is a known member of the NoticeStatus enum.
 func (e NoticeStatus) Valid() bool {
 	switch e {
-	case Draft:
+	case NoticeStatusDraft:
 		return true
-	case Published:
+	case NoticeStatusPublished:
 		return true
-	case Withdrawn:
+	case NoticeStatusWithdrawn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NoticeInputTargetType.
+const (
+	NoticeInputTargetTypeAll         NoticeInputTargetType = "all"
+	NoticeInputTargetTypeDepartments NoticeInputTargetType = "departments"
+	NoticeInputTargetTypeUsers       NoticeInputTargetType = "users"
+)
+
+// Valid indicates whether the value is a known member of the NoticeInputTargetType enum.
+func (e NoticeInputTargetType) Valid() bool {
+	switch e {
+	case NoticeInputTargetTypeAll:
+		return true
+	case NoticeInputTargetTypeDepartments:
+		return true
+	case NoticeInputTargetTypeUsers:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PaymentRequestCurrency.
+const (
+	CNY PaymentRequestCurrency = "CNY"
+)
+
+// Valid indicates whether the value is a known member of the PaymentRequestCurrency enum.
+func (e PaymentRequestCurrency) Valid() bool {
+	switch e {
+	case CNY:
 		return true
 	default:
 		return false
@@ -271,6 +385,24 @@ func (e PositionStatus) Valid() bool {
 	}
 }
 
+// Defines values for PositionInputStatus.
+const (
+	PositionInputStatusActive   PositionInputStatus = "active"
+	PositionInputStatusDisabled PositionInputStatus = "disabled"
+)
+
+// Valid indicates whether the value is a known member of the PositionInputStatus enum.
+func (e PositionInputStatus) Valid() bool {
+	switch e {
+	case PositionInputStatusActive:
+		return true
+	case PositionInputStatusDisabled:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SendMessageMessageType.
 const (
 	SendMessageMessageTypeFile  SendMessageMessageType = "file"
@@ -286,6 +418,90 @@ func (e SendMessageMessageType) Valid() bool {
 	case SendMessageMessageTypeImage:
 		return true
 	case SendMessageMessageTypeText:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateRoleDataScope.
+const (
+	UpdateRoleDataScopeAll            UpdateRoleDataScope = "all"
+	UpdateRoleDataScopeCustom         UpdateRoleDataScope = "custom"
+	UpdateRoleDataScopeDepartment     UpdateRoleDataScope = "department"
+	UpdateRoleDataScopeDepartmentTree UpdateRoleDataScope = "department_tree"
+	UpdateRoleDataScopeSelf           UpdateRoleDataScope = "self"
+)
+
+// Valid indicates whether the value is a known member of the UpdateRoleDataScope enum.
+func (e UpdateRoleDataScope) Valid() bool {
+	switch e {
+	case UpdateRoleDataScopeAll:
+		return true
+	case UpdateRoleDataScopeCustom:
+		return true
+	case UpdateRoleDataScopeDepartment:
+		return true
+	case UpdateRoleDataScopeDepartmentTree:
+		return true
+	case UpdateRoleDataScopeSelf:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateRoleStatus.
+const (
+	UpdateRoleStatusActive   UpdateRoleStatus = "active"
+	UpdateRoleStatusDisabled UpdateRoleStatus = "disabled"
+)
+
+// Valid indicates whether the value is a known member of the UpdateRoleStatus enum.
+func (e UpdateRoleStatus) Valid() bool {
+	switch e {
+	case UpdateRoleStatusActive:
+		return true
+	case UpdateRoleStatusDisabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MonitoringDashboardParamsRange.
+const (
+	MonitoringDashboardParamsRangeN24h MonitoringDashboardParamsRange = "24h"
+	MonitoringDashboardParamsRangeN30d MonitoringDashboardParamsRange = "30d"
+	MonitoringDashboardParamsRangeN7d  MonitoringDashboardParamsRange = "7d"
+)
+
+// Valid indicates whether the value is a known member of the MonitoringDashboardParamsRange enum.
+func (e MonitoringDashboardParamsRange) Valid() bool {
+	switch e {
+	case MonitoringDashboardParamsRangeN24h:
+		return true
+	case MonitoringDashboardParamsRangeN30d:
+		return true
+	case MonitoringDashboardParamsRangeN7d:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListScheduledJobsParamsStatus.
+const (
+	ListScheduledJobsParamsStatusActive ListScheduledJobsParamsStatus = "active"
+	ListScheduledJobsParamsStatusPaused ListScheduledJobsParamsStatus = "paused"
+)
+
+// Valid indicates whether the value is a known member of the ListScheduledJobsParamsStatus enum.
+func (e ListScheduledJobsParamsStatus) Valid() bool {
+	switch e {
+	case ListScheduledJobsParamsStatusActive:
+		return true
+	case ListScheduledJobsParamsStatusPaused:
 		return true
 	default:
 		return false
@@ -328,6 +544,27 @@ func (e UpdateGroupMemberRoleJSONBodyRole) Valid() bool {
 	}
 }
 
+// Defines values for ListNoticesParamsStatus.
+const (
+	ListNoticesParamsStatusDraft     ListNoticesParamsStatus = "draft"
+	ListNoticesParamsStatusPublished ListNoticesParamsStatus = "published"
+	ListNoticesParamsStatusWithdrawn ListNoticesParamsStatus = "withdrawn"
+)
+
+// Valid indicates whether the value is a known member of the ListNoticesParamsStatus enum.
+func (e ListNoticesParamsStatus) Valid() bool {
+	switch e {
+	case ListNoticesParamsStatusDraft:
+		return true
+	case ListNoticesParamsStatusPublished:
+		return true
+	case ListNoticesParamsStatusWithdrawn:
+		return true
+	default:
+		return false
+	}
+}
+
 // Access defines model for Access.
 type Access struct {
 	Permissions *[]string `json:"permissions,omitempty"`
@@ -361,6 +598,12 @@ type AuditEventPage struct {
 	Total    int64        `json:"total"`
 }
 
+// ChangePassword defines model for ChangePassword.
+type ChangePassword struct {
+	NewPassword string `json:"newPassword"`
+	OldPassword string `json:"oldPassword"`
+}
+
 // ChatUser defines model for ChatUser.
 type ChatUser struct {
 	AvatarUrl   *string            `json:"avatarUrl,omitempty"`
@@ -370,19 +613,50 @@ type ChatUser struct {
 	Username    string             `json:"username"`
 }
 
-// CodegenTable defines model for CodegenTable.
-type CodegenTable struct {
-	Comment *string `json:"comment,omitempty"`
-	Name    *string `json:"name,omitempty"`
-	Schema  *string `json:"schema,omitempty"`
+// CodegenColumn defines model for CodegenColumn.
+type CodegenColumn struct {
+	Comment      *string `json:"comment,omitempty"`
+	DataType     *string `json:"dataType,omitempty"`
+	DefaultValue *string `json:"defaultValue,omitempty"`
+	Name         *string `json:"name,omitempty"`
+	Nullable     *bool   `json:"nullable,omitempty"`
+	PrimaryKey   *bool   `json:"primaryKey,omitempty"`
 }
 
-// CodegenTablePage defines model for CodegenTablePage.
-type CodegenTablePage struct {
-	Items    []CodegenTable `json:"items"`
-	Page     int            `json:"page"`
-	PageSize int            `json:"pageSize"`
-	Total    int64          `json:"total"`
+// CodegenFile defines model for CodegenFile.
+type CodegenFile struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
+
+// CodegenGenerateInput defines model for CodegenGenerateInput.
+type CodegenGenerateInput struct {
+	ApiPrefix *string  `json:"apiPrefix,omitempty"`
+	Module    *string  `json:"module,omitempty"`
+	Package   *string  `json:"package,omitempty"`
+	Schema    string   `json:"schema"`
+	Tables    []string `json:"tables"`
+}
+
+// CodegenImportInput defines model for CodegenImportInput.
+type CodegenImportInput struct {
+	Schema string   `json:"schema"`
+	Tables []string `json:"tables"`
+}
+
+// CodegenOutput defines model for CodegenOutput.
+type CodegenOutput struct {
+	Files    []CodegenFile `json:"files"`
+	Warnings []string      `json:"warnings"`
+}
+
+// CodegenTable defines model for CodegenTable.
+type CodegenTable struct {
+	Columns *[]CodegenColumn `json:"columns,omitempty"`
+	Comment *string          `json:"comment,omitempty"`
+	Name    *string          `json:"name,omitempty"`
+	Schema  *string          `json:"schema,omitempty"`
 }
 
 // CreateRole defines model for CreateRole.
@@ -398,35 +672,98 @@ type CreateRoleDataScope string
 
 // CreateUser defines model for CreateUser.
 type CreateUser struct {
-	AvatarUrl   *string               `json:"avatarUrl,omitempty"`
-	DisplayName string                `json:"displayName"`
-	Email       *string               `json:"email,omitempty"`
-	Gender      *int                  `json:"gender,omitempty"`
-	Password    string                `json:"password"`
-	Phone       *string               `json:"phone,omitempty"`
-	RoleIds     *[]openapi_types.UUID `json:"roleIds,omitempty"`
-	Status      *string               `json:"status,omitempty"`
-	UserType    *string               `json:"userType,omitempty"`
-	Username    string                `json:"username"`
+	AvatarUrl           *string               `json:"avatarUrl,omitempty"`
+	DepartmentIds       *[]openapi_types.UUID `json:"departmentIds,omitempty"`
+	DisplayName         string                `json:"displayName"`
+	Email               *string               `json:"email,omitempty"`
+	Gender              *int                  `json:"gender,omitempty"`
+	Password            string                `json:"password"`
+	Phone               *string               `json:"phone,omitempty"`
+	PositionIds         *[]openapi_types.UUID `json:"positionIds,omitempty"`
+	PrimaryDepartmentId *openapi_types.UUID   `json:"primaryDepartmentId,omitempty"`
+	RoleIds             *[]openapi_types.UUID `json:"roleIds,omitempty"`
+	Status              *string               `json:"status,omitempty"`
+	UserType            *string               `json:"userType,omitempty"`
+	Username            string                `json:"username"`
 }
 
 // CurrentUser defines model for CurrentUser.
 type CurrentUser struct {
-	Menus       *[]Menu   `json:"menus,omitempty"`
-	Permissions *[]string `json:"permissions,omitempty"`
-	Roles       *[]string `json:"roles,omitempty"`
-	User        *User     `json:"user,omitempty"`
+	IsSuperAdmin *bool     `json:"isSuperAdmin,omitempty"`
+	Menus        *[]Menu   `json:"menus,omitempty"`
+	Permissions  *[]string `json:"permissions,omitempty"`
+	Roles        *[]string `json:"roles,omitempty"`
+	User         *User     `json:"user,omitempty"`
+}
+
+// Dashboard defines model for Dashboard.
+type Dashboard struct {
+	Files                int64                       `json:"files"`
+	LoginPreviousTotal   int64                       `json:"loginPreviousTotal"`
+	LoginTotal           int64                       `json:"loginTotal"`
+	LoginTrend           []DashboardPoint            `json:"loginTrend"`
+	MenuCount            int64                       `json:"menuCount"`
+	Messages             int64                       `json:"messages"`
+	OnlineSessions       int64                       `json:"onlineSessions"`
+	OperationSuccessRate float64                     `json:"operationSuccessRate"`
+	OperationTotal       int64                       `json:"operationTotal"`
+	OperationTrend       []DashboardPoint            `json:"operationTrend"`
+	OutboxDead           int64                       `json:"outboxDead"`
+	OutboxPending        int64                       `json:"outboxPending"`
+	PermissionCount      int64                       `json:"permissionCount"`
+	PublishedNotices     int64                       `json:"publishedNotices"`
+	Range                DashboardRange              `json:"range"`
+	RecentActivity       []DashboardActivity         `json:"recentActivity"`
+	RecentLogins         []DashboardActivity         `json:"recentLogins"`
+	RoleCount            int64                       `json:"roleCount"`
+	RoleDistribution     []DashboardRoleDistribution `json:"roleDistribution"`
+	UserCount            int64                       `json:"userCount"`
+	Users                int64                       `json:"users"`
+}
+
+// DashboardRange defines model for Dashboard.Range.
+type DashboardRange string
+
+// DashboardActivity defines model for DashboardActivity.
+type DashboardActivity struct {
+	OccurredAt time.Time `json:"occurredAt"`
+	Outcome    string    `json:"outcome"`
+	Target     string    `json:"target"`
+	Who        string    `json:"who"`
+}
+
+// DashboardPoint defines model for DashboardPoint.
+type DashboardPoint struct {
+	Failed *int64 `json:"failed,omitempty"`
+	Label  string `json:"label"`
+	Value  int64  `json:"value"`
+}
+
+// DashboardRoleDistribution defines model for DashboardRoleDistribution.
+type DashboardRoleDistribution struct {
+	Label string `json:"label"`
+	Value int64  `json:"value"`
 }
 
 // Department defines model for Department.
 type Department struct {
-	Children *[]Department       `json:"children,omitempty"`
-	Code     *string             `json:"code,omitempty"`
-	Id       *openapi_types.UUID `json:"id,omitempty"`
-	Name     *string             `json:"name,omitempty"`
-	ParentId *openapi_types.UUID `json:"parentId,omitempty"`
-	Path     *string             `json:"path,omitempty"`
+	Children   *[]Department       `json:"children,omitempty"`
+	Code       *string             `json:"code,omitempty"`
+	CreatedAt  *time.Time          `json:"createdAt,omitempty"`
+	Depth      *int                `json:"depth,omitempty"`
+	Email      *string             `json:"email,omitempty"`
+	Id         *openapi_types.UUID `json:"id,omitempty"`
+	LeaderName *string             `json:"leaderName,omitempty"`
+	Name       *string             `json:"name,omitempty"`
+	ParentId   *openapi_types.UUID `json:"parentId,omitempty"`
+	Path       *string             `json:"path,omitempty"`
+	Phone      *string             `json:"phone,omitempty"`
+	Sort       *int                `json:"sort,omitempty"`
+	Status     *DepartmentStatus   `json:"status,omitempty"`
 }
+
+// DepartmentStatus defines model for Department.Status.
+type DepartmentStatus string
 
 // DepartmentInput defines model for DepartmentInput.
 type DepartmentInput struct {
@@ -465,6 +802,20 @@ type DictionaryItem struct {
 
 // DictionaryItemStatus defines model for DictionaryItem.Status.
 type DictionaryItemStatus string
+
+// DictionaryItemInput defines model for DictionaryItemInput.
+type DictionaryItemInput struct {
+	IsDefault bool                      `json:"isDefault"`
+	Label     string                    `json:"label"`
+	Sort      int                       `json:"sort"`
+	Status    DictionaryItemInputStatus `json:"status"`
+	TagStyle  *string                   `json:"tagStyle,omitempty"`
+	TypeId    openapi_types.UUID        `json:"typeId"`
+	Value     string                    `json:"value"`
+}
+
+// DictionaryItemInputStatus defines model for DictionaryItemInput.Status.
+type DictionaryItemInputStatus string
 
 // DictionaryType defines model for DictionaryType.
 type DictionaryType struct {
@@ -556,6 +907,37 @@ type HealthStatus struct {
 	Database *string `json:"database,omitempty"`
 	Redis    *string `json:"redis,omitempty"`
 	Status   string  `json:"status"`
+}
+
+// ImportedCodegenTable defines model for ImportedCodegenTable.
+type ImportedCodegenTable struct {
+	Author       string             `json:"author"`
+	BusinessName string             `json:"businessName"`
+	ClassName    string             `json:"className"`
+	Columns      []CodegenColumn    `json:"columns"`
+	CreatedAt    time.Time          `json:"createdAt"`
+	FormLayout   string             `json:"formLayout"`
+	FrontType    string             `json:"frontType"`
+	FunctionName string             `json:"functionName"`
+	GenPath      string             `json:"genPath"`
+	GenType      string             `json:"genType"`
+	Id           openapi_types.UUID `json:"id"`
+	ModuleName   string             `json:"moduleName"`
+	PackageName  string             `json:"packageName"`
+	ParentMenuId string             `json:"parentMenuId"`
+	Remark       string             `json:"remark"`
+	Schema       string             `json:"schema"`
+	TableComment string             `json:"tableComment"`
+	TableName    string             `json:"tableName"`
+	UpdatedAt    time.Time          `json:"updatedAt"`
+}
+
+// ImportedCodegenTablePage defines model for ImportedCodegenTablePage.
+type ImportedCodegenTablePage struct {
+	Items    []ImportedCodegenTable `json:"items"`
+	Page     int                    `json:"page"`
+	PageSize int                    `json:"pageSize"`
+	Total    int64                  `json:"total"`
 }
 
 // IntegrationProviderStatus defines model for IntegrationProviderStatus.
@@ -659,6 +1041,23 @@ type Menu struct {
 // MenuType defines model for Menu.Type.
 type MenuType int
 
+// MenuInput defines model for MenuInput.
+type MenuInput struct {
+	Component  *string             `json:"component,omitempty"`
+	Icon       *string             `json:"icon,omitempty"`
+	IsFrame    bool                `json:"isFrame"`
+	Name       string              `json:"name"`
+	ParentId   *openapi_types.UUID `json:"parentId,omitempty"`
+	Path       *string             `json:"path,omitempty"`
+	Permission *string             `json:"permission,omitempty"`
+	Sort       int                 `json:"sort"`
+	Type       MenuInputType       `json:"type"`
+	Visible    bool                `json:"visible"`
+}
+
+// MenuInputType defines model for MenuInput.Type.
+type MenuInputType int
+
 // Message defines model for Message.
 type Message struct {
 	Content     *string             `json:"content,omitempty"`
@@ -705,6 +1104,19 @@ type Notice struct {
 // NoticeStatus defines model for Notice.Status.
 type NoticeStatus string
 
+// NoticeInput defines model for NoticeInput.
+type NoticeInput struct {
+	Channels   []string              `json:"channels"`
+	Content    string                `json:"content"`
+	NoticeType int                   `json:"noticeType"`
+	TargetIds  *[]openapi_types.UUID `json:"targetIds,omitempty"`
+	TargetType NoticeInputTargetType `json:"targetType"`
+	Title      string                `json:"title"`
+}
+
+// NoticeInputTargetType defines model for NoticeInput.TargetType.
+type NoticeInputTargetType string
+
 // NoticePage defines model for NoticePage.
 type NoticePage struct {
 	Items    []Notice `json:"items"`
@@ -713,12 +1125,26 @@ type NoticePage struct {
 	Total    int64    `json:"total"`
 }
 
+// PaymentRequest defines model for PaymentRequest.
+type PaymentRequest struct {
+	AmountCents int64                   `json:"amountCents"`
+	Currency    *PaymentRequestCurrency `json:"currency,omitempty"`
+	NotifyUrl   *string                 `json:"notifyUrl,omitempty"`
+	OrderId     *string                 `json:"orderId,omitempty"`
+	ReturnUrl   *string                 `json:"returnUrl,omitempty"`
+	Subject     *string                 `json:"subject,omitempty"`
+}
+
+// PaymentRequestCurrency defines model for PaymentRequest.Currency.
+type PaymentRequestCurrency string
+
 // PaymentSession defines model for PaymentSession.
 type PaymentSession struct {
-	ExpiresAt  *time.Time `json:"expiresAt,omitempty"`
-	OrderId    *string    `json:"orderId,omitempty"`
-	PaymentUrl *string    `json:"paymentUrl,omitempty"`
-	Provider   *string    `json:"provider,omitempty"`
+	ExpiresAt  *time.Time         `json:"expiresAt,omitempty"`
+	OrderId    *string            `json:"orderId,omitempty"`
+	Payload    *map[string]string `json:"payload,omitempty"`
+	PaymentUrl *string            `json:"paymentUrl,omitempty"`
+	Provider   *string            `json:"provider,omitempty"`
 }
 
 // Permission defines model for Permission.
@@ -744,6 +1170,19 @@ type Position struct {
 
 // PositionStatus defines model for Position.Status.
 type PositionStatus string
+
+// PositionInput defines model for PositionInput.
+type PositionInput struct {
+	Code        string              `json:"code"`
+	Description *string             `json:"description,omitempty"`
+	Name        string              `json:"name"`
+	ParentId    *openapi_types.UUID `json:"parentId,omitempty"`
+	Sort        int                 `json:"sort"`
+	Status      PositionInputStatus `json:"status"`
+}
+
+// PositionInputStatus defines model for PositionInput.Status.
+type PositionInputStatus string
 
 // PositionPage defines model for PositionPage.
 type PositionPage struct {
@@ -791,6 +1230,11 @@ type RolePage struct {
 	Total    int64  `json:"total"`
 }
 
+// RolePermissions defines model for RolePermissions.
+type RolePermissions struct {
+	Permissions []string `json:"permissions"`
+}
+
 // SMSCodeResult defines model for SMSCodeResult.
 type SMSCodeResult struct {
 	Status string `json:"status"`
@@ -812,6 +1256,17 @@ type ScheduledJob struct {
 	Status         *string                 `json:"status,omitempty"`
 	TimeoutSeconds *int                    `json:"timeoutSeconds,omitempty"`
 	UpdatedAt      *time.Time              `json:"updatedAt,omitempty"`
+}
+
+// ScheduledJobInput defines model for ScheduledJobInput.
+type ScheduledJobInput struct {
+	ConcurrencyKey *string                 `json:"concurrencyKey,omitempty"`
+	CronExpression string                  `json:"cronExpression"`
+	Handler        string                  `json:"handler"`
+	MaxAttempts    int                     `json:"maxAttempts"`
+	Name           string                  `json:"name"`
+	Payload        *map[string]interface{} `json:"payload,omitempty"`
+	TimeoutSeconds int                     `json:"timeoutSeconds"`
 }
 
 // ScheduledJobPage defines model for ScheduledJobPage.
@@ -903,31 +1358,55 @@ type TemporaryPassword struct {
 	TemporaryPassword string `json:"temporaryPassword"`
 }
 
+// UpdateRole defines model for UpdateRole.
+type UpdateRole struct {
+	DataScope   UpdateRoleDataScope `json:"dataScope"`
+	Description *string             `json:"description,omitempty"`
+	Name        string              `json:"name"`
+	Status      UpdateRoleStatus    `json:"status"`
+}
+
+// UpdateRoleDataScope defines model for UpdateRole.DataScope.
+type UpdateRoleDataScope string
+
+// UpdateRoleStatus defines model for UpdateRole.Status.
+type UpdateRoleStatus string
+
 // UpdateUser defines model for UpdateUser.
 type UpdateUser struct {
-	AvatarUrl   *string `json:"avatarUrl,omitempty"`
-	DisplayName string  `json:"displayName"`
-	Email       *string `json:"email,omitempty"`
-	Gender      *int    `json:"gender,omitempty"`
-	Phone       *string `json:"phone,omitempty"`
-	Status      *string `json:"status,omitempty"`
-	UserType    *string `json:"userType,omitempty"`
-	Version     int64   `json:"version"`
+	AvatarUrl           *string               `json:"avatarUrl,omitempty"`
+	DepartmentIds       *[]openapi_types.UUID `json:"departmentIds,omitempty"`
+	DisplayName         string                `json:"displayName"`
+	Email               *string               `json:"email,omitempty"`
+	Gender              *int                  `json:"gender,omitempty"`
+	Phone               *string               `json:"phone,omitempty"`
+	PositionIds         *[]openapi_types.UUID `json:"positionIds,omitempty"`
+	PrimaryDepartmentId *openapi_types.UUID   `json:"primaryDepartmentId,omitempty"`
+	RoleIds             *[]openapi_types.UUID `json:"roleIds,omitempty"`
+	Status              *string               `json:"status,omitempty"`
+	UserType            *string               `json:"userType,omitempty"`
+	Version             int64                 `json:"version"`
 }
 
 // User defines model for User.
 type User struct {
-	AvatarUrl   *string            `json:"avatarUrl,omitempty"`
-	CreatedAt   *time.Time         `json:"createdAt,omitempty"`
-	DisplayName string             `json:"displayName"`
-	Email       *string            `json:"email,omitempty"`
-	Gender      *int               `json:"gender,omitempty"`
-	Id          openapi_types.UUID `json:"id"`
-	Phone       *string            `json:"phone,omitempty"`
-	Status      string             `json:"status"`
-	UserType    string             `json:"userType"`
-	Username    string             `json:"username"`
-	Version     *int64             `json:"version,omitempty"`
+	AvatarUrl     *string               `json:"avatarUrl,omitempty"`
+	CreatedAt     *time.Time            `json:"createdAt,omitempty"`
+	DepartmentIds *[]openapi_types.UUID `json:"departmentIds,omitempty"`
+	DisplayName   string                `json:"displayName"`
+	Email         *string               `json:"email,omitempty"`
+	Gender        *int                  `json:"gender,omitempty"`
+	Id            openapi_types.UUID    `json:"id"`
+	LastLoginAt   *time.Time            `json:"lastLoginAt,omitempty"`
+	MfaEnabled    *bool                 `json:"mfaEnabled,omitempty"`
+	Phone         *string               `json:"phone,omitempty"`
+	PositionIds   *[]openapi_types.UUID `json:"positionIds,omitempty"`
+	RoleIds       *[]openapi_types.UUID `json:"roleIds,omitempty"`
+	Status        string                `json:"status"`
+	UpdatedAt     *time.Time            `json:"updatedAt,omitempty"`
+	UserType      string                `json:"userType"`
+	Username      string                `json:"username"`
+	Version       *int64                `json:"version,omitempty"`
 }
 
 // UserPage defines model for UserPage.
@@ -1033,15 +1512,84 @@ type Page = int
 // PageSize defines model for PageSize.
 type PageSize = int
 
+// ListRolesParams defines parameters for ListRoles.
+type ListRolesParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Keyword  *string   `form:"keyword,omitempty" json:"keyword,omitempty"`
+}
+
+// ListAuditEventsParams defines parameters for ListAuditEvents.
+type ListAuditEventsParams struct {
+	Page         *Page      `form:"page,omitempty" json:"page,omitempty"`
+	PageSize     *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Action       *string    `form:"action,omitempty" json:"action,omitempty"`
+	ResourceType *string    `form:"resourceType,omitempty" json:"resourceType,omitempty"`
+	From         *time.Time `form:"from,omitempty" json:"from,omitempty"`
+	To           *time.Time `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// ListLoginEventsParams defines parameters for ListLoginEvents.
+type ListLoginEventsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
+// DownloadGeneratedCodeParams defines parameters for DownloadGeneratedCode.
+type DownloadGeneratedCodeParams struct {
+	// Ids Comma-separated imported table ids.
+	Ids string `form:"ids" json:"ids"`
+}
+
+// ListImportedCodegenTablesParams defines parameters for ListImportedCodegenTables.
+type ListImportedCodegenTablesParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Query    *string   `form:"query,omitempty" json:"query,omitempty"`
+}
+
+// ListDatabaseTablesParams defines parameters for ListDatabaseTables.
+type ListDatabaseTablesParams struct {
+	Schema *string `form:"schema,omitempty" json:"schema,omitempty"`
+}
+
+// MonitoringDashboardParams defines parameters for MonitoringDashboard.
+type MonitoringDashboardParams struct {
+	Range *MonitoringDashboardParamsRange `form:"range,omitempty" json:"range,omitempty"`
+}
+
+// MonitoringDashboardParamsRange defines parameters for MonitoringDashboard.
+type MonitoringDashboardParamsRange string
+
+// ListScheduledJobsParams defines parameters for ListScheduledJobs.
+type ListScheduledJobsParams struct {
+	Page     *Page                          `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize                      `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Status   *ListScheduledJobsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ListScheduledJobsParamsStatus defines parameters for ListScheduledJobs.
+type ListScheduledJobsParamsStatus string
+
+// ListScheduledJobRunsParams defines parameters for ListScheduledJobRuns.
+type ListScheduledJobRunsParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
 // UpdateSettingGroupJSONBody defines parameters for UpdateSettingGroup.
 type UpdateSettingGroupJSONBody map[string]interface{}
 
 // ListUsersParams defines parameters for ListUsers.
 type ListUsersParams struct {
-	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
-	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	Keyword  *string   `form:"keyword,omitempty" json:"keyword,omitempty"`
-	Status   *string   `form:"status,omitempty" json:"status,omitempty"`
+	Page         *Page               `form:"page,omitempty" json:"page,omitempty"`
+	PageSize     *PageSize           `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Keyword      *string             `form:"keyword,omitempty" json:"keyword,omitempty"`
+	Status       *string             `form:"status,omitempty" json:"status,omitempty"`
+	UserType     *string             `form:"userType,omitempty" json:"userType,omitempty"`
+	Sort         *string             `form:"sort,omitempty" json:"sort,omitempty"`
+	DepartmentId *openapi_types.UUID `form:"departmentId,omitempty" json:"departmentId,omitempty"`
+	PositionId   *openapi_types.UUID `form:"positionId,omitempty" json:"positionId,omitempty"`
 }
 
 // IssueCaptchaParams defines parameters for IssueCaptcha.
@@ -1098,6 +1646,22 @@ type DirectMessageHistoryParams struct {
 	Before *int64 `form:"before,omitempty" json:"before,omitempty"`
 }
 
+// ListNoticesParams defines parameters for ListNotices.
+type ListNoticesParams struct {
+	Page     *Page                    `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize                `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	Status   *ListNoticesParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ListNoticesParamsStatus defines parameters for ListNotices.
+type ListNoticesParamsStatus string
+
+// ListMyNoticesParams defines parameters for ListMyNotices.
+type ListMyNoticesParams struct {
+	Page     *Page     `form:"page,omitempty" json:"page,omitempty"`
+	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+}
+
 // DecideWorkflowTaskJSONBody defines parameters for DecideWorkflowTask.
 type DecideWorkflowTaskJSONBody struct {
 	Comment   *string                 `json:"comment,omitempty"`
@@ -1105,14 +1669,65 @@ type DecideWorkflowTaskJSONBody struct {
 	Variables *map[string]interface{} `json:"variables,omitempty"`
 }
 
+// CreateMenuJSONRequestBody defines body for CreateMenu for application/json ContentType.
+type CreateMenuJSONRequestBody = MenuInput
+
+// UpdateMenuJSONRequestBody defines body for UpdateMenu for application/json ContentType.
+type UpdateMenuJSONRequestBody = MenuInput
+
 // CreateRoleJSONRequestBody defines body for CreateRole for application/json ContentType.
 type CreateRoleJSONRequestBody = CreateRole
+
+// UpdateRoleJSONRequestBody defines body for UpdateRole for application/json ContentType.
+type UpdateRoleJSONRequestBody = UpdateRole
+
+// SetRoleMenusJSONRequestBody defines body for SetRoleMenus for application/json ContentType.
+type SetRoleMenusJSONRequestBody = RoleMenuIDs
+
+// SetRolePermissionsJSONRequestBody defines body for SetRolePermissions for application/json ContentType.
+type SetRolePermissionsJSONRequestBody = RolePermissions
+
+// ImportCodegenTablesJSONRequestBody defines body for ImportCodegenTables for application/json ContentType.
+type ImportCodegenTablesJSONRequestBody = CodegenImportInput
+
+// UpdateImportedCodegenTableJSONRequestBody defines body for UpdateImportedCodegenTable for application/json ContentType.
+type UpdateImportedCodegenTableJSONRequestBody = ImportedCodegenTable
+
+// PreviewGeneratedCodeJSONRequestBody defines body for PreviewGeneratedCode for application/json ContentType.
+type PreviewGeneratedCodeJSONRequestBody = CodegenGenerateInput
 
 // CreateDictionaryJSONRequestBody defines body for CreateDictionary for application/json ContentType.
 type CreateDictionaryJSONRequestBody = DictionaryTypeInput
 
+// CreateDictionaryItemJSONRequestBody defines body for CreateDictionaryItem for application/json ContentType.
+type CreateDictionaryItemJSONRequestBody = DictionaryItemInput
+
+// UpdateDictionaryItemJSONRequestBody defines body for UpdateDictionaryItem for application/json ContentType.
+type UpdateDictionaryItemJSONRequestBody = DictionaryItemInput
+
+// UpdateDictionaryJSONRequestBody defines body for UpdateDictionary for application/json ContentType.
+type UpdateDictionaryJSONRequestBody = DictionaryTypeInput
+
+// CreatePaymentJSONRequestBody defines body for CreatePayment for application/json ContentType.
+type CreatePaymentJSONRequestBody = PaymentRequest
+
 // CreateDepartmentJSONRequestBody defines body for CreateDepartment for application/json ContentType.
 type CreateDepartmentJSONRequestBody = DepartmentInput
+
+// UpdateDepartmentJSONRequestBody defines body for UpdateDepartment for application/json ContentType.
+type UpdateDepartmentJSONRequestBody = DepartmentInput
+
+// CreatePositionJSONRequestBody defines body for CreatePosition for application/json ContentType.
+type CreatePositionJSONRequestBody = PositionInput
+
+// UpdatePositionJSONRequestBody defines body for UpdatePosition for application/json ContentType.
+type UpdatePositionJSONRequestBody = PositionInput
+
+// CreateScheduledJobJSONRequestBody defines body for CreateScheduledJob for application/json ContentType.
+type CreateScheduledJobJSONRequestBody = ScheduledJobInput
+
+// UpdateScheduledJobJSONRequestBody defines body for UpdateScheduledJob for application/json ContentType.
+type UpdateScheduledJobJSONRequestBody = ScheduledJobInput
 
 // UpdateSettingGroupJSONRequestBody defines body for UpdateSettingGroup for application/json ContentType.
 type UpdateSettingGroupJSONRequestBody UpdateSettingGroupJSONBody
@@ -1125,6 +1740,9 @@ type UpdateUserJSONRequestBody = UpdateUser
 
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
+
+// ChangePasswordJSONRequestBody defines body for ChangePassword for application/json ContentType.
+type ChangePasswordJSONRequestBody = ChangePassword
 
 // RefreshSessionJSONRequestBody defines body for RefreshSession for application/json ContentType.
 type RefreshSessionJSONRequestBody RefreshSessionJSONBody
@@ -1149,6 +1767,12 @@ type UpdateGroupMemberRoleJSONRequestBody UpdateGroupMemberRoleJSONBody
 
 // SendDirectMessageJSONRequestBody defines body for SendDirectMessage for application/json ContentType.
 type SendDirectMessageJSONRequestBody = SendMessage
+
+// CreateNoticeJSONRequestBody defines body for CreateNotice for application/json ContentType.
+type CreateNoticeJSONRequestBody = NoticeInput
+
+// UpdateNoticeJSONRequestBody defines body for UpdateNotice for application/json ContentType.
+type UpdateNoticeJSONRequestBody = NoticeInput
 
 // DecideWorkflowTaskJSONRequestBody defines body for DecideWorkflowTask for application/json ContentType.
 type DecideWorkflowTaskJSONRequestBody DecideWorkflowTaskJSONBody
@@ -1502,7 +2126,7 @@ type ServerInterface interface {
 	ListPermissions(w http.ResponseWriter, r *http.Request)
 
 	// (GET /api/v1/admin/access/roles)
-	ListRoles(w http.ResponseWriter, r *http.Request)
+	ListRoles(w http.ResponseWriter, r *http.Request, params ListRolesParams)
 
 	// (POST /api/v1/admin/access/roles)
 	CreateRole(w http.ResponseWriter, r *http.Request)
@@ -1523,13 +2147,16 @@ type ServerInterface interface {
 	SetRolePermissions(w http.ResponseWriter, r *http.Request, id Id)
 
 	// (GET /api/v1/admin/audit/events)
-	ListAuditEvents(w http.ResponseWriter, r *http.Request)
+	ListAuditEvents(w http.ResponseWriter, r *http.Request, params ListAuditEventsParams)
 
 	// (GET /api/v1/admin/audit/logins)
-	ListLoginEvents(w http.ResponseWriter, r *http.Request)
+	ListLoginEvents(w http.ResponseWriter, r *http.Request, params ListLoginEventsParams)
+
+	// (GET /api/v1/admin/codegen/download)
+	DownloadGeneratedCode(w http.ResponseWriter, r *http.Request, params DownloadGeneratedCodeParams)
 
 	// (GET /api/v1/admin/codegen/imported)
-	ListImportedCodegenTables(w http.ResponseWriter, r *http.Request)
+	ListImportedCodegenTables(w http.ResponseWriter, r *http.Request, params ListImportedCodegenTablesParams)
 
 	// (POST /api/v1/admin/codegen/imported)
 	ImportCodegenTables(w http.ResponseWriter, r *http.Request)
@@ -1553,7 +2180,7 @@ type ServerInterface interface {
 	PreviewGeneratedCode(w http.ResponseWriter, r *http.Request)
 
 	// (GET /api/v1/admin/codegen/tables)
-	ListDatabaseTables(w http.ResponseWriter, r *http.Request)
+	ListDatabaseTables(w http.ResponseWriter, r *http.Request, params ListDatabaseTablesParams)
 
 	// (GET /api/v1/admin/dictionaries)
 	ListDictionaries(w http.ResponseWriter, r *http.Request)
@@ -1586,7 +2213,7 @@ type ServerInterface interface {
 	CreatePayment(w http.ResponseWriter, r *http.Request, provider string)
 
 	// (GET /api/v1/admin/monitoring/dashboard)
-	MonitoringDashboard(w http.ResponseWriter, r *http.Request)
+	MonitoringDashboard(w http.ResponseWriter, r *http.Request, params MonitoringDashboardParams)
 
 	// (GET /api/v1/admin/monitoring/snapshot)
 	MonitoringSnapshot(w http.ResponseWriter, r *http.Request)
@@ -1619,7 +2246,7 @@ type ServerInterface interface {
 	UpdatePosition(w http.ResponseWriter, r *http.Request, id Id)
 
 	// (GET /api/v1/admin/scheduler/jobs)
-	ListScheduledJobs(w http.ResponseWriter, r *http.Request)
+	ListScheduledJobs(w http.ResponseWriter, r *http.Request, params ListScheduledJobsParams)
 
 	// (POST /api/v1/admin/scheduler/jobs)
 	CreateScheduledJob(w http.ResponseWriter, r *http.Request)
@@ -1643,7 +2270,7 @@ type ServerInterface interface {
 	RunScheduledJob(w http.ResponseWriter, r *http.Request, id Id)
 
 	// (GET /api/v1/admin/scheduler/jobs/{id}/runs)
-	ListScheduledJobRuns(w http.ResponseWriter, r *http.Request, id Id)
+	ListScheduledJobRuns(w http.ResponseWriter, r *http.Request, id Id, params ListScheduledJobRunsParams)
 
 	// (GET /api/v1/admin/settings)
 	ListSettingGroups(w http.ResponseWriter, r *http.Request)
@@ -1817,16 +2444,19 @@ type ServerInterface interface {
 	MarkMessagesRead(w http.ResponseWriter, r *http.Request, peerId openapi_types.UUID)
 
 	// (GET /api/v1/notices)
-	ListNotices(w http.ResponseWriter, r *http.Request)
+	ListNotices(w http.ResponseWriter, r *http.Request, params ListNoticesParams)
 
 	// (POST /api/v1/notices)
 	CreateNotice(w http.ResponseWriter, r *http.Request)
 
 	// (GET /api/v1/notices/my)
-	ListMyNotices(w http.ResponseWriter, r *http.Request)
+	ListMyNotices(w http.ResponseWriter, r *http.Request, params ListMyNoticesParams)
 
 	// (GET /api/v1/notices/unread)
 	NoticeUnreadCounts(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /api/v1/notices/{id})
+	DeleteNotice(w http.ResponseWriter, r *http.Request, id Id)
 
 	// (GET /api/v1/notices/{id})
 	GetNotice(w http.ResponseWriter, r *http.Request, id Id)
@@ -1922,7 +2552,7 @@ func (_ Unimplemented) ListPermissions(w http.ResponseWriter, r *http.Request) {
 }
 
 // (GET /api/v1/admin/access/roles)
-func (_ Unimplemented) ListRoles(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ListRoles(w http.ResponseWriter, r *http.Request, params ListRolesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1957,17 +2587,22 @@ func (_ Unimplemented) SetRolePermissions(w http.ResponseWriter, r *http.Request
 }
 
 // (GET /api/v1/admin/audit/events)
-func (_ Unimplemented) ListAuditEvents(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ListAuditEvents(w http.ResponseWriter, r *http.Request, params ListAuditEventsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // (GET /api/v1/admin/audit/logins)
-func (_ Unimplemented) ListLoginEvents(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ListLoginEvents(w http.ResponseWriter, r *http.Request, params ListLoginEventsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (GET /api/v1/admin/codegen/download)
+func (_ Unimplemented) DownloadGeneratedCode(w http.ResponseWriter, r *http.Request, params DownloadGeneratedCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // (GET /api/v1/admin/codegen/imported)
-func (_ Unimplemented) ListImportedCodegenTables(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ListImportedCodegenTables(w http.ResponseWriter, r *http.Request, params ListImportedCodegenTablesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2007,7 +2642,7 @@ func (_ Unimplemented) PreviewGeneratedCode(w http.ResponseWriter, r *http.Reque
 }
 
 // (GET /api/v1/admin/codegen/tables)
-func (_ Unimplemented) ListDatabaseTables(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ListDatabaseTables(w http.ResponseWriter, r *http.Request, params ListDatabaseTablesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2062,7 +2697,7 @@ func (_ Unimplemented) CreatePayment(w http.ResponseWriter, r *http.Request, pro
 }
 
 // (GET /api/v1/admin/monitoring/dashboard)
-func (_ Unimplemented) MonitoringDashboard(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) MonitoringDashboard(w http.ResponseWriter, r *http.Request, params MonitoringDashboardParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2117,7 +2752,7 @@ func (_ Unimplemented) UpdatePosition(w http.ResponseWriter, r *http.Request, id
 }
 
 // (GET /api/v1/admin/scheduler/jobs)
-func (_ Unimplemented) ListScheduledJobs(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ListScheduledJobs(w http.ResponseWriter, r *http.Request, params ListScheduledJobsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2157,7 +2792,7 @@ func (_ Unimplemented) RunScheduledJob(w http.ResponseWriter, r *http.Request, i
 }
 
 // (GET /api/v1/admin/scheduler/jobs/{id}/runs)
-func (_ Unimplemented) ListScheduledJobRuns(w http.ResponseWriter, r *http.Request, id Id) {
+func (_ Unimplemented) ListScheduledJobRuns(w http.ResponseWriter, r *http.Request, id Id, params ListScheduledJobRunsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2447,7 +3082,7 @@ func (_ Unimplemented) MarkMessagesRead(w http.ResponseWriter, r *http.Request, 
 }
 
 // (GET /api/v1/notices)
-func (_ Unimplemented) ListNotices(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ListNotices(w http.ResponseWriter, r *http.Request, params ListNoticesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2457,12 +3092,17 @@ func (_ Unimplemented) CreateNotice(w http.ResponseWriter, r *http.Request) {
 }
 
 // (GET /api/v1/notices/my)
-func (_ Unimplemented) ListMyNotices(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ListMyNotices(w http.ResponseWriter, r *http.Request, params ListMyNoticesParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // (GET /api/v1/notices/unread)
 func (_ Unimplemented) NoticeUnreadCounts(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (DELETE /api/v1/notices/{id})
+func (_ Unimplemented) DeleteNotice(w http.ResponseWriter, r *http.Request, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2677,8 +3317,53 @@ func (siw *ServerInterfaceWrapper) ListPermissions(w http.ResponseWriter, r *htt
 // ListRoles operation middleware
 func (siw *ServerInterfaceWrapper) ListRoles(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRolesParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", r.URL.Query(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "pageSize"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pageSize", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "keyword" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "keyword", r.URL.Query(), &params.Keyword, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "keyword"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "keyword", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListRoles(w, r)
+		siw.Handler.ListRoles(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2835,8 +3520,92 @@ func (siw *ServerInterfaceWrapper) SetRolePermissions(w http.ResponseWriter, r *
 // ListAuditEvents operation middleware
 func (siw *ServerInterfaceWrapper) ListAuditEvents(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAuditEventsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", r.URL.Query(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "pageSize"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pageSize", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "action" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "action", r.URL.Query(), &params.Action, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "action"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "action", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "resourceType" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "resourceType", r.URL.Query(), &params.ResourceType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "resourceType"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "resourceType", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListAuditEvents(w, r)
+		siw.Handler.ListAuditEvents(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2849,8 +3618,73 @@ func (siw *ServerInterfaceWrapper) ListAuditEvents(w http.ResponseWriter, r *htt
 // ListLoginEvents operation middleware
 func (siw *ServerInterfaceWrapper) ListLoginEvents(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListLoginEventsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", r.URL.Query(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "pageSize"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pageSize", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListLoginEvents(w, r)
+		siw.Handler.ListLoginEvents(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DownloadGeneratedCode operation middleware
+func (siw *ServerInterfaceWrapper) DownloadGeneratedCode(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DownloadGeneratedCodeParams
+
+	// ------------- Required query parameter "ids" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "ids", r.URL.Query(), &params.Ids, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "ids"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ids", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DownloadGeneratedCode(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2863,8 +3697,53 @@ func (siw *ServerInterfaceWrapper) ListLoginEvents(w http.ResponseWriter, r *htt
 // ListImportedCodegenTables operation middleware
 func (siw *ServerInterfaceWrapper) ListImportedCodegenTables(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListImportedCodegenTablesParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", r.URL.Query(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "pageSize"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pageSize", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "query" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "query", r.URL.Query(), &params.Query, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "query"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListImportedCodegenTables(w, r)
+		siw.Handler.ListImportedCodegenTables(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3035,8 +3914,27 @@ func (siw *ServerInterfaceWrapper) PreviewGeneratedCode(w http.ResponseWriter, r
 // ListDatabaseTables operation middleware
 func (siw *ServerInterfaceWrapper) ListDatabaseTables(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListDatabaseTablesParams
+
+	// ------------- Optional query parameter "schema" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "schema", r.URL.Query(), &params.Schema, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "schema"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "schema", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListDatabaseTables(w, r)
+		siw.Handler.ListDatabaseTables(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3261,8 +4159,27 @@ func (siw *ServerInterfaceWrapper) CreatePayment(w http.ResponseWriter, r *http.
 // MonitoringDashboard operation middleware
 func (siw *ServerInterfaceWrapper) MonitoringDashboard(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params MonitoringDashboardParams
+
+	// ------------- Optional query parameter "range" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "range", r.URL.Query(), &params.Range, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "range"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "range", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.MonitoringDashboard(w, r)
+		siw.Handler.MonitoringDashboard(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3475,8 +4392,53 @@ func (siw *ServerInterfaceWrapper) UpdatePosition(w http.ResponseWriter, r *http
 // ListScheduledJobs operation middleware
 func (siw *ServerInterfaceWrapper) ListScheduledJobs(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListScheduledJobsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", r.URL.Query(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "pageSize"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pageSize", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListScheduledJobs(w, r)
+		siw.Handler.ListScheduledJobs(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3671,8 +4633,37 @@ func (siw *ServerInterfaceWrapper) ListScheduledJobRuns(w http.ResponseWriter, r
 		return
 	}
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListScheduledJobRunsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", r.URL.Query(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "pageSize"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pageSize", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListScheduledJobRuns(w, r, id)
+		siw.Handler.ListScheduledJobRuns(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3819,6 +4810,58 @@ func (siw *ServerInterfaceWrapper) ListUsers(w http.ResponseWriter, r *http.Requ
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "userType" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "userType", r.URL.Query(), &params.UserType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "userType"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userType", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sort"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "departmentId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "departmentId", r.URL.Query(), &params.DepartmentId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "departmentId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "departmentId", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "positionId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "positionId", r.URL.Query(), &params.PositionId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "positionId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "positionId", Err: err})
 		}
 		return
 	}
@@ -4936,8 +5979,53 @@ func (siw *ServerInterfaceWrapper) MarkMessagesRead(w http.ResponseWriter, r *ht
 // ListNotices operation middleware
 func (siw *ServerInterfaceWrapper) ListNotices(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListNoticesParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", r.URL.Query(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "pageSize"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pageSize", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListNotices(w, r)
+		siw.Handler.ListNotices(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4964,8 +6052,40 @@ func (siw *ServerInterfaceWrapper) CreateNotice(w http.ResponseWriter, r *http.R
 // ListMyNotices operation middleware
 func (siw *ServerInterfaceWrapper) ListMyNotices(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListMyNoticesParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pageSize", r.URL.Query(), &params.PageSize, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "pageSize"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pageSize", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListMyNotices(w, r)
+		siw.Handler.ListMyNotices(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4980,6 +6100,32 @@ func (siw *ServerInterfaceWrapper) NoticeUnreadCounts(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.NoticeUnreadCounts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteNotice operation middleware
+func (siw *ServerInterfaceWrapper) DeleteNotice(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteNotice(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -5862,6 +7008,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/v1/notices/unread", wrapper.NoticeUnreadCounts)
 	})
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/notices/{id}", wrapper.DeleteNotice)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/notices/{id}", wrapper.GetNotice)
 	})
 	r.Group(func(r chi.Router) {
@@ -5934,6 +7083,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/v1/admin/codegen/imported/{id}/sync", wrapper.SyncImportedCodegenTable)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/admin/codegen/download", wrapper.DownloadGeneratedCode)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/admin/monitoring/dashboard", wrapper.MonitoringDashboard)
 	})
 	r.Group(func(r chi.Router) {
@@ -5954,127 +7106,149 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"Yqo8k7V61lD7tnKXfBXkqhP26fbpvwcA",
+	"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",
+	"JuM3UchqA2t9zwlGnNC9mWpB2IcvD/83AA==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

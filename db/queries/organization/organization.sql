@@ -40,8 +40,12 @@ WHERE (
         AND EXISTS (
             SELECT 1
             FROM access_user_roles role_user
+            JOIN access_roles scope_role ON scope_role.id = role_user.role_id
             JOIN access_role_departments allowed ON allowed.role_id = role_user.role_id
-            WHERE role_user.user_id = $1 AND allowed.department_id = department.id
+            WHERE role_user.user_id = $1
+              AND scope_role.status = 'active'
+              AND scope_role.deleted_at IS NULL
+              AND allowed.department_id = department.id
         )
     )
 )
@@ -82,8 +86,12 @@ WHERE department.id = $1
           AND EXISTS (
               SELECT 1
               FROM access_user_roles role_user
+              JOIN access_roles scope_role ON scope_role.id = role_user.role_id
               JOIN access_role_departments allowed ON allowed.role_id = role_user.role_id
-              WHERE role_user.user_id = $2 AND allowed.department_id = department.id
+              WHERE role_user.user_id = $2
+                AND scope_role.status = 'active'
+                AND scope_role.deleted_at IS NULL
+                AND allowed.department_id = department.id
           )
       )
   );

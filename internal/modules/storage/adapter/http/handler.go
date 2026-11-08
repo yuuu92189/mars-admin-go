@@ -282,6 +282,9 @@ func (h *Handler) receiveUpload(w http.ResponseWriter, r *http.Request) (storage
 		}
 		return storagedomain.File{}, errors.New("invalid multipart upload")
 	}
+	if r.MultipartForm != nil {
+		defer func() { _ = r.MultipartForm.RemoveAll() }()
+	}
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		return storagedomain.File{}, errors.New("file field is required")

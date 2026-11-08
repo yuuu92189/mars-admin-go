@@ -23,7 +23,8 @@ The generated package is `generated/api`. The contract is validated by `api/open
 - Refresh: rotating `mars_refresh` cookie or refresh token request.
 - Unsafe browser requests: `X-CSRF-Token` from `mars_csrf`.
 
-The legacy raw `Authorization` header and WebSocket query token remain available only for existing clients.
+The legacy raw `Authorization` header and WebSocket query token are rejected. API clients must use
+`Authorization: Bearer <token>`; browser and WebSocket clients must use the session cookie.
 
 ## Compatibility
 

@@ -31,10 +31,22 @@ Super administration is `access_roles.is_super_admin`, not a username check.
 - Client idempotency uses `(sender_id, client_message_id)`.
 - Workflow task decisions use row locks and `pending` compare-and-set updates.
 
+## Payments
+
+- `payment_orders` binds provider, merchant order ID, amount, currency and paid state.
+- `payment_callbacks` has a unique `(provider, event_id)` constraint and stores accepted/rejected
+  outcomes plus payload hashes.
+- Provider transaction IDs are unique per provider when present.
+- Callback processing is transactional and rejects amount/currency mismatches without changing the
+  order's paid state.
+
 ## Index Strategy
 
 Indexes are included only for observed access patterns: active sessions, current memberships, unread recipients, pending tasks, message cursors, role scope joins, JSONB workflow document queries and audit time/actor filters.
 
 ## Transaction Boundaries
 
-Application services own transactions. No HTTP handler starts SQL transactions. River job insertion and manual execution history are kept separate where cross-process atomicity is not possible; business state is always committed first.
+Application services own transactions. No HTTP handler starts SQL transactions. River job insertion
+and manual execution history are kept separate where cross-process atomicity is not possible;
+business state is always committed first. Payment callback insert, state transition and duplicate
+classification share one PostgreSQL transaction.

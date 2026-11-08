@@ -76,8 +76,18 @@ func (r *Repository) Menus(ctx context.Context, userID uuid.UUID, superAdmin boo
 }
 
 func buildTree(nodes []domain.Menu, children map[uuid.UUID][]domain.Menu) []domain.Menu {
+	return buildTreeSafe(nodes, children, make(map[uuid.UUID]bool))
+}
+
+func buildTreeSafe(nodes []domain.Menu, children map[uuid.UUID][]domain.Menu, visiting map[uuid.UUID]bool) []domain.Menu {
 	for i := range nodes {
-		nodes[i].Children = buildTree(children[nodes[i].ID], children)
+		if visiting[nodes[i].ID] {
+			nodes[i].Children = nil
+			continue
+		}
+		visiting[nodes[i].ID] = true
+		nodes[i].Children = buildTreeSafe(children[nodes[i].ID], children, visiting)
+		delete(visiting, nodes[i].ID)
 	}
 	return nodes
 }
@@ -232,6 +242,23 @@ func (r *Repository) RoleMenuIDs(ctx context.Context, roleID uuid.UUID) ([]uuid.
 		ids = append(ids, uuid.UUID(row.Bytes))
 	}
 	return ids, nil
+}
+
+func (r *Repository) RolePermissionCodes(ctx context.Context, roleID uuid.UUID) ([]string, error) {
+	return sqlc.New(r.pool).ListRolePermissionCodes(ctx, pgUUID(roleID))
+}
+
+func (r *Repository) MenuIsDescendant(ctx context.Context, menuID, descendantID uuid.UUID) (bool, error) {
+	rows, err := sqlc.New(r.pool).ListMenuDescendantIDs(ctx, pgUUID(menuID))
+	if err != nil {
+		return false, err
+	}
+	for _, row := range rows {
+		if uuid.UUID(row.Bytes) == descendantID {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (r *Repository) CreateMenu(ctx context.Context, input domain.MenuInput) (domain.Menu, error) {

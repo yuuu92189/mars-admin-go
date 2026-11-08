@@ -1,6 +1,6 @@
 # Test And Verification Report
 
-Execution date: 2026-11-07 through 2026-11-08
+Execution date: 2026-11-08 through 2026-11-09
 
 ## Results
 
@@ -18,15 +18,23 @@ Execution date: 2026-11-07 through 2026-11-08
 | sqlc generation | `go tool sqlc generate` v1.30.0 | pass |
 | oapi-codegen | `go tool oapi-codegen` v2.8.0 | pass |
 | Testcontainers integration | PostgreSQL 18.6 + Redis 8.10.1 | pass |
-| Docker build | multi-stage build, Alpine runtime fallback because GCR is blocked here | pass |
+| Docker build | multi-stage build, Alpine runtime fallback because GCR is blocked here; 1.82 MB backend context | pass |
 | Docker Compose | PostgreSQL, Redis, migration, API, Worker | API healthy, Worker running |
-| Migrations | Goose through version 15 | pass |
+| Helm chart | `helm lint` and `helm template` via Docker | pass |
+| GitHub workflow syntax | `actionlint` via Docker | pass |
+| Migrations | Goose through version 25 | pass |
+| Payment ledger and replay | PostgreSQL integration: amount binding, event dedupe, rejected mismatch | pass |
+| Scheduler concurrency | PostgreSQL advisory lock same-key exclusion and release | pass |
+| Legacy token migration | Raw Authorization and WebSocket query token rejection tests | pass |
+| Cutover rehearsal | isolated PostgreSQL restore and row-count verification | pass |
 | Readiness | `/health/ready` | 200 |
 | Metrics/docs | `/metrics`, `/openapi.yaml`, `/docs` | served |
 | Full legacy import | MySQL 8.0.36 dump to isolated PostgreSQL 18.6 | 397 users, 0 failed rows |
 | Import idempotency | second full import run | 0 inserted, 0 failed, 2,605 skipped |
 | Vue build | `npm run build` | pass |
 | Vue compatibility | Vite app logged into Go API, primary pages exercised | pass |
+| Phase 4 frontend checks | `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm check:api-types`, `pnpm build` | pass |
+| Phase 4 Go-backed E2E | Playwright against current API; visual suite included | see Phase 4 acceptance |
 
 ## Runtime Scenarios Observed
 
@@ -41,7 +49,7 @@ Execution date: 2026-11-07 through 2026-11-08
 - TOTP MFA setup, enable, required-code response (`428`), MFA login and disable completed successfully.
 - File upload recorded SHA-256 metadata and download returned the same byte count.
 - Direct message idempotency rejected the second use of a `clientMessageId` with `409`.
-- WebSocket connection returned `connected`; ping returned `pong`.
+- WebSocket connection returned `connected`; ping returned `pong` using Bearer authentication.
 - Notice publication created recipient rows and appeared in the current user's inbox.
 - Workflow definition publication, instance start and approval completed with `approved`.
 - Scheduler job execution persisted a River job and completed with `succeeded`.
@@ -68,6 +76,9 @@ Execution date: 2026-11-07 through 2026-11-08
 - legacy numeric unread counts
 - legacy direct-message send with `msgType`
 - codegen import, persisted list and preview
+- payment order/callback idempotency and amount/currency mismatch
+- scheduler same-key advisory lock exclusion
+- raw Authorization and WebSocket query-token rejection
 
 The full legacy dump validation is documented in `docs/database/import-validation.md`; machine-readable evidence is in `docs/migration/full-import-report.json` and `docs/migration/full-import-idempotency-report.json`.
 
@@ -75,4 +86,5 @@ The full legacy dump validation is documented in `docs/database/import-validatio
 
 - The host lacks a Windows C compiler, so Race Detector was executed inside the official Go Linux image.
 - `gcr.io` is unreachable from this host. The Dockerfile default remains the required distroless image; the local Compose runtime fallback is `alpine:3.22`.
+- Backend CI was added locally; its remote run remains pending until an authorized push.
 - Real social, SMS, payment, push, mail and object-storage credentials were unavailable. Their interfaces return explicit not-configured errors instead of fake success.

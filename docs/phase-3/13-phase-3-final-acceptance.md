@@ -1,5 +1,8 @@
 # Phase 3 Final Acceptance
 
+> Historical Phase 3 acceptance record. The security domains named below are excluded by the
+> Phase 4 business-scope decision, not unfinished Phase 3 deliverables.
+
 Status: ACCEPTED WITH CONDITIONS
 
 ## Accepted Scope
@@ -48,7 +51,9 @@ Each page has:
 
 ## Conditions
 
-1. Vulnerability asset, vulnerability management, and repair work-order pages remain intentionally unimplemented. The Go repository has no canonical domain, schema, API, permissions, or approved product scope for them.
+1. Asset Management, Vulnerability Management and Remediation Work Orders are explicitly excluded
+   by the Phase 4 business-scope decision. They are not unfinished deliverables and no table, API,
+   permission, menu or page will be added for them.
 2. Vue visual references use deterministic fixtures. React uses live Go data, so row counts, timestamps, chart values, and empty-state combinations differ. No React runtime fixture path is used.
 3. Historical audit charts use the latest 100 audit/login events where dedicated historical statistics APIs are not available.
 
@@ -61,4 +66,5 @@ Both workflows completed successfully for code commit `1054449b74d980fd301c9885a
 
 ## Conclusion
 
-Phase 3 is accepted for the complete Go-supported business surface with the documented vulnerability-domain and historical-statistics conditions. No PARTIAL or missing page is reported as PASS.
+Phase 3 is accepted for the complete Go-supported business surface with the documented
+historical-statistics conditions. Excluded security domains are not counted as missing pages.

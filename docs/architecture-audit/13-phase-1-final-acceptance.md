@@ -1,5 +1,8 @@
 # Phase 1 Final Acceptance
 
+> Historical Phase 1 acceptance record. Phase 4 later excluded Asset Management, Vulnerability
+> Management and Remediation Work Orders from the project scope.
+
 ## 1. 验收摘要
 
 | 项目 | 值 |
@@ -173,9 +176,9 @@ Workflow 实例列表、详情和事件读取使用统一可见性谓词，支�
 
 - 当前没有 tenant 模型和 `tenant_id` 隔离；多租户产品化前必须补充租户边界测试和迁移方案。
 
-### 产品决策后处理
+### 其他产品决策
 
-- 漏洞资产、漏洞和修复工单领域尚未实现。
+- 漏洞资产、漏洞和修复工单已被 Phase 4 明确排除，不是未实现项。
 - AI assistant 和支付订单账本仍依赖产品/Provider 决策。
 - 外部 Provider 只能声明至少一次投递，不能声明严格 exactly-once。
 - 生产数据切换、Provider 凭证、对象存储真实集成和回调地址未验证。
@@ -194,7 +197,7 @@ Phase 1 当前单租户 Go 后端契约基线可以进入 Phase 2；条件如下
 
 1. Phase 2 只消费当前 canonical `/api/v1` 契约和生成类型。
 2. 任何部署不得宣称已经具备跨租户隔离，除非先完成 tenant 模型和跨租户测试。
-3. 漏洞、AI、支付、外部 Provider 和生产数据切换仍需单独的产品与安全批准。
+3. AI、支付、外部 Provider 和生产数据切换仍需单独的产品与安全批准。
 4. Phase 2 前端必须先建立真实 API 接入、权限拒绝、Session/CSRF、错误分支和截图/E2E 基线，不能以静态页面替代。
 
 如果产品要求多租户隔离或本轮要求把租户能力视为 Phase 1 完成条件，则结论应改为 `NOT ACCEPTED`，直到租户模型和跨租户测试完成。

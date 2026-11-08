@@ -1,0 +1,80 @@
+name: Backend CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - "api/**"
+      - "db/**"
+      - "sqlc.yaml"
+      - "Dockerfile"
+      - "compose.yaml"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - "api/**"
+      - "db/**"
+      - "sqlc.yaml"
+      - "Dockerfile"
+      - "compose.yaml"
+      - ".github/workflows/backend-ci.yml"
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Check Go formatting
+        run: test -z "$(gofmt -l .)"
+      - name: Run Go vet
+        run: CGO_ENABLED=0 go vet ./...
+      - name: Run Go tests
+        run: CGO_ENABLED=0 go test ./...
+      - name: Verify generated Go sources
+        run: |
+          CGO_ENABLED=0 go tool sqlc generate
+          CGO_ENABLED=0 go tool oapi-codegen -config api/oapi-codegen.yaml api/openapi/v1/openapi.yaml
+          git diff --exit-code
+
+  integration:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run real PostgreSQL and Redis integration tests
+        run: CGO_ENABLED=0 go test -tags=integration ./... -count=1
+
+  race:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run Go race detector
+        run: go test -race ./...

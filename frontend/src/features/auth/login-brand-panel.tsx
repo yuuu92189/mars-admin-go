@@ -9,12 +9,12 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { ChevronRight, Database, Shield, ShieldCheck, TriangleAlert, Wrench } from "lucide-react";
+import { ChevronRight, Fingerprint, GitBranch, KeyRound, ScrollText, Shield } from "lucide-react";
 import { BrandMark } from "@/components/business/brand-mark";
 import { APP } from "@/lib/config";
 import styles from "./login-brand-panel.module.css";
 
-type StageIcon = "database" | "alert" | "tool" | "role";
+type StageIcon = "identity" | "access" | "workflow" | "audit";
 
 type Stage = {
   name: string;
@@ -30,47 +30,47 @@ type Stage = {
 
 const STAGES: Stage[] = [
   {
-    name: "资产管理",
-    icon: "database",
-    brief: "厘清资产全貌",
+    name: "身份认证",
+    icon: "identity",
+    brief: "统一登录与 MFA",
     tone: 2,
     mark: "✓",
-    cmd: "vulnctl assets --scan",
-    out: "inventory synced · 0 drift",
-    spin: "streaming",
+    cmd: "marsctl auth --verify",
+    out: "session issued · mfa ready",
+    spin: "authenticating",
     dots: 21,
   },
   {
-    name: "漏洞分级",
-    icon: "alert",
-    brief: "聚焦关键风险",
+    name: "权限治理",
+    icon: "access",
+    brief: "角色与数据范围",
     tone: 1,
-    mark: "▲",
-    cmd: "vulnctl vuln --triage",
-    out: "severity mapped · flagged for review",
-    spin: "scoring",
+    mark: "✓",
+    cmd: "marsctl access --policy",
+    out: "rbac synced · scope enforced",
+    spin: "authorizing",
     dots: 23,
   },
   {
-    name: "修复工单",
-    icon: "tool",
-    brief: "让修复有序推进",
+    name: "审批流程",
+    icon: "workflow",
+    brief: "状态与审计一致",
     tone: 3,
     mark: "→",
-    cmd: "vulnctl fix --track",
-    out: "patch in progress · owner assigned",
-    spin: "syncing",
+    cmd: "marsctl workflow --approve",
+    out: "decision locked · audit recorded",
+    spin: "approving",
     dots: 23,
   },
   {
-    name: "复测闭环",
-    icon: "role",
-    brief: "让结果可追溯",
+    name: "审计追踪",
+    icon: "audit",
+    brief: "操作全程可追溯",
     tone: 5,
     mark: "✓",
-    cmd: "vulnctl verify --close",
-    out: "loop closed · risk cleared",
-    spin: "watching",
+    cmd: "marsctl audit --trace",
+    out: "events indexed · trace linked",
+    spin: "auditing",
     dots: 22,
   },
 ];
@@ -94,10 +94,10 @@ function getReducedMotionServerSnapshot() {
 
 function stageIcon(name: StageIcon): ReactNode {
   const props = { size: 18, strokeWidth: 1.6 };
-  if (name === "database") return <Database {...props} />;
-  if (name === "alert") return <TriangleAlert {...props} />;
-  if (name === "tool") return <Wrench {...props} />;
-  return <ShieldCheck {...props} />;
+  if (name === "identity") return <Fingerprint {...props} />;
+  if (name === "access") return <KeyRound {...props} />;
+  if (name === "workflow") return <GitBranch {...props} />;
+  return <ScrollText {...props} />;
 }
 
 export function LoginBrandPanel() {
@@ -191,24 +191,24 @@ export function LoginBrandPanel() {
         </div>
         <span className={styles.brandEdition}>
           <Shield size={13} />
-          风险治理 · 全程可循
+          统一后台 · 全程可循
         </span>
       </div>
 
       <div className={`${styles.brandCopy} brand-copy`}>
         <div className={styles.introLabel}>
           <span />
-          让风险治理，更进一步
+          让系统治理，更进一步
         </div>
         <h1 id="brand-title">
-          万物皆有裂痕，
+          万物皆有秩序，
           <br />
-          <span>那是光照进来的地方。</span>
+          <span>复杂亦有迹可循。</span>
         </h1>
         <p>
-          以金修补裂痕，以流程治理风险——
+          以清晰的边界承载业务——
           <br />
-          发现、修复、复测，皆有迹可循。
+          身份、权限、流程，皆有迹可循。
         </p>
       </div>
 
@@ -220,7 +220,7 @@ export function LoginBrandPanel() {
               <i />
               <i />
             </span>
-            <span className={styles.termTag}>vulnctl — live</span>
+            <span className={styles.termTag}>marsctl — live</span>
           </div>
           <code>
             <span className={styles.prompt}>$</span> {displayedCmd}
@@ -245,7 +245,7 @@ export function LoginBrandPanel() {
         </div>
       </div>
 
-      <div className={`${styles.journey} journey`} role="group" aria-label="漏洞治理流程预览">
+      <div className={`${styles.journey} journey`} role="group" aria-label="后台治理流程预览">
         {STAGES.map((stage, index) => (
           <Fragment key={stage.name}>
             <button
@@ -278,7 +278,7 @@ export function LoginBrandPanel() {
         <span>{APP.copyright}</span>
         <span className={styles.footerSign}>
           <Shield size={12} />
-          资产有序 · 风险可控
+          边界清晰 · 运行可控
         </span>
       </footer>
     </section>

@@ -112,6 +112,35 @@ func TestCSRFCoversLegacyAndRefreshCookieFlows(t *testing.T) {
 	}
 }
 
+func TestAccessTokenRequiresBearerOrSessionCookie(t *testing.T) {
+	request := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/api/v1/auth/me", nil)
+	request.Header.Set("Authorization", "raw-legacy-token")
+	token, fromCookie := accessToken(request)
+	if token != "" || fromCookie {
+		t.Fatalf("raw Authorization must be rejected, got token=%q fromCookie=%v", token, fromCookie)
+	}
+
+	request.Header.Set("Authorization", "Bearer bearer-token")
+	token, fromCookie = accessToken(request)
+	if token != "bearer-token" || fromCookie {
+		t.Fatalf("Bearer token not accepted, got token=%q fromCookie=%v", token, fromCookie)
+	}
+
+	request.Header.Del("Authorization")
+	request.AddCookie(&http.Cookie{
+		Name:     "mars_session",
+		Value:    "cookie-token",
+		Path:     "/",
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	token, fromCookie = accessToken(request)
+	if token != "cookie-token" || !fromCookie {
+		t.Fatalf("session cookie not accepted, got token=%q fromCookie=%v", token, fromCookie)
+	}
+}
+
 func TestRecoverDoesNotAppendErrorAfterHeadersCommitted(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := Recover(logger)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

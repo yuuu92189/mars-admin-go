@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "backup": "/tmp/mars-admin-rehearsal.dump",
+  "checksum": "bd1f1260815faa7ac2f82bd626c5fcc57c187c7aecc8743f1a7be051dd58f19a  /tmp/mars-admin-rehearsal.dump",
+  "migrationVersion": 25,
+  "rowCounts": {
+    "identity_users": 32,
+    "access_menus": 26,
+    "system_settings": 8,
+    "payment_orders": 0
+  }
+}

@@ -30,21 +30,26 @@ type SocialLoginProvider interface {
 }
 
 type PaymentRequest struct {
-	OrderID     string
-	AmountCents int64
-	Subject     string
-	ReturnURL   string
-	NotifyURL   string
+	OrderID     string `json:"orderId"`
+	AmountCents int64  `json:"amountCents"`
+	Currency    string `json:"currency"`
+	Subject     string `json:"subject"`
+	ReturnURL   string `json:"returnUrl"`
+	NotifyURL   string `json:"notifyUrl"`
 }
 
 type PaymentSession struct {
-	Provider string
-	Payload  map[string]string
+	Provider   string            `json:"provider"`
+	OrderID    string            `json:"orderId"`
+	PaymentURL string            `json:"paymentUrl,omitempty"`
+	ExpiresAt  *time.Time        `json:"expiresAt,omitempty"`
+	Payload    map[string]string `json:"payload,omitempty"`
 }
 
 type PaymentProvider interface {
 	Create(ctx context.Context, request PaymentRequest) (PaymentSession, error)
 	VerifyCallback(ctx context.Context, headers map[string]string, body []byte) error
+	ParseCallback(ctx context.Context, headers map[string]string, body []byte) (PaymentCallback, error)
 }
 
 type PushProvider interface {
@@ -173,6 +178,10 @@ func (p UnconfiguredProvider) Create(context.Context, PaymentRequest) (PaymentSe
 
 func (p UnconfiguredProvider) VerifyCallback(context.Context, map[string]string, []byte) error {
 	return ErrNotConfigured
+}
+
+func (p UnconfiguredProvider) ParseCallback(context.Context, map[string]string, []byte) (PaymentCallback, error) {
+	return PaymentCallback{}, ErrNotConfigured
 }
 
 func (p UnconfiguredProvider) Send(context.Context, string, string, string) error {

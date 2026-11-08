@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -66,7 +67,7 @@ func (h *Handler) legacyDefinitions(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	items, _, err := h.service.Definitions(r.Context(), r.URL.Query().Get("status"), 1, 1000)
+	items, err := h.allDefinitions(r.Context(), r.URL.Query().Get("status"))
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -112,7 +113,7 @@ func (h *Handler) legacyDefinition(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) legacyPublishedDefinitions(w http.ResponseWriter, r *http.Request) {
-	items, _, err := h.service.Definitions(r.Context(), "published", 1, 1000)
+	items, err := h.allDefinitions(r.Context(), "published")
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -122,6 +123,22 @@ func (h *Handler) legacyPublishedDefinitions(w http.ResponseWriter, r *http.Requ
 		result = append(result, legacyDefinition(item))
 	}
 	httpserver.WriteJSON(w, http.StatusOK, result)
+}
+
+func (h *Handler) allDefinitions(ctx context.Context, status string) ([]domain.Definition, error) {
+	const pageSize = 100
+	items := make([]domain.Definition, 0)
+	for page := 1; page <= 100; page++ {
+		pageItems, total, err := h.service.Definitions(ctx, status, page, pageSize)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, pageItems...)
+		if len(pageItems) == 0 || int64(len(items)) >= total {
+			return items, nil
+		}
+	}
+	return items, nil
 }
 
 func (h *Handler) legacyInstances(w http.ResponseWriter, r *http.Request) {
@@ -338,7 +355,7 @@ func (h *Handler) terminate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	actor, _ := requestctx.ActorFrom(r.Context())
-	instance, err := h.service.Terminate(r.Context(), id, actor.UserID, firstNonEmpty(input.Comment, input.Message))
+	instance, err := h.service.Terminate(r.Context(), workflowActor(actor), id, firstNonEmpty(input.Comment, input.Message))
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return

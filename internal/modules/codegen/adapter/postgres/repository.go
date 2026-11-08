@@ -218,12 +218,17 @@ func (r *Repository) UpdateImportedTable(ctx context.Context, table domain.Impor
 }
 
 func (r *Repository) DeleteImportedTables(ctx context.Context, ids []uuid.UUID) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
 	for _, id := range ids {
-		if _, err := r.pool.Exec(ctx, `DELETE FROM codegen_imported_tables WHERE id = $1`, id); err != nil {
+		if _, err := tx.Exec(ctx, `DELETE FROM codegen_imported_tables WHERE id = $1`, id); err != nil {
 			return err
 		}
 	}
-	return nil
+	return tx.Commit(ctx)
 }
 
 type rowScanner interface {

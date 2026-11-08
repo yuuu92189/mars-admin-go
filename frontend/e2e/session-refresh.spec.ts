@@ -21,8 +21,8 @@ test("expired access session refreshes through the BFF and returns to the dashbo
   await page.getByLabel("密码").fill(password ?? "");
   const captcha = page.getByPlaceholder("请输入计算结果");
   if (await captcha.isVisible()) await captcha.fill("1");
-  await page.getByRole("button", { name: "登录" }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
+  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
   await expect(page.getByRole("heading", { name: "登录脉搏" })).toBeVisible();
 
   await page.waitForTimeout(sessionTtl * 1000 + 1_500);

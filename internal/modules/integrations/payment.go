@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"crypto"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -30,6 +32,7 @@ type WeChatPayConfig struct {
 	PrivateKeyPEM        string
 	PlatformPublicKeyPEM string
 	PlatformSerialNumber string
+	APIv3Key             string
 	HTTPClient           *http.Client
 	Now                  func() time.Time
 }
@@ -124,7 +127,10 @@ func (p *WeChatPay) Create(ctx context.Context, request PaymentRequest) (Payment
 	if result.CodeURL == "" {
 		return PaymentSession{}, errors.New("WeChat Pay response did not include code_url")
 	}
-	return PaymentSession{Provider: "wechat", Payload: map[string]string{"codeUrl": result.CodeURL}}, nil
+	return PaymentSession{
+		Provider: "wechat", PaymentURL: result.CodeURL,
+		Payload: map[string]string{"codeUrl": result.CodeURL},
+	}, nil
 }
 
 func (p *WeChatPay) VerifyCallback(_ context.Context, headers map[string]string, body []byte) error {
@@ -138,6 +144,14 @@ func (p *WeChatPay) VerifyCallback(_ context.Context, headers map[string]string,
 	if timestamp == "" || nonceValue == "" || signature == "" {
 		return errors.New("missing WeChat Pay signature headers")
 	}
+	timestampValue, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		return errors.New("invalid WeChat Pay timestamp")
+	}
+	now := p.now().Unix()
+	if timestampValue < now-300 || timestampValue > now+300 {
+		return errors.New("stale WeChat Pay callback timestamp")
+	}
 	if p.config.PlatformSerialNumber != "" && serial != p.config.PlatformSerialNumber {
 		return errors.New("unexpected WeChat Pay platform certificate serial")
 	}
@@ -147,6 +161,55 @@ func (p *WeChatPay) VerifyCallback(_ context.Context, headers map[string]string,
 	}
 	message := timestamp + "\n" + nonceValue + "\n" + string(body) + "\n"
 	return verifyRSASHA256(p.publicKey, message, decodedSignature)
+}
+
+func (p *WeChatPay) ParseCallback(ctx context.Context, headers map[string]string, body []byte) (PaymentCallback, error) {
+	if err := p.VerifyCallback(ctx, headers, body); err != nil {
+		return PaymentCallback{}, err
+	}
+	var envelope struct {
+		ID        string `json:"id"`
+		EventType string `json:"event_type"`
+		Resource  struct {
+			Algorithm      string `json:"algorithm"`
+			Ciphertext     string `json:"ciphertext"`
+			Nonce          string `json:"nonce"`
+			AssociatedData string `json:"associated_data"`
+		} `json:"resource"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return PaymentCallback{}, fmt.Errorf("decode WeChat Pay callback: %w", err)
+	}
+	if envelope.ID == "" {
+		return PaymentCallback{}, errors.New("WeChat Pay callback is missing id")
+	}
+	plaintext, err := decryptWeChatResource(p.config.APIv3Key, envelope.Resource.Ciphertext, envelope.Resource.Nonce, envelope.Resource.AssociatedData)
+	if err != nil {
+		return PaymentCallback{}, err
+	}
+	var resource struct {
+		OutTradeNo    string `json:"out_trade_no"`
+		TransactionID string `json:"transaction_id"`
+		TradeState    string `json:"trade_state"`
+		SuccessTime   string `json:"success_time"`
+		Amount        struct {
+			Total    int64  `json:"total"`
+			Currency string `json:"currency"`
+		} `json:"amount"`
+	}
+	if err := json.Unmarshal(plaintext, &resource); err != nil {
+		return PaymentCallback{}, fmt.Errorf("decode WeChat Pay resource: %w", err)
+	}
+	status := paymentStatus(resource.TradeState)
+	if status == "" {
+		return PaymentCallback{}, fmt.Errorf("unsupported WeChat Pay trade state %q", resource.TradeState)
+	}
+	paidAt := parseOptionalPaymentTime(resource.SuccessTime)
+	return PaymentCallback{
+		EventID: envelope.ID, MerchantOrderID: resource.OutTradeNo,
+		ProviderTransactionID: resource.TransactionID, AmountCents: resource.Amount.Total,
+		Currency: strings.ToUpper(resource.Amount.Currency), Status: status, PaidAt: paidAt,
+	}, nil
 }
 
 type AlipayConfig struct {
@@ -231,8 +294,9 @@ func (p *Alipay) Create(_ context.Context, request PaymentRequest) (PaymentSessi
 	} else {
 		endpoint += "?"
 	}
-	return PaymentSession{Provider: "alipay", Payload: map[string]string{
-		"url": endpoint + values.Encode(),
+	paymentURL := endpoint + values.Encode()
+	return PaymentSession{Provider: "alipay", PaymentURL: paymentURL, Payload: map[string]string{
+		"url": paymentURL,
 	}}, nil
 }
 
@@ -248,6 +312,9 @@ func (p *Alipay) VerifyCallback(_ context.Context, _ map[string]string, body []b
 	if signatureValue == "" {
 		return errors.New("missing Alipay callback signature")
 	}
+	if appID := values.Get("app_id"); appID != "" && appID != p.config.AppID {
+		return errors.New("unexpected Alipay app_id")
+	}
 	if signType := values.Get("sign_type"); signType != "" && signType != "RSA2" {
 		return errors.New("unsupported Alipay signature type")
 	}
@@ -256,6 +323,33 @@ func (p *Alipay) VerifyCallback(_ context.Context, _ map[string]string, body []b
 		return errors.New("invalid Alipay signature encoding")
 	}
 	return verifyRSASHA256(p.publicKey, canonicalAlipayForm(values, true), signature)
+}
+
+func (p *Alipay) ParseCallback(ctx context.Context, headers map[string]string, body []byte) (PaymentCallback, error) {
+	if err := p.VerifyCallback(ctx, headers, body); err != nil {
+		return PaymentCallback{}, err
+	}
+	values, err := url.ParseQuery(string(body))
+	if err != nil {
+		return PaymentCallback{}, errors.New("invalid Alipay callback form")
+	}
+	amount, err := parseCurrencyCents(values.Get("total_amount"))
+	if err != nil {
+		return PaymentCallback{}, err
+	}
+	status := paymentStatus(values.Get("trade_status"))
+	if status == "" {
+		return PaymentCallback{}, fmt.Errorf("unsupported Alipay trade status %q", values.Get("trade_status"))
+	}
+	eventID := values.Get("notify_id")
+	if eventID == "" {
+		eventID = values.Get("trade_no")
+	}
+	return PaymentCallback{
+		EventID: eventID, MerchantOrderID: values.Get("out_trade_no"),
+		ProviderTransactionID: values.Get("trade_no"), AmountCents: amount,
+		Currency: "CNY", Status: status, PaidAt: parseOptionalPaymentTime(values.Get("gmt_payment")),
+	}, nil
 }
 
 func canonicalAlipayForm(values url.Values, excludeSignature bool) string {
@@ -341,6 +435,100 @@ func headerValue(headers map[string]string, name string) string {
 		}
 	}
 	return ""
+}
+
+func paymentStatus(value string) string {
+	switch strings.ToUpper(strings.TrimSpace(value)) {
+	case "SUCCESS", "TRADE_SUCCESS", "TRADE_FINISHED":
+		return "paid"
+	case "CLOSED", "REVOKED", "PAYERROR", "TRADE_CLOSED":
+		return "failed"
+	default:
+		return ""
+	}
+}
+
+func parseOptionalPaymentTime(value string) *time.Time {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	for _, layout := range []string{time.RFC3339Nano, "2006-01-02 15:04:05"} {
+		if parsed, err := time.Parse(layout, value); err == nil {
+			parsed = parsed.UTC()
+			return &parsed
+		}
+	}
+	return nil
+}
+
+func parseCurrencyCents(value string) (int64, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, errors.New("payment amount is required")
+	}
+	parts := strings.Split(value, ".")
+	if len(parts) > 2 || parts[0] == "" {
+		return 0, errors.New("invalid payment amount")
+	}
+	whole, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil || whole < 0 {
+		return 0, errors.New("invalid payment amount")
+	}
+	fraction := ""
+	if len(parts) == 2 {
+		fraction = parts[1]
+		if len(fraction) > 2 {
+			return 0, errors.New("payment amount has more than two decimal places")
+		}
+		fraction += strings.Repeat("0", 2-len(fraction))
+	} else {
+		fraction = "00"
+	}
+	cents, err := strconv.ParseInt(fraction, 10, 64)
+	if err != nil || whole > (1<<63-1)/100 {
+		return 0, errors.New("invalid payment amount")
+	}
+	return whole*100 + cents, nil
+}
+
+func decryptWeChatResource(apiV3Key, ciphertext, nonce, associatedData string) ([]byte, error) {
+	key, err := decodeAPIv3Key(apiV3Key)
+	if err != nil {
+		return nil, err
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, fmt.Errorf("create WeChat Pay cipher: %w", err)
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("create WeChat Pay GCM: %w", err)
+	}
+	encrypted, err := base64.StdEncoding.DecodeString(ciphertext)
+	if err != nil {
+		return nil, errors.New("invalid WeChat Pay resource ciphertext")
+	}
+	nonceBytes, err := base64.StdEncoding.DecodeString(nonce)
+	if err != nil || len(nonceBytes) != gcm.NonceSize() {
+		return nil, errors.New("invalid WeChat Pay resource nonce")
+	}
+	plaintext, err := gcm.Open(nil, nonceBytes, encrypted, []byte(associatedData))
+	if err != nil {
+		return nil, errors.New("WeChat Pay resource decryption failed")
+	}
+	return plaintext, nil
+}
+
+func decodeAPIv3Key(value string) ([]byte, error) {
+	if len(value) == 32 {
+		return []byte(value), nil
+	}
+	decoded, err := base64.StdEncoding.DecodeString(value)
+	if err != nil || len(decoded) != 32 {
+		return nil, errors.New("WECHAT_PAY_API_V3_KEY must be 32 raw bytes or base64-encoded 32 bytes")
+	}
+	return decoded, nil
 }
 
 var _ PaymentProvider = (*WeChatPay)(nil)

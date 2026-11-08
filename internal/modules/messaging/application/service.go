@@ -201,6 +201,9 @@ func (s *Service) MuteMember(ctx context.Context, groupID, actorID, memberID uui
 }
 
 func (s *Service) TransferOwner(ctx context.Context, groupID, actorID, newOwnerID uuid.UUID) error {
+	if newOwnerID == uuid.Nil || newOwnerID == actorID {
+		return apperror.Validation("newOwnerId", "A different valid group member is required.")
+	}
 	return s.repo.TransferOwner(ctx, groupID, actorID, newOwnerID)
 }
 
@@ -282,7 +285,7 @@ func normalizeMessage(input *domain.SendInput) error {
 		input.MessageType = "text"
 	}
 	switch input.MessageType {
-	case "text", "image", "file", "system":
+	case "text", "image", "file":
 	default:
 		return apperror.Validation("messageType", "Unsupported message type.")
 	}

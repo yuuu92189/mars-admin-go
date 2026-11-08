@@ -470,7 +470,7 @@ func (r *Repository) Decide(ctx context.Context, actor domain.Actor, input domai
 	return mapTask(taskRow), mapInstance(instanceRow, ""), nil
 }
 
-func (r *Repository) Terminate(ctx context.Context, instanceID, actorID uuid.UUID, comment string) (domain.Instance, error) {
+func (r *Repository) Terminate(ctx context.Context, instanceID uuid.UUID, actor domain.Actor, comment string) (domain.Instance, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return domain.Instance{}, err
@@ -507,7 +507,7 @@ func (r *Repository) Terminate(ctx context.Context, instanceID, actorID uuid.UUI
 	}
 	if err := q.CreateWorkflowEvent(ctx, sqlc.CreateWorkflowEventParams{
 		ID: pgUUID(mustID()), InstanceID: pgUUID(instanceID), TaskID: pgtype.UUID{},
-		ActorUserID: pgUUID(actorID), EventType: "terminated", FromNodeCode: row.CurrentNodeCode,
+		ActorUserID: pgUUID(actor.UserID), EventType: "terminated", FromNodeCode: row.CurrentNodeCode,
 		ToNodeCode: pgtype.Text{}, Comment: comment, Metadata: []byte(`{}`),
 	}); err != nil {
 		return domain.Instance{}, err

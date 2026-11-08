@@ -48,6 +48,24 @@ func TestSchedulerTickRollsBackWhenRiverInsertFails(t *testing.T) {
 	t.Cleanup(pool.Close)
 	require.NoError(t, database.RunMigrations(ctx, pool, "up"))
 
+	first, err := pool.Acquire(ctx)
+	require.NoError(t, err)
+	defer first.Release()
+	second, err := pool.Acquire(ctx)
+	require.NoError(t, err)
+	defer second.Release()
+	acquired, err := tryConcurrencyLock(ctx, first, "same-key")
+	require.NoError(t, err)
+	require.True(t, acquired)
+	acquired, err = tryConcurrencyLock(ctx, second, "same-key")
+	require.NoError(t, err)
+	require.False(t, acquired)
+	require.NoError(t, releaseConcurrencyLock(ctx, first, "same-key"))
+	acquired, err = tryConcurrencyLock(ctx, second, "same-key")
+	require.NoError(t, err)
+	require.True(t, acquired)
+	require.NoError(t, releaseConcurrencyLock(ctx, second, "same-key"))
+
 	jobID := uuid.New()
 	_, err = pool.Exec(ctx, `
 		INSERT INTO scheduler_jobs (

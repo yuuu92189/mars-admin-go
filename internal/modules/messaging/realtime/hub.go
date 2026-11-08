@@ -42,6 +42,7 @@ type Hub struct {
 	metrics   prometheus.GaugeFunc
 	origins   []string
 	heartbeat time.Duration
+	cancel    context.CancelFunc
 }
 
 type client struct {
@@ -76,17 +77,17 @@ func (h *Hub) Start(ctx context.Context) error {
 	if h.redis == nil {
 		return nil
 	}
-	go h.subscribe(ctx)
+	subscribeCtx, cancel := context.WithCancel(ctx)
+	h.cancel = cancel
+	go h.subscribe(subscribeCtx)
 	return nil
 }
 
 func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
-	if token == "" {
-		token = strings.TrimSpace(r.Header.Get("Authorization"))
-		if parts := strings.Fields(token); len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
-			token = parts[1]
-		}
+	token := ""
+	raw := strings.TrimSpace(r.Header.Get("Authorization"))
+	if parts := strings.Fields(raw); len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+		token = parts[1]
 	}
 	if token == "" {
 		if cookie, err := r.Cookie("mars_session"); err == nil {
@@ -308,6 +309,9 @@ func (h *Hub) unregister(c *client) {
 
 func (h *Hub) Close(ctx context.Context) error {
 	h.closed.Store(true)
+	if h.cancel != nil {
+		h.cancel()
+	}
 	h.mu.RLock()
 	connections := make([]*client, 0, h.count.Load())
 	for _, clients := range h.clients {

@@ -1,48 +1,75 @@
 # Engineering Status
 
+Updated: 2026-11-09
+
+## Current State
+
+Phase 4 completed a repository-wide audit and remediation pass against the current Go source,
+database migrations, OpenAPI contract, React pages and automated test suites.
+
+- Go module directories: 14 (`access`, `audit`, `codegen`, `identity`, `integrations`,
+  `messaging`, `monitoring`, `notification`, `organization`, `outbox`, `scheduler`, `storage`,
+  `system`, `workflow`).
+- Canonical OpenAPI operations: 137 (12 public, 12 authenticated-only, 113 business-permission
+  routes).
+- Goose migrations: 25, latest `000025_payment_ledger.sql`.
+- React App Router pages: 18, including all 13 Go-supported business pages.
+- Go test functions: 91 across unit, domain, security, contract and integration tests.
+- Frontend tests: 20 files / 58 Vitest tests.
+- Full Go-backed Playwright suite: 52 tests with the visual suite included; the conditional
+  session-refresh test is skipped unless the test TTL environment is supplied.
+- GitHub Actions: frontend CI, frontend E2E and the newly added Backend CI workflow. Backend CI
+  remains pending an authorized push for its first remote run.
+
 ## Implemented
 
-- Phase 1 contract baseline: canonical login fields, metrics authorization, UUID/pagination/error rules, permission metadata, group management OpenAPI, generated TypeScript types and response-body-bearing 2xx OpenAPI content.
-- Phase 1 Go governance: Workflow instance Data Scope, SQLSTATE mapping, Identity/Notification sqlc boundary cleanup, Access/Workflow use-case interfaces and explicit Legacy Stub handling.
-- Phase 2 frontend foundation: Next.js App Router, React strict UI foundation, current Vue Kintsugi/Pearl Glass login reconstruction, responsive shell, canonical API proxy, Vitest/RTL/Playwright, direct Vue/React visual comparison and frontend CI definitions.
-- Phase 2.1 frontend hardening: one fail-closed `API_BASE_URL`, single-flight Cookie refresh and BFF Server Component refresh, Vue-aligned appearance/density/Sidebar persistence, recent pages, real user search, real password change, logout confirmation, Shell/Dashboard visual comparison, expanded E2E and Go-backed CI.
-- Independent Go module targeting Go 1.27.3.
-- Explicit dependency injection and modular monolith boundaries.
-- PostgreSQL schema, Goose migrations, sqlc-generated data access and UUIDv7 identifiers.
-- Identity users, Argon2id, durable sessions, refresh rotation, revocation, login lock state.
-- Image/slider captcha, SMS code flow, encrypted TOTP secret and MFA login.
-- Roles, permissions, menus, super-admin policy and permission middleware.
-- User, role, menu and current-user APIs.
-- Department tree using `ltree`, positions and membership persistence.
-- Dictionaries, encrypted settings, revisions, audit events and login events.
-- Local storage and S3-compatible storage adapter, upload validation and private download.
-- Direct/group chat, message idempotency, read receipts, Redis fan-out and WebSocket compatibility.
-- Notices, target resolution, recipients, read state and send logs.
-- River-backed scheduler jobs, cron scanning, run status and timeout.
-- Versioned workflow definitions, safe condition evaluation, approvals, rejection/termination hooks and event history.
-- PostgreSQL introspection and modern Go/OpenAPI preview generation.
-- Persisted code-generation table import, editable generation metadata, schema sync and ZIP download.
-- Prometheus runtime/HTTP/database metrics, OpenTelemetry spans, JSON `slog` logs and request IDs.
-- Expanded OpenAPI 3.1 contract covering canonical auth, access, organization, system, audit, storage, messaging, notification, scheduler, workflow, codegen, monitoring and integration routes.
-- Docker multi-stage build, Compose, optional Helm and legacy HTTP envelope adapter.
-- Unit, benchmark, fuzz, Testcontainers integration, Race, lint and vulnerability checks.
-- Full legacy MySQL dump import completed in an isolated PostgreSQL validation database with zero failed rows and a second idempotent run.
-- Page-by-page Vue compatibility run covering all primary administration, monitoring, messaging, workflow and codegen pages.
+- Identity users, Argon2id, durable sessions, refresh rotation, replay classification and
+  configurable refresh history cleanup.
+- Dynamic captcha and registration policy from public system settings, with server-side
+  enforcement.
+- TOTP MFA setup/enable/disable, including protection against replacing an enabled secret without
+  a deliberate disable flow.
+- RBAC roles, permissions, menus, data scopes and server-side route authorization. Non-super
+  administrators cannot assign roles with unheld permissions or broader data scopes.
+- Department tree with `ltree`, positions, memberships and scoped organization operations.
+- Dictionaries, encrypted sensitive settings, revisions and audited updates.
+- Local and S3-compatible storage with bounded uploads, content checks, private downloads and
+  asynchronous object cleanup.
+- Direct/group messaging, read receipts, Redis fan-out, WebSocket heartbeat and compatibility
+  routes.
+- Notices, target resolution, recipient/read state and River delivery jobs.
+- Scheduler jobs, run history, cron scanning and transactional River enqueue.
+- Scheduler distributed concurrency keys use PostgreSQL advisory locks with bounded River snoozes.
+- Versioned workflows with assignee checks, data-scope reads, row-locked decisions and
+  visibility-checked termination.
+- PostgreSQL introspection, imported table metadata, preview generation and streamed ZIP
+  download.
+- Payment orders, provider callback ledger, amount/currency binding and replay-safe callback
+  processing.
+- Prometheus metrics, OpenTelemetry spans, structured `slog` logs, request IDs and compatibility
+  envelopes.
+- Docker multi-stage build, Compose development stack, Helm templates and legacy HTTP adapter.
+- Raw legacy Authorization headers and WebSocket query tokens are rejected; Bearer and session
+  cookie authentication remain supported.
 
 ## Not Complete Or Not Certifiable Here
 
-- Live Aliyun/Tencent/Qiniu SMS, WeChat Pay, Alipay, social OAuth and push provider calls. Interfaces and not-configured behavior exist; real credentials and callback certification do not.
-- A live S3/MinIO/OSS integration test. The MinIO-compatible adapter builds but was not exercised against a bucket.
-- Production cutover of the legacy data. The full dump has been imported into an isolated validation database; applying it to a production database still requires data-owner approval, secret rotation and downtime/cutover planning.
-- UniApp runtime E2E against a real WeChat toolchain.
-- Vue business-page migration into React is Phase 3+; Phase 2 intentionally ships foundation pages and explicit placeholders.
-- Phase 2.1 is accepted for commit `d64f5ed`: Frontend CI run `42466214627` and Frontend E2E run
-  `42466214592` both passed; manual E2E run `42466874011` also passed on final docs commit
-  `53fbd9f`.
-- SSH server credential management and web terminal were intentionally excluded as unsafe/out of scope.
-- JVM/JDBC console and server credential management are intentionally not reproduced. Go runtime and Prometheus replace JVM metrics.
-- The compatibility browser UI still stores the access token in Pinia persistence and uses the legacy WebSocket query token. New clients should migrate to HttpOnly cookies and CSRF tokens.
+- Live Aliyun/Tencent/Qiniu SMS, WeChat Pay, Alipay, social OAuth, SMTP and push provider
+  certification. Interfaces and explicit not-configured behavior exist; real credentials were not
+  available.
+- Live S3/MinIO/OSS bucket certification.
+- Production legacy-data cutover. The supplied dump was validated in an isolated PostgreSQL
+  database; applying it to production still requires owner approval, secret rotation and a
+  cutover plan.
+- Payment callbacks are signature-verified and locally ledger-tested, but real provider settlement
+  credentials and production certification were unavailable.
+- Existing Vue/UniApp clients must migrate to Bearer or Cookie authentication; the backend no
+  longer accepts raw Authorization headers or WebSocket query tokens.
+- Redis is treated as ephemeral coordination and fan-out, not a business source of truth.
 
 ## Production Gate
 
-Do not announce production readiness until third-party credentials are rotated and live-tested, the validated import report is approved for cutover, UniApp runtime acceptance is complete, and the required distroless image is built in a network that can access GCR.
+Do not announce production readiness until provider credentials are rotated and live-tested, the
+validated import report and production cutover are approved, existing clients complete the
+authentication migration, and the required distroless image is built in an environment that can
+access the runtime registry.

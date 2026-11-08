@@ -1,5 +1,8 @@
 # Page API and Permission Matrix
 
+> Historical Phase 3 record. Asset Management, Vulnerability Management and Remediation Work
+> Orders are excluded by the Phase 4 business-scope decision, not blocked work.
+
 | Page | React route | API operations | Required permission | Backend enforcement | Status |
 | --- | --- | --- | --- | --- | --- |
 | Dashboard | `/dashboard` | `monitoringDashboard`, `listAuditEvents`, `listLoginEvents` | `audit:read` | Route middleware | Implemented |
@@ -15,9 +18,9 @@
 | Operation Logs | `/monitor/operlog` | `listAuditEvents` | `audit:read` | Route middleware | Implemented |
 | Login Logs | `/monitor/loginlog` | `listLoginEvents` | `audit:read` | Route middleware | Implemented |
 | Codegen | `/tool/generator` | `listDatabaseTables`, `listImportedCodegenTables`, `importCodegenTables`, `getImportedCodegenTable`, `updateImportedCodegenTable`, `deleteImportedCodegenTable`, `previewImportedCodegenTable`, `syncImportedCodegenTable`, `downloadGeneratedCode` | `codegen:read/manage` | Route middleware | Implemented |
-| Assets | Not created | No canonical API | Missing | Missing | Blocked |
-| Vulnerabilities | Not created | No canonical API | Missing | Missing | Blocked |
-| Repair Tasks | Not created | No canonical API | Missing | Missing | Blocked |
+| Assets | Not created | No canonical API | Not applicable | Not applicable | EXCLUDED |
+| Vulnerabilities | Not created | No canonical API | Not applicable | Not applicable | EXCLUDED |
+| Repair Tasks | Not created | No canonical API | Not applicable | Not applicable | EXCLUDED |
 
 ## Permission Rules
 

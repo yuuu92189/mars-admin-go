@@ -382,6 +382,40 @@ type OutboxEvent struct {
 	ExecutionDeadline pgtype.Timestamptz `json:"execution_deadline"`
 }
 
+type PaymentCallback struct {
+	ID                    pgtype.UUID        `json:"id"`
+	Provider              string             `json:"provider"`
+	EventID               string             `json:"event_id"`
+	OrderID               pgtype.UUID        `json:"order_id"`
+	ProviderTransactionID string             `json:"provider_transaction_id"`
+	AmountCents           int64              `json:"amount_cents"`
+	Currency              string             `json:"currency"`
+	Status                string             `json:"status"`
+	PayloadHash           string             `json:"payload_hash"`
+	ReceivedAt            pgtype.Timestamptz `json:"received_at"`
+	ProcessedAt           pgtype.Timestamptz `json:"processed_at"`
+	ErrorCode             string             `json:"error_code"`
+}
+
+type PaymentOrder struct {
+	ID                    pgtype.UUID        `json:"id"`
+	Provider              string             `json:"provider"`
+	MerchantOrderID       string             `json:"merchant_order_id"`
+	ProviderOrderID       pgtype.Text        `json:"provider_order_id"`
+	ProviderTransactionID pgtype.Text        `json:"provider_transaction_id"`
+	AmountCents           int64              `json:"amount_cents"`
+	Currency              string             `json:"currency"`
+	Subject               string             `json:"subject"`
+	Status                string             `json:"status"`
+	PaymentUrl            string             `json:"payment_url"`
+	ProviderPayload       []byte             `json:"provider_payload"`
+	ExpiresAt             pgtype.Timestamptz `json:"expires_at"`
+	PaidAt                pgtype.Timestamptz `json:"paid_at"`
+	CreatedBy             pgtype.UUID        `json:"created_by"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+}
+
 type SchedulerJob struct {
 	ID             pgtype.UUID        `json:"id"`
 	Name           string             `json:"name"`

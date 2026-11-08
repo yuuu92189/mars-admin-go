@@ -135,7 +135,11 @@ func SecurityHeaders(trustedProxyCIDRs []string) func(http.Handler) http.Handler
 			w.Header().Set("X-Frame-Options", "DENY")
 			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 			w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-			w.Header().Set("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'")
+			contentSecurityPolicy := "default-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+			if r.URL.Path == "/docs" {
+				contentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://cdn.jsdelivr.net; connect-src 'self' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+			}
+			w.Header().Set("Content-Security-Policy", contentSecurityPolicy)
 			forwardedHTTPS := false
 			if remote, ok := parseRequestIP(r.RemoteAddr); ok &&
 				addressInCIDRs(remote, trustedProxyCIDRs) &&
@@ -304,8 +308,12 @@ func Tracing(serviceName string) func(http.Handler) http.Handler {
 					attribute.String("server.address", r.Host),
 				),
 			)
-			defer span.End()
-			next.ServeHTTP(w, r.WithContext(ctx))
+			request := r.WithContext(ctx)
+			defer func() {
+				span.SetName(r.Method + " " + routePattern(request))
+				span.End()
+			}()
+			next.ServeHTTP(w, request)
 		})
 	}
 }
@@ -420,7 +428,7 @@ func accessToken(r *http.Request) (string, bool) {
 	if cookie, err := r.Cookie("mars_session"); err == nil && cookie.Value != "" {
 		return cookie.Value, true
 	}
-	return raw, false
+	return "", false
 }
 
 func cookiePresent(r *http.Request, name string) bool {

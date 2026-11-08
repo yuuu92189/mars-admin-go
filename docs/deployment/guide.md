@@ -35,11 +35,19 @@ Run migrations once before rolling API instances. River schema migrations run au
 Use continuous PostgreSQL WAL archiving plus daily logical backups:
 
 ```bash
-pg_dump --format=custom --no-owner --file=mars-admin.dump "$DATABASE_URL"
-pg_restore --clean --if-exists --no-owner --dbname="$DATABASE_URL" mars-admin.dump
+DATABASE_URL='postgres://...' scripts/backup.sh backup/mars-admin.dump
+ALLOW_DESTRUCTIVE_RESTORE=1 DATABASE_URL='postgres://...' scripts/restore.sh backup/mars-admin.dump
 ```
 
-Back up encrypted secret-manager keys separately from database dumps. Redis persistence is useful for rate limits and ephemeral realtime recovery, but is not a substitute for PostgreSQL backups.
+The backup script writes a SHA-256 sidecar and restore verifies it before touching the target.
+Never run restore against the source database. Use
+[`../migration/cutover-rehearsal.md`](../migration/cutover-rehearsal.md) to validate an isolated
+target first.
+
+Back up encrypted secret-manager keys separately from database dumps. Redis persistence is useful
+for rate limits and ephemeral realtime recovery, but is not a substitute for PostgreSQL backups.
+For WeChat Pay callbacks, provide `WECHAT_PAY_API_V3_KEY`; without it callback decryption is
+explicitly not configured rather than silently accepting unverified payloads.
 
 ## Observability
 

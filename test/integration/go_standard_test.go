@@ -13,6 +13,9 @@ import (
 	"testing"
 	"time"
 
+	accesspostgres "mars-admin-go/internal/modules/access/adapter/postgres"
+	accessapp "mars-admin-go/internal/modules/access/application"
+	accessdomain "mars-admin-go/internal/modules/access/domain"
 	codegenhttp "mars-admin-go/internal/modules/codegen/adapter/http"
 	codegenpostgres "mars-admin-go/internal/modules/codegen/adapter/postgres"
 	codegenapp "mars-admin-go/internal/modules/codegen/application"
@@ -40,6 +43,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/pquerna/otp/totp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
@@ -114,9 +118,100 @@ func TestGovernanceFixesAgainstRealDependencies(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	t.Run("mfa setup cannot replace an enabled secret", func(t *testing.T) {
+		user := createPlainIdentityTestUser(t, ctx, identityRepo, "mfa-guard")
+		secretBox, err := security.NewSecretBox("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+		require.NoError(t, err)
+		service := identityapp.New(identityRepo, nil, identityapp.Options{SecretBox: secretBox})
+
+		setup, err := service.SetupMFA(ctx, user.ID)
+		require.NoError(t, err)
+		code, err := totp.GenerateCode(setup.Secret, time.Now().UTC())
+		require.NoError(t, err)
+		require.NoError(t, service.EnableMFA(ctx, user.ID, code))
+
+		_, err = service.SetupMFA(ctx, user.ID)
+		require.Error(t, err)
+	})
+
+	t.Run("limited administrator cannot assign unheld permissions", func(t *testing.T) {
+		actor := createPlainIdentityTestUser(t, ctx, identityRepo, "role-assignment")
+		actorRole := createTestRole(t, ctx, pool, "limited_"+uuid.NewString()[:8], "self")
+		_, err := pool.Exec(ctx, `
+			INSERT INTO access_role_permissions (role_id, permission_id)
+			SELECT $1, id FROM access_permissions WHERE code = 'user:update'`, actorRole)
+		require.NoError(t, err)
+		require.NoError(t, identityRepo.SetUserRoles(ctx, actor.ID, []uuid.UUID{actorRole}))
+
+		allScopeRole := createTestRole(t, ctx, pool, "all_scope_"+uuid.NewString()[:8], "all")
+		service := identityapp.New(identityRepo, nil, identityapp.Options{})
+		_, err = service.CreateUserAsActor(
+			ctx,
+			requestctx.Actor{UserID: actor.ID},
+			identitydomain.CreateUserInput{
+				Username: "all_scope_assignment_" + uuid.NewString()[:8],
+				Password: "identity-test-password-123",
+				RoleIDs:  []uuid.UUID{allScopeRole},
+			},
+		)
+		require.Error(t, err)
+
+		privilegedRole := createTestRole(t, ctx, pool, "privileged_"+uuid.NewString()[:8], "self")
+		_, err = pool.Exec(ctx, `
+			INSERT INTO access_role_permissions (role_id, permission_id)
+			SELECT $1, id FROM access_permissions WHERE code = 'settings:manage'`, privilegedRole)
+		require.NoError(t, err)
+
+		_, err = service.CreateUserAsActor(
+			ctx,
+			requestctx.Actor{UserID: actor.ID},
+			identitydomain.CreateUserInput{
+				Username: "assigned_" + uuid.NewString()[:8],
+				Password: "identity-test-password-123",
+				RoleIDs:  []uuid.UUID{privilegedRole},
+			},
+		)
+		require.Error(t, err)
+	})
+
+	t.Run("menu hierarchy rejects descendant parents", func(t *testing.T) {
+		service := accessapp.New(accesspostgres.New(pool))
+		root, err := service.CreateMenu(ctx, accessdomain.MenuInput{
+			Name: "Cycle Root", Type: 1, Visible: true,
+		})
+		require.NoError(t, err)
+		child, err := service.CreateMenu(ctx, accessdomain.MenuInput{
+			Name: "Cycle Child", Type: 2, ParentID: &root.ID, Visible: true,
+		})
+		require.NoError(t, err)
+
+		_, err = service.UpdateMenu(ctx, root.ID, accessdomain.MenuInput{
+			Name: "Cycle Root", Type: 1, ParentID: &child.ID, Visible: true,
+		})
+		require.Error(t, err)
+
+		user := createPlainIdentityTestUser(t, ctx, identityRepo, "menu-role")
+		role := createTestRole(t, ctx, pool, "menu_role_"+uuid.NewString()[:8], "self")
+		_, err = pool.Exec(ctx, `
+			INSERT INTO access_role_menus (role_id, menu_id)
+			VALUES ($1, $2)`, role, child.ID)
+		require.NoError(t, err)
+		require.NoError(t, identityRepo.SetUserRoles(ctx, user.ID, []uuid.UUID{role}))
+		menus, err := service.Menus(ctx, user.ID, false)
+		require.NoError(t, err)
+		require.True(t, menuTreeContains(menus, child.ID))
+
+		_, err = pool.Exec(ctx, `UPDATE access_roles SET status = 'disabled' WHERE id = $1`, role)
+		require.NoError(t, err)
+		menus, err = service.Menus(ctx, user.ID, false)
+		require.NoError(t, err)
+		require.False(t, menuTreeContains(menus, child.ID))
+	})
+
 	t.Run("group owner cannot be removed or demoted", func(t *testing.T) {
 		owner := createPlainIdentityTestUser(t, ctx, identityRepo, "group-owner")
 		admin := createPlainIdentityTestUser(t, ctx, identityRepo, "group-admin")
+		outsider := createPlainIdentityTestUser(t, ctx, identityRepo, "group-outsider")
 		repo := messagingpostgres.New(pool)
 		service := messagingapp.New(repo)
 		group, err := service.CreateGroup(ctx, messagingdomain.CreateGroupInput{
@@ -126,6 +221,8 @@ func TestGovernanceFixesAgainstRealDependencies(t *testing.T) {
 		require.NoError(t, service.SetMemberRole(ctx, group.ID, owner.ID, admin.ID, "admin"))
 		require.Error(t, service.RemoveMember(ctx, group.ID, admin.ID, owner.ID))
 		require.NoError(t, service.AddMembers(ctx, group.ID, admin.ID, []uuid.UUID{owner.ID}))
+		require.Error(t, service.TransferOwner(ctx, group.ID, owner.ID, outsider.ID))
+		require.Error(t, service.DissolveGroup(ctx, group.ID, outsider.ID))
 		var role string
 		require.NoError(t, pool.QueryRow(ctx, `
 			SELECT member_role FROM messaging_group_members
@@ -133,6 +230,36 @@ func TestGovernanceFixesAgainstRealDependencies(t *testing.T) {
 		require.Equal(t, "owner", role)
 		require.NoError(t, service.DissolveGroup(ctx, group.ID, owner.ID))
 		_, err = service.SendGroup(ctx, group.ID, owner.ID, "after-dissolve", "text", "must fail", nil)
+		require.Error(t, err)
+	})
+
+	t.Run("workflow termination is limited to visible instances", func(t *testing.T) {
+		owner := createPlainIdentityTestUser(t, ctx, identityRepo, "workflow-owner")
+		outsider := createPlainIdentityTestUser(t, ctx, identityRepo, "workflow-outsider")
+		service := workflowapp.New(workflowpostgres.New(pool))
+		definition, err := service.CreateDefinition(ctx, owner.ID, workflowdomain.CreateDefinitionInput{
+			Code: "scope_" + uuid.NewString()[:8], Name: "Scope Workflow",
+			Document: workflowdomain.DefinitionDocument{
+				Start: "approve",
+				Nodes: []workflowdomain.Node{
+					{Code: "approve", Name: "Approve", Type: "approval", AssigneeID: &owner.ID, Next: "end"},
+					{Code: "end", Name: "End", Type: "end"},
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.NoError(t, service.Publish(ctx, definition.ID))
+		instance, _, err := service.Start(ctx, owner.ID, workflowdomain.StartInput{
+			DefinitionID: definition.ID, BusinessID: "scope-" + uuid.NewString(),
+		})
+		require.NoError(t, err)
+
+		_, err = service.Terminate(
+			ctx,
+			workflowdomain.Actor{UserID: outsider.ID, DataScope: "self"},
+			instance.ID,
+			"not allowed",
+		)
 		require.Error(t, err)
 	})
 
@@ -259,6 +386,24 @@ func TestGovernanceFixesAgainstRealDependencies(t *testing.T) {
 			JOIN system_setting_groups g ON g.id = s.group_id
 			WHERE g.code = 'system' AND s.key = 'siteName'`).Scan(&siteName))
 		require.Equal(t, "Governance Settings", siteName)
+
+		_, err = pool.Exec(ctx, `
+			INSERT INTO system_settings
+				(id, group_id, key, value_type, value_text, is_sensitive)
+			SELECT $1, id, 'opaqueSetting', 'secret', 'old-ciphertext', true
+			FROM system_setting_groups WHERE code = 'system'`, uuid.New())
+		require.NoError(t, err)
+		require.NoError(t, service.Update(ctx, "system", map[string]any{
+			"opaqueSetting": "new-secret",
+		}, user.ID))
+		var opaqueSensitive bool
+		var opaqueStored string
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT is_sensitive, value_text
+			FROM system_settings
+			WHERE key = 'opaqueSetting'`).Scan(&opaqueSensitive, &opaqueStored))
+		require.True(t, opaqueSensitive)
+		require.NotEqual(t, "new-secret", opaqueStored)
 	})
 
 	t.Run("rate limit uses a fixed window", func(t *testing.T) {
@@ -309,7 +454,7 @@ func TestGovernanceFixesAgainstRealDependencies(t *testing.T) {
 			}()
 			go func() {
 				defer wait.Done()
-				_, _ = service.Terminate(ctx, instance.ID, user.ID, "race")
+				_, _ = service.Terminate(ctx, workflowdomain.Actor{UserID: user.ID, DataScope: "self"}, instance.ID, "race")
 			}()
 			wait.Wait()
 			var status string
@@ -331,4 +476,13 @@ func governanceAuth(actor requestctx.Actor) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(requestctx.WithActor(r.Context(), actor)))
 		})
 	}
+}
+
+func menuTreeContains(items []accessdomain.Menu, id uuid.UUID) bool {
+	for _, item := range items {
+		if item.ID == id || menuTreeContains(item.Children, id) {
+			return true
+		}
+	}
+	return false
 }

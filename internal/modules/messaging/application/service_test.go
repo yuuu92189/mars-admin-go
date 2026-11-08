@@ -27,3 +27,10 @@ func TestNormalizeMessageDefaultsType(t *testing.T) {
 		t.Fatalf("unexpected type %q", input.MessageType)
 	}
 }
+
+func TestNormalizeMessageRejectsClientSystemMessages(t *testing.T) {
+	input := domain.SendInput{Content: "server notice", MessageType: "system"}
+	if err := normalizeMessage(&input); err == nil {
+		t.Fatal("expected client-supplied system messages to be rejected")
+	}
+}

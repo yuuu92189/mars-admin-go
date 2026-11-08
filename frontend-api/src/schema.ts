@@ -2613,6 +2613,21 @@ export interface components {
             paymentUrl?: string;
             /** Format: date-time */
             expiresAt?: string;
+            payload?: {
+                [key: string]: string;
+            };
+        };
+        PaymentRequest: {
+            orderId?: string;
+            /** Format: int64 */
+            amountCents: number;
+            /** @enum {string} */
+            currency?: "CNY";
+            subject?: string;
+            /** Format: uri */
+            returnUrl?: string;
+            /** Format: uri */
+            notifyUrl?: string;
         };
     };
     responses: {
@@ -5697,7 +5712,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentRequest"];
+            };
+        };
         responses: {
             /** @description Payment session */
             201: {
@@ -5730,6 +5749,8 @@ export interface operations {
                 content: {
                     "application/json": {
                         status: string;
+                        orderId?: string;
+                        duplicate?: boolean;
                     };
                 };
             };

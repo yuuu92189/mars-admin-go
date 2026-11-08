@@ -99,7 +99,7 @@ func (s *Service) RunNow(ctx context.Context, id uuid.UUID) (domain.Run, error) 
 	}
 	command := domain.Command{
 		RunID: created.ID, JobID: job.ID, Handler: job.Handler, Payload: job.Payload,
-		Timeout: time.Duration(job.TimeoutSeconds) * time.Second,
+		Timeout: time.Duration(job.TimeoutSeconds) * time.Second, ConcurrencyKey: job.ConcurrencyKey,
 	}
 	riverID, err := s.enqueuer.Enqueue(ctx, command, time.Now().UTC())
 	if err != nil {

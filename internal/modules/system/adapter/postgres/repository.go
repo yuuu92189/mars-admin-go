@@ -196,6 +196,19 @@ func (r *Repository) SettingGroupByCode(ctx context.Context, code string, includ
 	return group, nil
 }
 
+func (r *Repository) SettingIsSensitive(ctx context.Context, groupCode, key string) (bool, error) {
+	var sensitive bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT setting.is_sensitive
+		FROM system_settings AS setting
+		JOIN system_setting_groups AS setting_group ON setting_group.id = setting.group_id
+		WHERE setting_group.code = $1 AND setting.key = $2`, groupCode, key).Scan(&sensitive)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	return sensitive, err
+}
+
 func (r *Repository) PublicSettings(ctx context.Context) (map[string]any, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT g.code || '.' || s.key, s.value_type, s.value_text

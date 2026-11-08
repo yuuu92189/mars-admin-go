@@ -7,4 +7,15 @@ bin
 dist
 docs
 test
+frontend
+frontend-api
+.github
+deploy
+**/.next
+**/node_modules
+**/playwright-report
+**/test-results
+**/visual-baselines
+**/visual-comparison
+*.tsbuildinfo
 **/*_test.go

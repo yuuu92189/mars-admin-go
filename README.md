@@ -19,6 +19,15 @@ and [`docs/frontend/14-phase-2.1-final-acceptance.md`](docs/frontend/14-phase-2.
 
 The latest Refresh concurrency and transactional Outbox audit is in [`docs/audit-round-3/audit-summary.md`](docs/audit-round-3/audit-summary.md).
 
+Phase 4 full-project audit, remediation, test acceptance and residual-risk register are in
+[`docs/phase-4/README.md`](docs/phase-4/README.md). The current verified status is
+[`PASS WITH CONDITIONS`](docs/phase-4/14-phase-4-final-acceptance.md): 137 canonical API
+  operations, 25 Goose migrations and all 13 Go-supported business pages are implemented.
+
+Phase 3 migration and visual-regression evidence is indexed in
+[`docs/phase-3/README.md`](docs/phase-3/README.md); its excluded-domain references are historical
+only.
+
 The current Go-standard audit and remediation plan are in
 [`docs/go-standard-audit/README.md`](docs/go-standard-audit/README.md).
 The long-term project standard is [`docs/GO_ENGINEERING_STANDARD.md`](docs/GO_ENGINEERING_STANDARD.md).

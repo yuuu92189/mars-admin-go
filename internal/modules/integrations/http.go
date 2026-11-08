@@ -8,18 +8,20 @@ import (
 
 	"mars-admin-go/internal/platform/apperror"
 	"mars-admin-go/internal/platform/httpserver"
+	"mars-admin-go/internal/platform/requestctx"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
 	registry *Registry
+	payments *PaymentService
 	auth     func(http.Handler) http.Handler
 	logger   *slog.Logger
 }
 
-func NewHandler(registry *Registry, auth func(http.Handler) http.Handler, logger *slog.Logger) *Handler {
-	return &Handler{registry: registry, auth: auth, logger: logger}
+func NewHandler(registry *Registry, payments *PaymentService, auth func(http.Handler) http.Handler, logger *slog.Logger) *Handler {
+	return &Handler{registry: registry, payments: payments, auth: auth, logger: logger}
 }
 
 func (h *Handler) Routes() chi.Router {
@@ -45,16 +47,16 @@ func (h *Handler) statuses(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) createPayment(w http.ResponseWriter, r *http.Request) {
+	if h.payments == nil {
+		httpserver.WriteError(w, r, h.logger, apperror.NotConfigured("payment provider"))
+		return
+	}
 	var request PaymentRequest
 	if !httpserver.DecodeJSON(w, r, &request) {
 		return
 	}
-	provider, err := h.registry.Payment(chi.URLParam(r, "provider"))
-	if err != nil {
-		httpserver.WriteError(w, r, h.logger, apperror.NotConfigured("payment provider"))
-		return
-	}
-	session, err := provider.Create(r.Context(), request)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	session, err := h.payments.Create(r.Context(), actor.UserID, chi.URLParam(r, "provider"), request)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -63,8 +65,7 @@ func (h *Handler) createPayment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) paymentCallback(w http.ResponseWriter, r *http.Request) {
-	provider, err := h.registry.Payment(chi.URLParam(r, "provider"))
-	if err != nil {
+	if h.payments == nil {
 		httpserver.WriteError(w, r, h.logger, apperror.NotConfigured("payment provider"))
 		return
 	}
@@ -77,10 +78,14 @@ func (h *Handler) paymentCallback(w http.ResponseWriter, r *http.Request) {
 	for key, values := range r.Header {
 		headers[key] = strings.Join(values, ",")
 	}
-	if err := provider.VerifyCallback(r.Context(), headers, body); err != nil {
-		h.logger.WarnContext(r.Context(), "payment callback verification failed", "provider", chi.URLParam(r, "provider"), "error", err)
-		httpserver.WriteProblem(w, r, httpserver.NewProblem(http.StatusBadRequest, "invalid_payment_callback", "Payment callback verification failed."))
+	result, err := h.payments.HandleCallback(r.Context(), chi.URLParam(r, "provider"), headers, body)
+	if err != nil {
+		h.logger.WarnContext(r.Context(), "payment callback rejected", "provider", chi.URLParam(r, "provider"), "error", err)
+		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	httpserver.WriteJSON(w, http.StatusOK, map[string]string{"status": "accepted"})
+	httpserver.WriteJSON(w, http.StatusOK, map[string]any{
+		"status": "accepted", "orderId": result.Order.MerchantOrderID,
+		"duplicate": result.Duplicate,
+	})
 }

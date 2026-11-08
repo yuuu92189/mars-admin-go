@@ -2020,6 +2020,12 @@ paths:
       tags: [Integrations]
       operationId: createPayment
       x-required-permission: settings:manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRequest"
       responses:
         "201":
           description: Payment session
@@ -2046,6 +2052,10 @@ paths:
                 properties:
                   status:
                     type: string
+                  orderId:
+                    type: string
+                  duplicate:
+                    type: boolean
         "400":
           $ref: "#/components/responses/Problem"
 components:
@@ -3798,3 +3808,30 @@ components:
         expiresAt:
           type: string
           format: date-time
+        payload:
+          type: object
+          additionalProperties:
+            type: string
+    PaymentRequest:
+      type: object
+      required: [amountCents]
+      properties:
+        orderId:
+          type: string
+          maxLength: 120
+        amountCents:
+          type: integer
+          format: int64
+          minimum: 1
+        currency:
+          type: string
+          enum: [CNY]
+        subject:
+          type: string
+          maxLength: 200
+        returnUrl:
+          type: string
+          format: uri
+        notifyUrl:
+          type: string
+          format: uri

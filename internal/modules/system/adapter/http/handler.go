@@ -830,7 +830,7 @@ func (h *Handler) legacyPublicSettings(w http.ResponseWriter, r *http.Request) {
 			setNested(response, "system", "watermarkCustomText", value)
 		case "site.site.watermark_opacity":
 			setNested(response, "system", "watermarkOpacity", value)
-		case "site.site.registration_enabled":
+		case "site.site.registration_enabled", "site.registration_enabled", "system.site.registration_enabled":
 			setNested(response, "register", "enabled", value)
 		case "security.auth.captcha_enabled":
 			setNested(response, "login", "captchaEnabled", value)

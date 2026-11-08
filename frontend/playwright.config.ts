@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
+const port = new URL(baseURL).port || "3000";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -7,7 +10,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -17,8 +20,8 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"], browserName: "chromium" } },
   ],
   webServer: {
-    command: "pnpm start --hostname 127.0.0.1 --port 3000",
-    url: "http://127.0.0.1:3000/login",
+    command: `pnpm start --hostname 127.0.0.1 --port ${port}`,
+    url: `${baseURL}/login`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

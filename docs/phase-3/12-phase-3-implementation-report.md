@@ -1,5 +1,7 @@
 # Phase 3 Implementation Report
 
+> Historical Phase 3 record. The domains below marked EXCLUDED are not pending deliverables.
+
 ## Implementation
 
 - Migrated all 13 Go-supported business pages to React App Router routes.
@@ -34,10 +36,13 @@
 
 ## Known Conditions
 
-- Vulnerability assets, vulnerabilities, and repair work orders remain blocked because the Go repository has no canonical domain, schema, API, permissions, or product scope for them.
+- Asset Management, Vulnerability Management and Remediation Work Orders are explicitly excluded
+  by the Phase 4 business-scope decision. No canonical domain, schema, API, permission or page is
+  planned for them.
 - Visual comparisons use deterministic Vue fixtures against live React Go data. Content-level differences are expected and documented; the React side does not use fixtures in its runtime path.
 - The historical audit charts currently aggregate the latest 100 returned events where the backend does not expose a dedicated historical statistics endpoint.
 
 ## Scope Discipline
 
-No vulnerability page, scanner integration, AI service, fake API, or mock runtime data path was added. Missing product domains are documented rather than fabricated.
+No vulnerability page, scanner integration, AI service, fake API, or mock runtime data path was
+added. Excluded domains are documented rather than fabricated.
