@@ -8,6 +8,8 @@ import (
 
 	sqlc "mars-admin-go/internal/modules/messaging/adapter/postgres/sqlc"
 	"mars-admin-go/internal/modules/messaging/domain"
+	"mars-admin-go/internal/modules/outbox/contracts"
+	platformoutbox "mars-admin-go/internal/platform/outbox"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -23,8 +25,13 @@ func New(pool *pgxpool.Pool) *Repository {
 }
 
 func (r *Repository) SendDirect(ctx context.Context, message domain.Message) (domain.Message, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return domain.Message{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
 	metadata, _ := json.Marshal(message.Metadata)
-	row, err := sqlc.New(r.pool).InsertDirectMessage(ctx, sqlc.InsertDirectMessageParams{
+	row, err := sqlc.New(tx).InsertDirectMessage(ctx, sqlc.InsertDirectMessageParams{
 		ID: pgUUID(message.ID), ClientMessageID: pgText(message.ClientMessageID),
 		SenderID: pgUUID(message.SenderID), ReceiverID: pgUUID(*message.ReceiverID),
 		MessageType: message.MessageType, Content: message.Content, Metadata: metadata,
@@ -32,7 +39,26 @@ func (r *Repository) SendDirect(ctx context.Context, message domain.Message) (do
 	if err != nil {
 		return domain.Message{}, err
 	}
-	return mapMessage(row), nil
+	created := mapMessage(row)
+	event, err := platformoutbox.NewEvent(
+		"messaging_message", created.ID.String(), contracts.EventDirectMessage, "created",
+		contracts.RealtimeEvent{
+			Recipients: []uuid.UUID{created.SenderID, *created.ReceiverID},
+			Event: domain.Event{
+				Type: "chat", Message: &created, Timestamp: created.CreatedAt.UnixMilli(),
+			},
+		},
+	)
+	if err != nil {
+		return domain.Message{}, err
+	}
+	if err := platformoutbox.Insert(ctx, tx, event); err != nil {
+		return domain.Message{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Message{}, err
+	}
+	return created, nil
 }
 
 func (r *Repository) DirectHistory(ctx context.Context, userID, peerID uuid.UUID, beforeSequence int64, limit int) ([]domain.Message, error) {
@@ -263,8 +289,14 @@ func (r *Repository) DissolveGroup(ctx context.Context, groupID, ownerID uuid.UU
 }
 
 func (r *Repository) SendGroup(ctx context.Context, message domain.Message) (domain.Message, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return domain.Message{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	q := sqlc.New(tx)
 	metadata, _ := json.Marshal(message.Metadata)
-	row, err := sqlc.New(r.pool).InsertGroupMessage(ctx, sqlc.InsertGroupMessageParams{
+	row, err := q.InsertGroupMessage(ctx, sqlc.InsertGroupMessageParams{
 		ID: pgUUID(message.ID), ClientMessageID: pgText(message.ClientMessageID),
 		SenderID: pgUUID(message.SenderID), GroupID: pgUUID(*message.GroupID),
 		MessageType: message.MessageType, Content: message.Content, Metadata: metadata,
@@ -272,7 +304,34 @@ func (r *Repository) SendGroup(ctx context.Context, message domain.Message) (dom
 	if err != nil {
 		return domain.Message{}, err
 	}
-	return mapMessage(row), nil
+	created := mapMessage(row)
+	members, err := q.ListGroupMembers(ctx, pgUUID(*created.GroupID))
+	if err != nil {
+		return domain.Message{}, err
+	}
+	recipients := make([]uuid.UUID, 0, len(members))
+	for _, member := range members {
+		recipients = append(recipients, uuid.UUID(member.UserID.Bytes))
+	}
+	event, err := platformoutbox.NewEvent(
+		"messaging_message", created.ID.String(), contracts.EventGroupMessage, "created",
+		contracts.RealtimeEvent{
+			Recipients: recipients,
+			Event: domain.Event{
+				Type: "groupChat", Message: &created, Timestamp: created.CreatedAt.UnixMilli(),
+			},
+		},
+	)
+	if err != nil {
+		return domain.Message{}, err
+	}
+	if err := platformoutbox.Insert(ctx, tx, event); err != nil {
+		return domain.Message{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Message{}, err
+	}
+	return created, nil
 }
 
 func (r *Repository) GroupHistory(ctx context.Context, groupID uuid.UUID, beforeSequence int64, limit int) ([]domain.Message, error) {

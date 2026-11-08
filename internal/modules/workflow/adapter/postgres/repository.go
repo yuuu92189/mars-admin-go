@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"time"
 
+	"mars-admin-go/internal/modules/outbox/contracts"
 	sqlc "mars-admin-go/internal/modules/workflow/adapter/postgres/sqlc"
 	"mars-admin-go/internal/modules/workflow/domain"
 	"mars-admin-go/internal/platform/apperror"
+	platformoutbox "mars-admin-go/internal/platform/outbox"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -401,6 +403,49 @@ func (r *Repository) Decide(ctx context.Context, actor domain.Actor, input domai
 	}); err != nil {
 		return domain.Task{}, domain.Instance{}, err
 	}
+	recipients := []uuid.UUID{uuid.UUID(instanceRow.InitiatorID.Bytes)}
+	if nextNode != nil && nextNode.AssigneeID != nil {
+		recipients = append(recipients, *nextNode.AssigneeID)
+	}
+	if nextNode != nil && nextNode.AssigneeRole != "" {
+		rows, err := tx.Query(ctx, `
+			SELECT DISTINCT role_user.user_id
+			FROM access_user_roles AS role_user
+			JOIN access_roles AS role ON role.id = role_user.role_id
+			WHERE role.code = $1 AND role.status = 'active' AND role.deleted_at IS NULL`,
+			nextNode.AssigneeRole)
+		if err != nil {
+			return domain.Task{}, domain.Instance{}, err
+		}
+		for rows.Next() {
+			var userID uuid.UUID
+			if err := rows.Scan(&userID); err != nil {
+				rows.Close()
+				return domain.Task{}, domain.Instance{}, err
+			}
+			recipients = append(recipients, userID)
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return domain.Task{}, domain.Instance{}, err
+		}
+		rows.Close()
+	}
+	decisionEvent, err := platformoutbox.NewEvent(
+		"workflow_instance", uuid.UUID(instanceRow.ID.Bytes).String(),
+		contracts.EventWorkflowDecision, input.TaskID.String(),
+		contracts.WorkflowDecision{
+			InstanceID: uuid.UUID(instanceRow.ID.Bytes), TaskID: input.TaskID,
+			Action: input.Action, NextNode: nextCode, Status: nextStatus,
+			Recipients: uniqueUUIDs(recipients), DecidedAt: time.Now().UTC(),
+		},
+	)
+	if err != nil {
+		return domain.Task{}, domain.Instance{}, err
+	}
+	if err := platformoutbox.Insert(ctx, tx, decisionEvent); err != nil {
+		return domain.Task{}, domain.Instance{}, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return domain.Task{}, domain.Instance{}, err
 	}
@@ -438,6 +483,19 @@ func (r *Repository) Terminate(ctx context.Context, instanceID, actorID uuid.UUI
 		ActorUserID: pgUUID(actorID), EventType: "terminated", FromNodeCode: row.CurrentNodeCode,
 		ToNodeCode: pgtype.Text{}, Comment: comment, Metadata: []byte(`{}`),
 	}); err != nil {
+		return domain.Instance{}, err
+	}
+	terminateEvent, err := platformoutbox.NewEvent(
+		"workflow_instance", instanceID.String(), contracts.EventWorkflowDecision, "terminated",
+		contracts.WorkflowDecision{
+			InstanceID: instanceID, Action: "terminate", Status: "terminated",
+			Recipients: []uuid.UUID{uuid.UUID(row.InitiatorID.Bytes)}, DecidedAt: time.Now().UTC(),
+		},
+	)
+	if err != nil {
+		return domain.Instance{}, err
+	}
+	if err := platformoutbox.Insert(ctx, tx, terminateEvent); err != nil {
 		return domain.Instance{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -576,4 +634,20 @@ func mustID() uuid.UUID {
 		return uuid.New()
 	}
 	return id
+}
+
+func uniqueUUIDs(values []uuid.UUID) []uuid.UUID {
+	seen := make(map[uuid.UUID]struct{}, len(values))
+	result := make([]uuid.UUID, 0, len(values))
+	for _, value := range values {
+		if value == uuid.Nil {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
 }

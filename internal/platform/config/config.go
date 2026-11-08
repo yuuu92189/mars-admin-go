@@ -48,15 +48,17 @@ type RedisConfig struct {
 }
 
 type AuthConfig struct {
-	SessionTTL        time.Duration
-	RefreshTTL        time.Duration
-	CookieSecure      bool
-	CookieSameSite    string
-	LoginMaxAttempts  int32
-	LoginLockDuration time.Duration
-	CaptchaEnabled    bool
-	SensitiveDataKey  string
-	TrustedProxyCIDRs []string
+	SessionTTL              time.Duration
+	RefreshTTL              time.Duration
+	RefreshGracePeriod      time.Duration
+	RefreshHistoryRetention time.Duration
+	CookieSecure            bool
+	CookieSameSite          string
+	LoginMaxAttempts        int32
+	LoginLockDuration       time.Duration
+	CaptchaEnabled          bool
+	SensitiveDataKey        string
+	TrustedProxyCIDRs       []string
 }
 
 type StorageConfig struct {
@@ -170,15 +172,17 @@ func Load() (Config, error) {
 		PoolSize: envInt("REDIS_POOL_SIZE", 10),
 	}
 	cfg.Auth = AuthConfig{
-		SessionTTL:        envDuration("AUTH_SESSION_TTL", 30*time.Minute),
-		RefreshTTL:        envDuration("AUTH_REFRESH_TTL", 30*24*time.Hour),
-		CookieSecure:      envBool("AUTH_COOKIE_SECURE", false),
-		CookieSameSite:    strings.ToLower(env("AUTH_COOKIE_SAME_SITE", "lax")),
-		LoginMaxAttempts:  envInt32("AUTH_LOGIN_MAX_ATTEMPTS", 5),
-		LoginLockDuration: envDuration("AUTH_LOGIN_LOCK_DURATION", 30*time.Minute),
-		CaptchaEnabled:    envBool("AUTH_CAPTCHA_ENABLED", false),
-		SensitiveDataKey:  os.Getenv("SETTINGS_ENCRYPTION_KEY"),
-		TrustedProxyCIDRs: splitCSV(os.Getenv("AUTH_TRUSTED_PROXY_CIDRS")),
+		SessionTTL:              envDuration("AUTH_SESSION_TTL", 30*time.Minute),
+		RefreshTTL:              envDuration("AUTH_REFRESH_TTL", 30*24*time.Hour),
+		RefreshGracePeriod:      envDuration("AUTH_REFRESH_GRACE_PERIOD", 15*time.Second),
+		RefreshHistoryRetention: envDuration("AUTH_REFRESH_HISTORY_RETENTION", 30*24*time.Hour),
+		CookieSecure:            envBool("AUTH_COOKIE_SECURE", false),
+		CookieSameSite:          strings.ToLower(env("AUTH_COOKIE_SAME_SITE", "lax")),
+		LoginMaxAttempts:        envInt32("AUTH_LOGIN_MAX_ATTEMPTS", 5),
+		LoginLockDuration:       envDuration("AUTH_LOGIN_LOCK_DURATION", 30*time.Minute),
+		CaptchaEnabled:          envBool("AUTH_CAPTCHA_ENABLED", false),
+		SensitiveDataKey:        os.Getenv("SETTINGS_ENCRYPTION_KEY"),
+		TrustedProxyCIDRs:       splitCSV(os.Getenv("AUTH_TRUSTED_PROXY_CIDRS")),
 	}
 	cfg.Storage = StorageConfig{
 		Provider:       strings.ToLower(env("STORAGE_PROVIDER", "local")),
@@ -276,6 +280,12 @@ func (c Config) Validate() error {
 	}
 	if c.Auth.SessionTTL >= c.Auth.RefreshTTL {
 		return errors.New("AUTH_SESSION_TTL must be shorter than AUTH_REFRESH_TTL")
+	}
+	if c.Auth.RefreshGracePeriod < 0 || c.Auth.RefreshGracePeriod > 2*time.Minute {
+		return errors.New("AUTH_REFRESH_GRACE_PERIOD must be between 0 and 2m")
+	}
+	if c.Auth.RefreshHistoryRetention <= 0 {
+		return errors.New("AUTH_REFRESH_HISTORY_RETENTION must be positive")
 	}
 	switch c.Auth.CookieSameSite {
 	case "strict", "lax", "none":

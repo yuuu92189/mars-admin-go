@@ -15,6 +15,7 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/riverqueue/river/rivermigrate"
+	"github.com/riverqueue/river/rivertype"
 	"github.com/robfig/cron/v3"
 )
 
@@ -170,8 +171,12 @@ type tickWorker struct {
 	river.WorkerDefaults[TickArgs]
 	pool          *pgxpool.Pool
 	schedulerRepo dueRepository
-	client        *river.Client[pgx.Tx]
+	client        txJobInserter
 	logger        *slog.Logger
+}
+
+type txJobInserter interface {
+	InsertTx(context.Context, pgx.Tx, river.JobArgs, *river.InsertOpts) (*rivertype.JobInsertResult, error)
 }
 
 func (w *tickWorker) Timeout(*river.Job[TickArgs]) time.Duration { return 30 * time.Second }

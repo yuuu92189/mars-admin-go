@@ -18,7 +18,6 @@ import (
 	identitypostgres "mars-admin-go/internal/modules/identity/adapter/postgres"
 	identityapp "mars-admin-go/internal/modules/identity/application"
 	identitydomain "mars-admin-go/internal/modules/identity/domain"
-	messagingdomain "mars-admin-go/internal/modules/messaging/domain"
 	notificationpostgres "mars-admin-go/internal/modules/notification/adapter/postgres"
 	notificationapp "mars-admin-go/internal/modules/notification/application"
 	notificationdomain "mars-admin-go/internal/modules/notification/domain"
@@ -84,7 +83,13 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 	limiter := httpserver.NewRateLimit(redisClient, "security-test", 20, 10*time.Minute)
 	service := identityapp.New(repo, limiter, identityapp.Options{
 		SessionTTL: 30 * time.Minute, RefreshTTL: 24 * time.Hour,
-		MaxLoginAttempts: 5, LockDuration: 10 * time.Minute,
+		RefreshGracePeriod: 10 * time.Second,
+		MaxLoginAttempts:   5, LockDuration: 10 * time.Minute,
+	})
+	secondService := identityapp.New(repo, limiter, identityapp.Options{
+		SessionTTL: 30 * time.Minute, RefreshTTL: 24 * time.Hour,
+		RefreshGracePeriod: 10 * time.Second,
+		MaxLoginAttempts:   5, LockDuration: 10 * time.Minute,
 	})
 
 	user := createIdentityTestUser(t, ctx, repo, "refresh")
@@ -98,14 +103,18 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 		start := make(chan struct{})
 		results := make(chan result, 20)
 		var wait sync.WaitGroup
-		for range 20 {
+		for index := range 20 {
 			wait.Add(1)
-			go func() {
+			go func(index int) {
 				defer wait.Done()
 				<-start
-				rotated, refreshErr := service.Refresh(ctx, initial.RefreshToken)
+				instance := service
+				if index%2 == 1 {
+					instance = secondService
+				}
+				rotated, refreshErr := instance.Refresh(ctx, initial.RefreshToken)
 				results <- result{login: rotated, err: refreshErr}
-			}()
+			}(index)
 		}
 		close(start)
 		wait.Wait()
@@ -131,14 +140,80 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 			WHERE id = $1`, success.SessionID).Scan(&storedHash, &generation, &revokedAt))
 		require.Equal(t, security.HashToken(success.RefreshToken), storedHash)
 		require.Equal(t, int64(1), generation)
-		require.NotNil(t, revokedAt, "a replay after the winning rotation must revoke the family")
+		require.Nil(t, revokedAt, "concurrent refresh must not revoke the winning session")
 
-		_, err := service.Refresh(ctx, initial.RefreshToken)
+		_, err := service.Authenticate(ctx, success.AccessToken)
+		require.NoError(t, err)
+		secondRotation, err := service.Refresh(ctx, success.RefreshToken)
+		require.NoError(t, err)
+		_, err = secondService.Authenticate(ctx, secondRotation.AccessToken)
+		require.NoError(t, err)
+	})
+
+	t.Run("refresh grace distinguishes concurrent retries from expired replay", func(t *testing.T) {
+		graceUser := createIdentityTestUser(t, ctx, repo, "refresh-grace")
+		first := loginIdentityTestUser(t, ctx, service, graceUser.Username)
+		rotated, err := service.Refresh(ctx, first.RefreshToken)
+		require.NoError(t, err)
+
+		_, err = secondService.Refresh(ctx, first.RefreshToken)
 		require.Error(t, err)
 		require.Equal(t, 401, apperror.HTTPStatus(err))
-		_, err = service.Refresh(ctx, success.RefreshToken)
+		var revokedAt *time.Time
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT revoked_at FROM identity_sessions WHERE id = $1`, rotated.SessionID).Scan(&revokedAt))
+		require.Nil(t, revokedAt, "within-grace retry must not revoke the session")
+		_, err = service.Authenticate(ctx, rotated.AccessToken)
+		require.NoError(t, err)
+
+		secondRotation, err := service.Refresh(ctx, rotated.RefreshToken)
+		require.NoError(t, err)
+		_, err = service.Authenticate(ctx, secondRotation.AccessToken)
+		require.NoError(t, err)
+
+		_, err = pool.Exec(ctx, `
+			UPDATE identity_refresh_token_history
+			SET rotated_at = now() - interval '1 minute'
+			WHERE token_hash = $1`, security.HashToken(first.RefreshToken))
+		require.NoError(t, err)
+		_, err = secondService.Refresh(ctx, first.RefreshToken)
 		require.Error(t, err)
 		require.Equal(t, 401, apperror.HTTPStatus(err))
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT revoked_at FROM identity_sessions WHERE id = $1`, rotated.SessionID).Scan(&revokedAt))
+		require.NotNil(t, revokedAt, "expired replay must revoke the session family")
+		assertAccessTokenRejected(t, ctx, service, secondRotation.AccessToken)
+		_, err = service.Refresh(ctx, secondRotation.RefreshToken)
+		require.Error(t, err)
+	})
+
+	t.Run("refresh history cleanup preserves active families", func(t *testing.T) {
+		expiredUser := createPlainIdentityTestUser(t, ctx, repo, "refresh-cleanup-expired")
+		expiredLogin := loginIdentityTestUser(t, ctx, service, expiredUser.Username)
+		_, err := service.Refresh(ctx, expiredLogin.RefreshToken)
+		require.NoError(t, err)
+		_, err = pool.Exec(ctx, `
+			UPDATE identity_sessions SET revoked_at = now() - interval '2 hours' WHERE id = $1`,
+			expiredLogin.SessionID)
+		require.NoError(t, err)
+
+		activeUser := createPlainIdentityTestUser(t, ctx, repo, "refresh-cleanup-active")
+		activeLogin := loginIdentityTestUser(t, ctx, service, activeUser.Username)
+		_, err = service.Refresh(ctx, activeLogin.RefreshToken)
+		require.NoError(t, err)
+
+		deleted, err := repo.CleanupRefreshHistory(ctx, time.Hour)
+		require.NoError(t, err)
+		require.GreaterOrEqual(t, deleted, int64(1))
+		var expiredCount, activeCount int
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT count(*) FROM identity_refresh_token_history WHERE session_id = $1`,
+			expiredLogin.SessionID).Scan(&expiredCount))
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT count(*) FROM identity_refresh_token_history WHERE session_id = $1`,
+			activeLogin.SessionID).Scan(&activeCount))
+		require.Zero(t, expiredCount)
+		require.Equal(t, 1, activeCount)
 	})
 
 	t.Run("revoked and expired sessions cannot refresh", func(t *testing.T) {
@@ -157,6 +232,53 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 		_, err = service.Refresh(ctx, expired.RefreshToken)
 		require.Error(t, err)
 		require.Equal(t, 401, apperror.HTTPStatus(err))
+
+		frozenUser := createPlainIdentityTestUser(t, ctx, repo, "refresh-frozen")
+		frozen := loginIdentityTestUser(t, ctx, service, frozenUser.Username)
+		_, err = pool.Exec(ctx, `UPDATE identity_users SET status = 'suspended' WHERE id = $1`, frozenUser.ID)
+		require.NoError(t, err)
+		_, err = service.Refresh(ctx, frozen.RefreshToken)
+		require.Error(t, err)
+		require.Equal(t, 401, apperror.HTTPStatus(err))
+
+		deletedUser := createPlainIdentityTestUser(t, ctx, repo, "refresh-deleted")
+		deleted := loginIdentityTestUser(t, ctx, service, deletedUser.Username)
+		_, err = pool.Exec(ctx, `UPDATE identity_users SET deleted_at = now() WHERE id = $1`, deletedUser.ID)
+		require.NoError(t, err)
+		_, err = service.Refresh(ctx, deleted.RefreshToken)
+		require.Error(t, err)
+		require.Equal(t, 401, apperror.HTTPStatus(err))
+
+		updateFailure := loginIdentityTestUser(t, ctx, service, user.Username)
+		newAccess, err := security.GenerateToken(32)
+		require.NoError(t, err)
+		newRefresh, err := security.GenerateToken(48)
+		require.NoError(t, err)
+		canceledCtx, cancel := context.WithCancel(ctx)
+		cancel()
+		err = repo.RotateSession(canceledCtx, security.HashToken(updateFailure.RefreshToken), identitydomain.Session{
+			ID: updateFailure.SessionID, TokenHash: security.HashToken(newAccess),
+			RefreshTokenHash: security.HashToken(newRefresh),
+			ExpiresAt:        time.Now().UTC().Add(time.Hour), RefreshExpiresAt: time.Now().UTC().Add(24 * time.Hour),
+		})
+		require.Error(t, err)
+		var storedRefreshHash []byte
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT refresh_token_hash FROM identity_sessions WHERE id = $1`, updateFailure.SessionID).Scan(&storedRefreshHash))
+		require.Equal(t, security.HashToken(updateFailure.RefreshToken), storedRefreshHash)
+
+		brokenRedis := redisclient.NewClient(&redisclient.Options{Addr: redisEndpoint})
+		require.NoError(t, brokenRedis.Close())
+		brokenCacheService := identityapp.New(repo, limiter, identityapp.Options{
+			SessionTTL: 30 * time.Minute, RefreshTTL: 24 * time.Hour,
+			RefreshGracePeriod: 10 * time.Second,
+			AccessCache:        identitycache.NewJSON(brokenRedis, "broken-access", time.Minute),
+		})
+		cacheFailureLogin := loginIdentityTestUser(t, ctx, brokenCacheService, user.Username)
+		cacheFailureRotation, err := brokenCacheService.Refresh(ctx, cacheFailureLogin.RefreshToken)
+		require.NoError(t, err)
+		_, err = brokenCacheService.Authenticate(ctx, cacheFailureRotation.AccessToken)
+		require.NoError(t, err)
 	})
 
 	t.Run("password changes and account lifecycle revoke every device", func(t *testing.T) {
@@ -199,6 +321,14 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 		sixth := loginWithPassword(t, ctx, service, lifecycleUser.Username, "identity-password-three")
 		require.NoError(t, service.DeleteUser(ctx, actor, lifecycleUser.ID))
 		assertAccessTokenRejected(t, ctx, service, sixth.AccessToken)
+		var statusEvents int
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT count(*) FROM outbox_events
+			WHERE aggregate_type = 'identity_user'
+			  AND aggregate_id = $1
+			  AND event_type = 'identity.user.status_changed'`,
+			lifecycleUser.ID.String()).Scan(&statusEvents))
+		require.GreaterOrEqual(t, statusEvents, 3)
 	})
 
 	t.Run("session revocation is scoped to the current user", func(t *testing.T) {
@@ -381,6 +511,30 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 		require.True(t, seesTargetA)
 		require.False(t, seesTargetB)
 
+		organizationService := organizationapp.New(organizationpostgres.New(pool), service)
+		visibleDepartments, err := organizationService.Departments(ctx, actor)
+		require.NoError(t, err)
+		require.Len(t, visibleDepartments, 1)
+		require.Equal(t, departmentA, visibleDepartments[0].ID)
+		_, err = organizationService.Department(ctx, actor, departmentB)
+		require.Error(t, err)
+		require.Equal(t, 404, apperror.HTTPStatus(err))
+		_, err = organizationService.CreateDepartment(ctx, actor, organizationdomain.DepartmentInput{
+			Name: "Scoped Root", Code: "scoped_root_" + suffix, Status: "active",
+		})
+		require.Error(t, err)
+		require.Equal(t, 403, apperror.HTTPStatus(err))
+		_, err = organizationService.CreateDepartment(ctx, actor, organizationdomain.DepartmentInput{
+			ParentID: &departmentB, Name: "Scoped Child", Code: "scoped_child_" + suffix, Status: "active",
+		})
+		require.Error(t, err)
+		require.Equal(t, 403, apperror.HTTPStatus(err))
+		_, err = organizationService.UpdateDepartment(ctx, actor, departmentA, organizationdomain.DepartmentInput{
+			ParentID: &departmentB, Name: "Department A", Code: "dept_a_" + suffix, Status: "active",
+		})
+		require.Error(t, err)
+		require.Equal(t, 403, apperror.HTTPStatus(err))
+
 		currentA, err := repo.FindUserByID(ctx, targetA.ID)
 		require.NoError(t, err)
 		_, err = service.UpdateUser(ctx, actor, targetA.ID, identitydomain.UpdateUserInput{
@@ -408,6 +562,55 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 		})
 		require.Error(t, err)
 		require.Equal(t, 403, apperror.HTTPStatus(err))
+	})
+
+	t.Run("all data scope modes execute in PostgreSQL", func(t *testing.T) {
+		suffix := uuid.NewString()[:8]
+		rootID := createTestDepartment(t, ctx, pool, "scope_root_"+suffix, "scope_root_"+suffix)
+		childID := createTestDepartment(t, ctx, pool, "scope_child_"+suffix, "scope_root_"+suffix+".scope_child_"+suffix)
+		passwordHash, err := security.HashPassword("identity-test-password-123")
+		require.NoError(t, err)
+
+		treeActor := createIdentityUserInDepartment(t, ctx, repo, "tree-actor", passwordHash, rootID, nil)
+		treeTarget := createIdentityUserInDepartment(t, ctx, repo, "tree-target", passwordHash, childID, nil)
+		treeRole := createTestRole(t, ctx, pool, "tree_scope_"+suffix, "department_tree")
+		require.NoError(t, repo.SetUserRoles(ctx, treeActor.ID, []uuid.UUID{treeRole}))
+		treeActorContext := requestctx.Actor{UserID: treeActor.ID}
+		users, _, err := service.ListUsers(ctx, treeActorContext, identitydomain.UserFilter{Page: 1, PageSize: 100})
+		require.NoError(t, err)
+		require.Contains(t, userIDs(users), treeTarget.ID)
+		organizationService := organizationapp.New(organizationpostgres.New(pool), service)
+		departments, err := organizationService.Departments(ctx, treeActorContext)
+		require.NoError(t, err)
+		require.ElementsMatch(t, []uuid.UUID{rootID, childID}, departmentIDs(departments))
+
+		customActor := createIdentityUserInDepartment(t, ctx, repo, "custom-actor", passwordHash, rootID, nil)
+		customTarget := createIdentityUserInDepartment(t, ctx, repo, "custom-target", passwordHash, rootID, nil)
+		customRole := createTestRole(t, ctx, pool, "custom_scope_"+suffix, "custom")
+		_, err = pool.Exec(ctx, `
+			INSERT INTO access_role_departments (role_id, department_id) VALUES ($1, $2)`,
+			customRole, rootID)
+		require.NoError(t, err)
+		require.NoError(t, repo.SetUserRoles(ctx, customActor.ID, []uuid.UUID{customRole}))
+		customActorContext := requestctx.Actor{UserID: customActor.ID}
+		users, _, err = service.ListUsers(ctx, customActorContext, identitydomain.UserFilter{Page: 1, PageSize: 100})
+		require.NoError(t, err)
+		require.Contains(t, userIDs(users), customTarget.ID)
+		require.NotContains(t, userIDs(users), treeTarget.ID)
+
+		selfActor := createIdentityUserInDepartment(t, ctx, repo, "self-actor", passwordHash, childID, nil)
+		users, total, err := service.ListUsers(ctx, requestctx.Actor{UserID: selfActor.ID}, identitydomain.UserFilter{Page: 1, PageSize: 100})
+		require.NoError(t, err)
+		require.Equal(t, int64(1), total)
+		require.Equal(t, []uuid.UUID{selfActor.ID}, userIDs(users))
+
+		allActor := createIdentityUserInDepartment(t, ctx, repo, "all-actor", passwordHash, rootID, nil)
+		allRole := createTestRole(t, ctx, pool, "all_scope_"+suffix, "all")
+		require.NoError(t, repo.SetUserRoles(ctx, allActor.ID, []uuid.UUID{allRole}))
+		users, _, err = service.ListUsers(ctx, requestctx.Actor{UserID: allActor.ID}, identitydomain.UserFilter{Page: 1, PageSize: 100})
+		require.NoError(t, err)
+		require.Contains(t, userIDs(users), treeTarget.ID)
+		require.Contains(t, userIDs(users), customTarget.ID)
 	})
 
 	t.Run("regular administrators cannot modify the super administrator role", func(t *testing.T) {
@@ -467,12 +670,7 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 		creator := createPlainIdentityTestUser(t, ctx, repo, "notice-creator")
 		recipient := createPlainIdentityTestUser(t, ctx, repo, "notice-recipient")
 		other := createPlainIdentityTestUser(t, ctx, repo, "notice-other")
-		noticeService := notificationapp.New(
-			notificationpostgres.New(pool),
-			messagingdomain.PublisherFunc(func(context.Context, []uuid.UUID, messagingdomain.Event) error {
-				return nil
-			}),
-		)
+		noticeService := notificationapp.New(notificationpostgres.New(pool))
 		notice, err := noticeService.Create(ctx, creator.ID, notificationdomain.Input{
 			Title: "Targeted notice", Content: "Only the recipient may read this.",
 			NoticeType: 1, Channels: []string{"station"}, TargetType: "users",
@@ -579,24 +777,32 @@ func TestIdentitySecurityAgainstRealPostgresAndRedis(t *testing.T) {
 			decisionSuccesses++
 		}
 		require.Equal(t, 1, decisionSuccesses)
+		var outboxCount int
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT count(*) FROM outbox_events
+			WHERE aggregate_type = 'workflow_instance'
+			  AND event_type = 'workflow.task.decided'
+			  AND deduplication_key = $1`, createdTask.ID.String()).Scan(&outboxCount))
+		require.Equal(t, 1, outboxCount)
 	})
 
 	t.Run("department hierarchy rejects cycles and rolls back", func(t *testing.T) {
 		organizationService := organizationapp.New(organizationpostgres.New(pool))
-		root, err := organizationService.CreateDepartment(ctx, organizationdomain.DepartmentInput{
+		actor := requestctx.Actor{UserID: uuid.New(), IsSuperAdmin: true}
+		root, err := organizationService.CreateDepartment(ctx, actor, organizationdomain.DepartmentInput{
 			Name: "Cycle Root", Code: "cycle_root_" + uuid.NewString()[:8], Status: "active",
 		})
 		require.NoError(t, err)
-		child, err := organizationService.CreateDepartment(ctx, organizationdomain.DepartmentInput{
+		child, err := organizationService.CreateDepartment(ctx, actor, organizationdomain.DepartmentInput{
 			ParentID: &root.ID, Name: "Cycle Child", Code: "cycle_child_" + uuid.NewString()[:8], Status: "active",
 		})
 		require.NoError(t, err)
-		_, err = organizationService.UpdateDepartment(ctx, root.ID, organizationdomain.DepartmentInput{
+		_, err = organizationService.UpdateDepartment(ctx, actor, root.ID, organizationdomain.DepartmentInput{
 			ParentID: &child.ID, Name: root.Name, Code: root.Code, Status: root.Status,
 		})
 		require.Error(t, err)
 
-		reloaded, err := organizationService.Department(ctx, root.ID)
+		reloaded, err := organizationService.Department(ctx, actor, root.ID)
 		require.NoError(t, err)
 		require.Nil(t, reloaded.ParentID)
 	})
@@ -784,6 +990,32 @@ func createTestDepartment(t *testing.T, ctx context.Context, pool *pgxpool.Pool,
 		VALUES ($1, $2, $3, $4::ltree)`, id, code, code, path)
 	require.NoError(t, err)
 	return id
+}
+
+func createTestRole(t *testing.T, ctx context.Context, pool *pgxpool.Pool, code, dataScope string) uuid.UUID {
+	t.Helper()
+	id := uuid.New()
+	_, err := pool.Exec(ctx, `
+		INSERT INTO access_roles (id, name, code, description, data_scope, status)
+		VALUES ($1, $2, $3, '', $4, 'active')`, id, code, code, dataScope)
+	require.NoError(t, err)
+	return id
+}
+
+func userIDs(users []identitydomain.User) []uuid.UUID {
+	ids := make([]uuid.UUID, 0, len(users))
+	for _, user := range users {
+		ids = append(ids, user.ID)
+	}
+	return ids
+}
+
+func departmentIDs(departments []organizationdomain.Department) []uuid.UUID {
+	ids := make([]uuid.UUID, 0, len(departments))
+	for _, department := range departments {
+		ids = append(ids, department.ID)
+	}
+	return ids
 }
 
 func createIdentityUserInDepartment(

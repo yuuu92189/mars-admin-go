@@ -181,15 +181,12 @@ func (s *Service) DeleteFileGroup(ctx context.Context, id uuid.UUID) error {
 }
 
 func (s *Service) Delete(ctx context.Context, actor requestctx.Actor, id uuid.UUID) error {
-	file, err := s.Get(ctx, actor, id)
+	_, err := s.Get(ctx, actor, id)
 	if err != nil {
 		return err
 	}
 	if err := s.repo.SoftDelete(ctx, id); err != nil {
 		return err
-	}
-	if err := s.backend.Delete(ctx, file.StorageKey); err != nil {
-		return fmt.Errorf("delete file object: %w", err)
 	}
 	return nil
 }

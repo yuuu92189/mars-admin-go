@@ -6,6 +6,8 @@ The original Java project is retained at `../mars-admin-master` as migration ref
 
 Current verified status and residual gaps are recorded in [`docs/status.md`](docs/status.md), [`docs/test-report.md`](docs/test-report.md) and [`docs/final-report.md`](docs/final-report.md).
 
+The latest Refresh concurrency and transactional Outbox audit is in [`docs/audit-round-3/audit-summary.md`](docs/audit-round-3/audit-summary.md).
+
 ## Quick Start
 
 ```bash
@@ -17,7 +19,7 @@ The API starts at `http://localhost:8080`. Health endpoints:
 
 - `GET /health/live`
 - `GET /health/ready`
-- `GET /metrics`
+- `GET /metrics` (requires `audit:read`)
 - `GET /docs`
 - `GET /openapi.yaml`
 
@@ -54,7 +56,7 @@ Required environment variables are documented in `.env.example`. `DATABASE_URL` 
 
 ## Architecture
 
-- `cmd/api`, `cmd/worker`, `cmd/migrate`, `cmd/legacy-import`: separate process entry points.
+- `cmd/api`, `cmd/worker`, `cmd/migrate`, `cmd/outbox`, `cmd/legacy-import`: separate process entry points.
 - `internal/modules/*`: feature-owned domain, application, HTTP adapter and PostgreSQL adapter code.
 - `internal/platform/*`: configuration, security primitives, HTTP middleware, database, Redis, telemetry and compatibility envelope.
 - `db/migrations`: Goose schema migrations.
@@ -62,6 +64,8 @@ Required environment variables are documented in `.env.example`. `DATABASE_URL` 
 - `api/openapi/v1/openapi.yaml`: canonical API contract.
 
 Authentication uses opaque server-side sessions and Argon2id passwords. Redis is limited to ephemeral coordination, rate limiting and realtime fan-out. PostgreSQL is the source of truth.
+
+Cross-process domain events use a PostgreSQL transactional outbox. The Worker relay claims events with `SKIP LOCKED`, inserts River jobs and updates outbox state in one transaction, and retries consumers with exponential backoff. `go run ./cmd/outbox list|requeue|cleanup` provides operational recovery.
 
 ## Tests
 

@@ -1,5 +1,5 @@
 SHELL := /bin/sh
-.PHONY: fmt vet test race lint vuln generate migrate-up migrate-down docker-up docker-down run-api run-worker
+.PHONY: fmt vet test race lint vuln generate migrate-up migrate-down docker-up docker-down run-api run-worker run-outbox
 
 fmt:
 	gofmt -w .
@@ -40,3 +40,6 @@ run-api:
 
 run-worker:
 	go run ./cmd/worker
+
+run-outbox:
+	go run ./cmd/outbox list pending 50

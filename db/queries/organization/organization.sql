@@ -9,10 +9,84 @@ WITH RECURSIVE tree AS (
     JOIN tree ON child.parent_id = tree.id
     WHERE child.deleted_at IS NULL AND tree.depth < 50
 )
-SELECT * FROM tree ORDER BY depth, sort_order, name;
+SELECT * FROM tree AS department
+WHERE (
+    $2::text = 'all'
+    OR (
+        $2::text = 'self'
+        AND EXISTS (
+            SELECT 1 FROM organization_memberships mine
+            WHERE mine.user_id = $1 AND mine.department_id = department.id
+        )
+    )
+    OR (
+        $2::text = 'department'
+        AND EXISTS (
+            SELECT 1 FROM organization_memberships mine
+            WHERE mine.user_id = $1 AND mine.department_id = department.id
+        )
+    )
+    OR (
+        $2::text = 'department_tree'
+        AND EXISTS (
+            SELECT 1
+            FROM organization_memberships mine
+            JOIN organization_departments mine_department ON mine_department.id = mine.department_id
+            WHERE mine.user_id = $1 AND department.path <@ mine_department.path
+        )
+    )
+    OR (
+        $2::text = 'custom'
+        AND EXISTS (
+            SELECT 1
+            FROM access_user_roles role_user
+            JOIN access_role_departments allowed ON allowed.role_id = role_user.role_id
+            WHERE role_user.user_id = $1 AND allowed.department_id = department.id
+        )
+    )
+)
+ORDER BY depth, sort_order, name;
 
 -- name: GetDepartment :one
-SELECT * FROM organization_departments WHERE id = $1 AND deleted_at IS NULL;
+SELECT department.*
+FROM organization_departments AS department
+WHERE department.id = $1
+  AND department.deleted_at IS NULL
+  AND (
+      $3::text = 'all'
+      OR (
+          $3::text = 'self'
+          AND EXISTS (
+              SELECT 1 FROM organization_memberships mine
+              WHERE mine.user_id = $2 AND mine.department_id = department.id
+          )
+      )
+      OR (
+          $3::text = 'department'
+          AND EXISTS (
+              SELECT 1 FROM organization_memberships mine
+              WHERE mine.user_id = $2 AND mine.department_id = department.id
+          )
+      )
+      OR (
+          $3::text = 'department_tree'
+          AND EXISTS (
+              SELECT 1
+              FROM organization_memberships mine
+              JOIN organization_departments mine_department ON mine_department.id = mine.department_id
+              WHERE mine.user_id = $2 AND department.path <@ mine_department.path
+          )
+      )
+      OR (
+          $3::text = 'custom'
+          AND EXISTS (
+              SELECT 1
+              FROM access_user_roles role_user
+              JOIN access_role_departments allowed ON allowed.role_id = role_user.role_id
+              WHERE role_user.user_id = $2 AND allowed.department_id = department.id
+          )
+      )
+  );
 
 -- name: CreateDepartment :one
 INSERT INTO organization_departments (

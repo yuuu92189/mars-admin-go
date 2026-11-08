@@ -55,8 +55,8 @@ type PositionInput struct {
 }
 
 type Repository interface {
-	Departments(ctx context.Context) ([]Department, error)
-	Department(ctx context.Context, id uuid.UUID) (Department, error)
+	Departments(ctx context.Context, actorID uuid.UUID, dataScope string) ([]Department, error)
+	Department(ctx context.Context, id, actorID uuid.UUID, dataScope string) (Department, error)
 	CreateDepartment(ctx context.Context, input DepartmentInput) (Department, error)
 	UpdateDepartment(ctx context.Context, id uuid.UUID, input DepartmentInput) (Department, error)
 	DeleteDepartment(ctx context.Context, id uuid.UUID) error

@@ -23,8 +23,10 @@ func New(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
-func (r *Repository) Departments(ctx context.Context) ([]domain.Department, error) {
-	rows, err := sqlc.New(r.pool).ListDepartments(ctx)
+func (r *Repository) Departments(ctx context.Context, actorID uuid.UUID, dataScope string) ([]domain.Department, error) {
+	rows, err := sqlc.New(r.pool).ListDepartments(ctx, sqlc.ListDepartmentsParams{
+		UserID: pgUUID(actorID), Column2: dataScope,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +39,10 @@ func (r *Repository) Departments(ctx context.Context) ([]domain.Department, erro
 	return items, nil
 }
 
-func (r *Repository) Department(ctx context.Context, id uuid.UUID) (domain.Department, error) {
-	row, err := sqlc.New(r.pool).GetDepartment(ctx, pgUUID(id))
+func (r *Repository) Department(ctx context.Context, id, actorID uuid.UUID, dataScope string) (domain.Department, error) {
+	row, err := sqlc.New(r.pool).GetDepartment(ctx, sqlc.GetDepartmentParams{
+		ID: pgUUID(id), UserID: pgUUID(actorID), Column3: dataScope,
+	})
 	if err != nil {
 		return domain.Department{}, err
 	}

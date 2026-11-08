@@ -3,11 +3,9 @@ package application
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
-	messagingdomain "mars-admin-go/internal/modules/messaging/domain"
 	notificationdomain "mars-admin-go/internal/modules/notification/domain"
 	"mars-admin-go/internal/platform/apperror"
 	"mars-admin-go/internal/platform/requestctx"
@@ -17,17 +15,11 @@ import (
 )
 
 type Service struct {
-	repo      notificationdomain.Repository
-	publisher messagingdomain.Publisher
-	delivery  notificationdomain.DeliveryEnqueuer
+	repo notificationdomain.Repository
 }
 
-func New(repo notificationdomain.Repository, publisher messagingdomain.Publisher, deliveries ...notificationdomain.DeliveryEnqueuer) *Service {
-	service := &Service{repo: repo, publisher: publisher}
-	if len(deliveries) > 0 {
-		service.delivery = deliveries[0]
-	}
-	return service
+func New(repo notificationdomain.Repository) *Service {
+	return &Service{repo: repo}
 }
 
 func (s *Service) Create(ctx context.Context, createdBy uuid.UUID, input notificationdomain.Input) (notificationdomain.Notice, error) {
@@ -87,28 +79,13 @@ func (s *Service) List(ctx context.Context, status string, page, pageSize int) (
 }
 
 func (s *Service) Publish(ctx context.Context, id uuid.UUID) error {
-	recipients, err := s.repo.Publish(ctx, id)
+	_, err := s.repo.Publish(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return apperror.Conflict("The notice is no longer a draft.")
 		}
 		return err
 	}
-	notice, _ := s.repo.Get(ctx, id)
-	if s.delivery != nil {
-		for _, channel := range notice.Channels {
-			if channel == "station" {
-				continue
-			}
-			if _, err := s.delivery.Enqueue(ctx, id, channel); err != nil {
-				return fmt.Errorf("enqueue %s notification: %w", channel, err)
-			}
-		}
-	}
-	_ = s.publisher.Publish(ctx, recipients, messagingdomain.Event{
-		Type: "notice", Title: notice.Title, Content: notice.Content, NoticeID: &id,
-		Timestamp: time.Now().UTC().UnixMilli(),
-	})
 	return nil
 }
 

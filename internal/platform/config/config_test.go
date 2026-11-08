@@ -63,3 +63,33 @@ func TestValidateRequiresSecureCookiesInProduction(t *testing.T) {
 		t.Fatal("expected insecure production cookies to fail")
 	}
 }
+
+func TestValidateRejectsUnsafeRefreshGrace(t *testing.T) {
+	cfg := Config{
+		App:      AppConfig{Env: "development", Port: 8080},
+		Database: DatabaseConfig{URL: "postgres://localhost/db", MaxConnections: 2},
+		Auth: AuthConfig{
+			SessionTTL: time.Minute, RefreshTTL: time.Hour, CookieSameSite: "lax",
+			RefreshGracePeriod: 3 * time.Minute, RefreshHistoryRetention: time.Hour,
+		},
+		Storage: StorageConfig{Provider: "local", MaxUploadBytes: 1},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected excessive refresh grace period to fail")
+	}
+}
+
+func TestValidateRejectsMissingRefreshHistoryRetention(t *testing.T) {
+	cfg := Config{
+		App:      AppConfig{Env: "development", Port: 8080},
+		Database: DatabaseConfig{URL: "postgres://localhost/db", MaxConnections: 2},
+		Auth: AuthConfig{
+			SessionTTL: time.Minute, RefreshTTL: time.Hour, CookieSameSite: "lax",
+			RefreshGracePeriod: 15 * time.Second,
+		},
+		Storage: StorageConfig{Provider: "local", MaxUploadBytes: 1},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected missing refresh history retention to fail")
+	}
+}

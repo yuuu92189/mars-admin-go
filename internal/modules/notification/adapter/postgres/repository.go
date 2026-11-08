@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	sqlc "mars-admin-go/internal/modules/messaging/adapter/postgres/sqlc"
 	"mars-admin-go/internal/modules/notification/domain"
+	"mars-admin-go/internal/modules/outbox/contracts"
 	"mars-admin-go/internal/platform/apperror"
+	platformoutbox "mars-admin-go/internal/platform/outbox"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -124,6 +127,23 @@ func (r *Repository) Publish(ctx context.Context, id uuid.UUID) ([]uuid.UUID, er
 		ID: pgUUID(mustID()), NoticeID: pgUUID(id), Channel: "station", Status: "success",
 		TargetCount: int32(len(recipients)), SuccessCount: int32(len(recipients)), ErrorMessage: "", // #nosec G115 -- recipient count is bounded by configured application scale.
 	}); err != nil {
+		return nil, err
+	}
+	var channels []string
+	if err := json.Unmarshal(notice.Channels, &channels); err != nil {
+		return nil, err
+	}
+	event, err := platformoutbox.NewEvent(
+		"notification_notice", id.String(), contracts.EventNoticePublished, "publish",
+		contracts.NoticePublished{
+			NoticeID: id, Title: notice.Title, Content: notice.Content,
+			Channels: channels, Recipients: recipients, PublishedAt: time.Now().UTC(),
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err := platformoutbox.Insert(ctx, tx, event); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {

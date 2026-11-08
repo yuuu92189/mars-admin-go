@@ -7,21 +7,35 @@ import (
 
 	"mars-admin-go/internal/modules/organization/domain"
 	"mars-admin-go/internal/platform/apperror"
+	"mars-admin-go/internal/platform/requestctx"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
 type Service struct {
-	repo domain.Repository
+	repo   domain.Repository
+	scopes ScopeResolver
 }
 
-func New(repo domain.Repository) *Service {
-	return &Service{repo: repo}
+type ScopeResolver interface {
+	ResolveDataScope(ctx context.Context, userID uuid.UUID) (string, bool, error)
 }
 
-func (s *Service) Departments(ctx context.Context) ([]domain.Department, error) {
-	items, err := s.repo.Departments(ctx)
+func New(repo domain.Repository, scopes ...ScopeResolver) *Service {
+	service := &Service{repo: repo}
+	if len(scopes) > 0 {
+		service.scopes = scopes[0]
+	}
+	return service
+}
+
+func (s *Service) Departments(ctx context.Context, actor requestctx.Actor) ([]domain.Department, error) {
+	dataScope, err := s.resolveScope(ctx, actor)
+	if err != nil {
+		return nil, err
+	}
+	items, err := s.repo.Departments(ctx, actor.UserID, dataScope)
 	if err != nil {
 		return nil, err
 	}
@@ -52,27 +66,65 @@ func buildDepartmentTree(nodes []domain.Department, children map[uuid.UUID][]dom
 	return nodes
 }
 
-func (s *Service) Department(ctx context.Context, id uuid.UUID) (domain.Department, error) {
-	department, err := s.repo.Department(ctx, id)
+func (s *Service) Department(ctx context.Context, actor requestctx.Actor, id uuid.UUID) (domain.Department, error) {
+	dataScope, err := s.resolveScope(ctx, actor)
+	if err != nil {
+		return domain.Department{}, err
+	}
+	department, err := s.repo.Department(ctx, id, actor.UserID, dataScope)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Department{}, apperror.NotFound("Department")
 	}
 	return department, err
 }
 
-func (s *Service) CreateDepartment(ctx context.Context, input domain.DepartmentInput) (domain.Department, error) {
+func (s *Service) CreateDepartment(ctx context.Context, actor requestctx.Actor, input domain.DepartmentInput) (domain.Department, error) {
 	if err := validateDepartmentInput(&input); err != nil {
+		return domain.Department{}, err
+	}
+	dataScope, err := s.resolveScope(ctx, actor)
+	if err != nil {
+		return domain.Department{}, err
+	}
+	if input.ParentID == nil {
+		if dataScope != "all" {
+			return domain.Department{}, apperror.Forbidden("Only an all-scope administrator can create a root department.")
+		}
+	} else if _, err := s.repo.Department(ctx, *input.ParentID, actor.UserID, dataScope); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Department{}, apperror.Forbidden("The parent department is outside your data scope.")
+		}
 		return domain.Department{}, err
 	}
 	return s.repo.CreateDepartment(ctx, input)
 }
 
-func (s *Service) UpdateDepartment(ctx context.Context, id uuid.UUID, input domain.DepartmentInput) (domain.Department, error) {
+func (s *Service) UpdateDepartment(ctx context.Context, actor requestctx.Actor, id uuid.UUID, input domain.DepartmentInput) (domain.Department, error) {
 	if err := validateDepartmentInput(&input); err != nil {
+		return domain.Department{}, err
+	}
+	dataScope, err := s.resolveScope(ctx, actor)
+	if err != nil {
+		return domain.Department{}, err
+	}
+	if _, err := s.repo.Department(ctx, id, actor.UserID, dataScope); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Department{}, apperror.NotFound("Department")
+		}
 		return domain.Department{}, err
 	}
 	if input.ParentID != nil && *input.ParentID == id {
 		return domain.Department{}, apperror.Validation("parentId", "A department cannot be its own parent.")
+	}
+	if input.ParentID == nil {
+		if dataScope != "all" {
+			return domain.Department{}, apperror.Forbidden("Only an all-scope administrator can move a department to root.")
+		}
+	} else if _, err := s.repo.Department(ctx, *input.ParentID, actor.UserID, dataScope); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Department{}, apperror.Forbidden("The parent department is outside your data scope.")
+		}
+		return domain.Department{}, err
 	}
 	department, err := s.repo.UpdateDepartment(ctx, id, input)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -81,12 +133,47 @@ func (s *Service) UpdateDepartment(ctx context.Context, id uuid.UUID, input doma
 	return department, err
 }
 
-func (s *Service) DeleteDepartment(ctx context.Context, id uuid.UUID) error {
-	err := s.repo.DeleteDepartment(ctx, id)
+func (s *Service) DeleteDepartment(ctx context.Context, actor requestctx.Actor, id uuid.UUID) error {
+	dataScope, err := s.resolveScope(ctx, actor)
+	if err != nil {
+		return err
+	}
+	if _, err := s.repo.Department(ctx, id, actor.UserID, dataScope); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apperror.NotFound("Department")
+		}
+		return err
+	}
+	err = s.repo.DeleteDepartment(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return apperror.Conflict("The department has children or no longer exists.")
 	}
 	return err
+}
+
+func (s *Service) resolveScope(ctx context.Context, actor requestctx.Actor) (string, error) {
+	if actor.UserID == uuid.Nil {
+		return "", apperror.Unauthorized("Authentication is required.")
+	}
+	if s.scopes == nil {
+		return "all", nil
+	}
+	scope, superAdmin, err := s.scopes.ResolveDataScope(ctx, actor.UserID)
+	if err != nil {
+		return "", err
+	}
+	if superAdmin {
+		return "all", nil
+	}
+	if scope == "" {
+		scope = "self"
+	}
+	switch scope {
+	case "all", "self", "department", "department_tree", "custom":
+		return scope, nil
+	default:
+		return "self", nil
+	}
 }
 
 func (s *Service) Positions(ctx context.Context) ([]domain.Position, error) {

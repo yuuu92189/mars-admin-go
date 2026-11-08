@@ -35,12 +35,13 @@ type Hub struct {
 	messaging *application.Service
 	redis     *redis.Client
 
-	mu      sync.RWMutex
-	clients map[uuid.UUID]map[*client]struct{}
-	count   atomic.Int64
-	closed  atomic.Bool
-	metrics prometheus.GaugeFunc
-	origins []string
+	mu        sync.RWMutex
+	clients   map[uuid.UUID]map[*client]struct{}
+	count     atomic.Int64
+	closed    atomic.Bool
+	metrics   prometheus.GaugeFunc
+	origins   []string
+	heartbeat time.Duration
 }
 
 type client struct {
@@ -57,8 +58,9 @@ type envelope struct {
 func New(logger *slog.Logger, auth Authenticator, messaging *application.Service, redisClient *redis.Client, registry prometheus.Registerer, allowedOrigins ...string) *Hub {
 	hub := &Hub{
 		logger: logger, auth: auth, messaging: messaging, redis: redisClient,
-		clients: make(map[uuid.UUID]map[*client]struct{}),
-		origins: websocketOriginPatterns(allowedOrigins),
+		clients:   make(map[uuid.UUID]map[*client]struct{}),
+		origins:   websocketOriginPatterns(allowedOrigins),
+		heartbeat: 30 * time.Second,
 	}
 	hub.metrics = prometheus.NewGaugeFunc(prometheus.GaugeOpts{
 		Namespace: "mars_admin",
@@ -250,10 +252,19 @@ func (h *Hub) enqueue(c *client, event domain.Event) {
 }
 
 func (h *Hub) writer(ctx context.Context, c *client) {
+	heartbeat := time.NewTicker(h.heartbeat)
+	defer heartbeat.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-heartbeat.C:
+			pingCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			err := c.conn.Ping(pingCtx)
+			cancel()
+			if err != nil {
+				return
+			}
 		case payload, ok := <-c.send:
 			if !ok {
 				return

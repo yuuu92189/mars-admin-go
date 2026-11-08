@@ -3,11 +3,15 @@ package postgres
 import (
 	"context"
 	"encoding/hex"
+	"time"
 
+	"mars-admin-go/internal/modules/outbox/contracts"
 	sqlc "mars-admin-go/internal/modules/storage/adapter/postgres/sqlc"
 	"mars-admin-go/internal/modules/storage/domain"
+	platformoutbox "mars-admin-go/internal/platform/outbox"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -71,8 +75,37 @@ func (r *Repository) List(ctx context.Context, ownerID uuid.UUID, allOwners bool
 }
 
 func (r *Repository) SoftDelete(ctx context.Context, id uuid.UUID) error {
-	_, err := sqlc.New(r.pool).SoftDeleteFile(ctx, pgUUID(id))
-	return err
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	q := sqlc.New(tx)
+	row, err := q.GetFile(ctx, pgUUID(id))
+	if err != nil {
+		return err
+	}
+	affected, err := q.SoftDeleteFile(ctx, pgUUID(id))
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return pgx.ErrNoRows
+	}
+	event, err := platformoutbox.NewEvent(
+		"storage_file", id.String(), contracts.EventFileDeleted, "deleted",
+		contracts.FileDeleted{
+			FileID: id, StorageKey: row.StorageKey, StorageProvider: row.StorageProvider,
+			DeletedAt: time.Now().UTC(),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	if err := platformoutbox.Insert(ctx, tx, event); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *Repository) FileGroups(ctx context.Context, ownerID uuid.UUID, allOwners bool) ([]domain.FileGroup, error) {

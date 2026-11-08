@@ -96,6 +96,7 @@ type Repository interface {
 }
 
 type Event struct {
+	ID        string           `json:"id,omitempty"`
 	Type      string           `json:"type"`
 	Message   *Message         `json:"message,omitempty"`
 	Title     string           `json:"title,omitempty"`

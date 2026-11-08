@@ -152,18 +152,7 @@ func (w *dispatchWorker) Work(ctx context.Context, job *river.Job[DispatchArgs])
 			sendErr = errors.New("notice has no active recipients")
 			break
 		}
-		for _, contact := range contacts {
-			if !contact.Phone.Valid || contact.Phone.String == "" {
-				continue
-			}
-			if err := w.sms.SendNotice(ctx, contact.Phone.String, "", map[string]string{
-				"title": notice.Title, "content": notice.Content,
-			}); err != nil {
-				sendErr = err
-				break
-			}
-			successCount++
-		}
+		successCount, sendErr = sendSMSCampaign(ctx, w.sms, contacts, notice.Title, notice.Content)
 	case "push", "dingtalk", "feishu", "wechat_work":
 		if w.push == nil {
 			sendErr = apperror.New(apperror.KindNotConfigured, "push_not_configured", "Push notification provider is not configured.")
@@ -220,6 +209,27 @@ func (w *dispatchWorker) Work(ctx context.Context, job *river.Job[DispatchArgs])
 			"notice_id", job.Args.NoticeID, "channel", job.Args.Channel, "error", sendErr)
 	}
 	return sendErr
+}
+
+func sendSMSCampaign(
+	ctx context.Context,
+	provider integrations.SMSProvider,
+	contacts []messagingsqlc.ListNoticeRecipientContactsRow,
+	title, content string,
+) (int32, error) {
+	successCount := int32(0)
+	for _, contact := range contacts {
+		if !contact.Phone.Valid || contact.Phone.String == "" {
+			continue
+		}
+		if err := provider.SendNotice(ctx, contact.Phone.String, "", map[string]string{
+			"title": title, "content": content,
+		}); err != nil {
+			return successCount, err
+		}
+		successCount++
+	}
+	return successCount, nil
 }
 
 func pgUUID(id uuid.UUID) pgtype.UUID {

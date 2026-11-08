@@ -57,6 +57,8 @@ type Dashboard struct {
 	Files            int64 `json:"files"`
 	Messages         int64 `json:"messages"`
 	PublishedNotices int64 `json:"publishedNotices"`
+	OutboxPending    int64 `json:"outboxPending"`
+	OutboxDead       int64 `json:"outboxDead"`
 }
 
 func New(pool *pgxpool.Pool, redisClient *redis.Client, registry prometheus.Registerer) *Service {
@@ -129,6 +131,8 @@ func (s *Service) Dashboard(ctx context.Context) (Dashboard, error) {
 		{`SELECT count(*) FROM access_roles WHERE deleted_at IS NULL`, &dashboard.RoleCount},
 		{`SELECT count(*) FROM access_menus`, &dashboard.MenuCount},
 		{`SELECT count(*) FROM access_permissions`, &dashboard.PermissionCount},
+		{`SELECT count(*) FROM outbox_events WHERE status IN ('pending', 'processing', 'failed')`, &dashboard.OutboxPending},
+		{`SELECT count(*) FROM outbox_events WHERE status = 'dead'`, &dashboard.OutboxDead},
 	}
 	for _, query := range queries {
 		if err := s.pool.QueryRow(ctx, query.sql).Scan(query.dst); err != nil {

@@ -6,10 +6,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -17,7 +19,13 @@ import (
 	"time"
 
 	"mars-admin-go/internal/bootstrap"
+	messagingrealtime "mars-admin-go/internal/modules/messaging/realtime"
 	notificationriver "mars-admin-go/internal/modules/notification/adapter/river"
+	outboxpostgres "mars-admin-go/internal/modules/outbox/adapter/postgres"
+	outboxriver "mars-admin-go/internal/modules/outbox/adapter/river"
+	outboxapp "mars-admin-go/internal/modules/outbox/application"
+	"mars-admin-go/internal/modules/outbox/contracts"
+	storagelocal "mars-admin-go/internal/modules/storage/adapter/local"
 	"mars-admin-go/internal/platform/config"
 
 	"github.com/coder/websocket"
@@ -100,6 +108,7 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 		defer closeCancel()
 		_ = notificationWorker.Stop(closeCtx)
 	})
+	startOutboxProcessor(t, ctx, app, notificationWorker)
 
 	server := httptest.NewServer(app.Router)
 	t.Cleanup(server.Close)
@@ -168,10 +177,10 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	response, err = http.Post(server.URL+"/api/v1/auth/refresh", "application/json", bytes.NewReader(refreshBody))
 	require.NoError(t, err)
 	require.Equal(t, http.StatusUnauthorized, response.StatusCode)
+	require.Empty(t, response.Header.Values("Set-Cookie"), "failed refresh must not clear cookies issued by the winning request")
 	_ = response.Body.Close()
 
-	// Replaying a rotated refresh token revokes the family. Re-authenticate for
-	// the remaining compatibility checks.
+	// Re-authenticate for the remaining compatibility checks.
 	body, _ = json.Marshal(map[string]any{
 		"username": "admin", "password": "integration-password-123", "clientType": "admin",
 	})
@@ -205,6 +214,15 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	response = authenticatedRequest(t, http.MethodPost, server.URL+"/api/v1/messages", login.Token, messageBody)
 	require.Equal(t, http.StatusConflict, response.StatusCode)
 	_ = response.Body.Close()
+	require.Eventually(t, func() bool {
+		var count int
+		err := app.Pool.QueryRow(ctx, `
+			SELECT count(*) FROM outbox_events
+			WHERE aggregate_type = 'messaging_message'
+			  AND event_type = 'messaging.direct_message.created'
+			  AND status = 'published'`).Scan(&count)
+		return err == nil && count >= 1
+	}, 10*time.Second, 100*time.Millisecond)
 
 	var upload bytes.Buffer
 	multipartWriter := multipart.NewWriter(&upload)
@@ -227,6 +245,26 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&uploadResult))
 	_ = response.Body.Close()
 	require.NotEmpty(t, uploadResult.File.ID)
+	var storageKey string
+	require.NoError(t, app.Pool.QueryRow(ctx, `
+		SELECT storage_key FROM storage_files WHERE id = $1`, uploadResult.File.ID).Scan(&storageKey))
+	response = authenticatedRequest(t, http.MethodDelete, server.URL+"/api/v1/files/"+uploadResult.File.ID, login.Token, nil)
+	require.Equal(t, http.StatusNoContent, response.StatusCode)
+	_ = response.Body.Close()
+	require.Eventually(t, func() bool {
+		_, err := os.Stat(filepath.Join(app.Config.Storage.LocalDir, filepath.FromSlash(storageKey)))
+		return os.IsNotExist(err)
+	}, 10*time.Second, 100*time.Millisecond)
+	require.Eventually(t, func() bool {
+		var count int
+		err := app.Pool.QueryRow(ctx, `
+			SELECT count(*) FROM outbox_events
+			WHERE aggregate_type = 'storage_file'
+			  AND aggregate_id = $1
+			  AND event_type = 'storage.file.deleted'
+			  AND status = 'published'`, uploadResult.File.ID).Scan(&count)
+		return err == nil && count == 1
+	}, 10*time.Second, 100*time.Millisecond)
 
 	response = authenticatedRequest(t, http.MethodGet, server.URL+"/api/v1/admin/audit/events", login.Token, nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
@@ -311,6 +349,16 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	response = authenticatedRequest(t, http.MethodPost, server.URL+"/api/v1/notices/"+notice.ID+"/publish", login.Token, nil)
 	require.Equal(t, http.StatusNoContent, response.StatusCode)
 	_ = response.Body.Close()
+	require.Eventually(t, func() bool {
+		var count int
+		err := app.Pool.QueryRow(ctx, `
+			SELECT count(*) FROM outbox_events
+			WHERE aggregate_type = 'notification_notice'
+			  AND aggregate_id = $1
+			  AND event_type = 'notification.notice.published'
+			  AND status = 'published'`, notice.ID).Scan(&count)
+		return err == nil && count == 1
+	}, 10*time.Second, 100*time.Millisecond)
 	require.Eventually(t, func() bool { return smsRecorder.Count() == 1 }, 10*time.Second, 100*time.Millisecond)
 	var sendStatus string
 	var successCount int
@@ -398,6 +446,46 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	_ = response.Body.Close()
 
+}
+
+func startOutboxProcessor(t *testing.T, ctx context.Context, app *bootstrap.App, notificationWorker *notificationriver.Backend) {
+	t.Helper()
+	realtimePublisher := messagingrealtime.NewRedisPublisher(app.Redis)
+	storageBackend, err := storagelocal.New(app.Config.Storage.LocalDir, app.Config.Storage.PublicBaseURL)
+	require.NoError(t, err)
+	consumers := outboxapp.NewConsumers(realtimePublisher, notificationWorker, storageBackend)
+	backend, err := outboxriver.NewBackend(ctx, app.Pool, app.Logger, outboxriver.Options{
+		MaxJobs: 4,
+		Handlers: map[string]outboxriver.Handler{
+			contracts.EventUserStatusChanged: consumers.HandleUserStatusChanged,
+			contracts.EventNoticePublished:   consumers.HandleNoticePublished,
+			contracts.EventDirectMessage:     consumers.HandleRealtime,
+			contracts.EventGroupMessage:      consumers.HandleRealtime,
+			contracts.EventWorkflowDecision:  consumers.HandleWorkflowDecision,
+			contracts.EventFileDeleted:       consumers.HandleFileDeleted,
+		},
+	})
+	require.NoError(t, err)
+	require.NoError(t, backend.Start(ctx))
+	relayCtx, cancel := context.WithCancel(ctx)
+	relay := outboxapp.NewRelay(outboxpostgres.New(app.Pool), backend, app.Logger, outboxapp.RelayOptions{
+		Interval: 100 * time.Millisecond,
+	})
+	relayErr := make(chan error, 1)
+	go func() { relayErr <- relay.Run(relayCtx) }()
+	t.Cleanup(func() {
+		cancel()
+		stopCtx, stopCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer stopCancel()
+		_ = backend.Stop(stopCtx)
+		select {
+		case err := <-relayErr:
+			if err != nil && !errors.Is(err, context.Canceled) {
+				t.Logf("outbox relay stopped with error: %v", err)
+			}
+		default:
+		}
+	})
 }
 
 type recordingSMS struct {

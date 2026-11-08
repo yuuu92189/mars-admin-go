@@ -140,11 +140,55 @@ func (q *Queries) CreatePosition(ctx context.Context, arg CreatePositionParams) 
 }
 
 const getDepartment = `-- name: GetDepartment :one
-SELECT id, parent_id, name, code, path, leader_name, phone, email, sort_order, status, created_at, updated_at, deleted_at FROM organization_departments WHERE id = $1 AND deleted_at IS NULL
+SELECT department.id, department.parent_id, department.name, department.code, department.path, department.leader_name, department.phone, department.email, department.sort_order, department.status, department.created_at, department.updated_at, department.deleted_at
+FROM organization_departments AS department
+WHERE department.id = $1
+  AND department.deleted_at IS NULL
+  AND (
+      $3::text = 'all'
+      OR (
+          $3::text = 'self'
+          AND EXISTS (
+              SELECT 1 FROM organization_memberships mine
+              WHERE mine.user_id = $2 AND mine.department_id = department.id
+          )
+      )
+      OR (
+          $3::text = 'department'
+          AND EXISTS (
+              SELECT 1 FROM organization_memberships mine
+              WHERE mine.user_id = $2 AND mine.department_id = department.id
+          )
+      )
+      OR (
+          $3::text = 'department_tree'
+          AND EXISTS (
+              SELECT 1
+              FROM organization_memberships mine
+              JOIN organization_departments mine_department ON mine_department.id = mine.department_id
+              WHERE mine.user_id = $2 AND department.path <@ mine_department.path
+          )
+      )
+      OR (
+          $3::text = 'custom'
+          AND EXISTS (
+              SELECT 1
+              FROM access_user_roles role_user
+              JOIN access_role_departments allowed ON allowed.role_id = role_user.role_id
+              WHERE role_user.user_id = $2 AND allowed.department_id = department.id
+          )
+      )
+  )
 `
 
-func (q *Queries) GetDepartment(ctx context.Context, id pgtype.UUID) (OrganizationDepartment, error) {
-	row := q.db.QueryRow(ctx, getDepartment, id)
+type GetDepartmentParams struct {
+	ID      pgtype.UUID `json:"id"`
+	UserID  pgtype.UUID `json:"user_id"`
+	Column3 string      `json:"column_3"`
+}
+
+func (q *Queries) GetDepartment(ctx context.Context, arg GetDepartmentParams) (OrganizationDepartment, error) {
+	row := q.db.QueryRow(ctx, getDepartment, arg.ID, arg.UserID, arg.Column3)
 	var i OrganizationDepartment
 	err := row.Scan(
 		&i.ID,
@@ -197,8 +241,49 @@ WITH RECURSIVE tree AS (
     JOIN tree ON child.parent_id = tree.id
     WHERE child.deleted_at IS NULL AND tree.depth < 50
 )
-SELECT id, parent_id, name, code, path, leader_name, phone, email, sort_order, status, created_at, updated_at, deleted_at, depth FROM tree ORDER BY depth, sort_order, name
+SELECT id, parent_id, name, code, path, leader_name, phone, email, sort_order, status, created_at, updated_at, deleted_at, depth FROM tree AS department
+WHERE (
+    $2::text = 'all'
+    OR (
+        $2::text = 'self'
+        AND EXISTS (
+            SELECT 1 FROM organization_memberships mine
+            WHERE mine.user_id = $1 AND mine.department_id = department.id
+        )
+    )
+    OR (
+        $2::text = 'department'
+        AND EXISTS (
+            SELECT 1 FROM organization_memberships mine
+            WHERE mine.user_id = $1 AND mine.department_id = department.id
+        )
+    )
+    OR (
+        $2::text = 'department_tree'
+        AND EXISTS (
+            SELECT 1
+            FROM organization_memberships mine
+            JOIN organization_departments mine_department ON mine_department.id = mine.department_id
+            WHERE mine.user_id = $1 AND department.path <@ mine_department.path
+        )
+    )
+    OR (
+        $2::text = 'custom'
+        AND EXISTS (
+            SELECT 1
+            FROM access_user_roles role_user
+            JOIN access_role_departments allowed ON allowed.role_id = role_user.role_id
+            WHERE role_user.user_id = $1 AND allowed.department_id = department.id
+        )
+    )
+)
+ORDER BY depth, sort_order, name
 `
+
+type ListDepartmentsParams struct {
+	UserID  pgtype.UUID `json:"user_id"`
+	Column2 string      `json:"column_2"`
+}
 
 type ListDepartmentsRow struct {
 	ID         pgtype.UUID        `json:"id"`
@@ -217,8 +302,8 @@ type ListDepartmentsRow struct {
 	Depth      int32              `json:"depth"`
 }
 
-func (q *Queries) ListDepartments(ctx context.Context) ([]ListDepartmentsRow, error) {
-	rows, err := q.db.Query(ctx, listDepartments)
+func (q *Queries) ListDepartments(ctx context.Context, arg ListDepartmentsParams) ([]ListDepartmentsRow, error) {
+	rows, err := q.db.Query(ctx, listDepartments, arg.UserID, arg.Column2)
 	if err != nil {
 		return nil, err
 	}

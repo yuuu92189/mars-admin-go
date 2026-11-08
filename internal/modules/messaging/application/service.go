@@ -15,12 +15,11 @@ import (
 )
 
 type Service struct {
-	repo      domain.Repository
-	publisher domain.Publisher
+	repo domain.Repository
 }
 
-func New(repo domain.Repository, publisher domain.Publisher) *Service {
-	return &Service{repo: repo, publisher: publisher}
+func New(repo domain.Repository) *Service {
+	return &Service{repo: repo}
 }
 
 func (s *Service) SendDirect(ctx context.Context, input domain.SendInput) (domain.Message, error) {
@@ -54,9 +53,6 @@ func (s *Service) SendDirect(ctx context.Context, input domain.SendInput) (domai
 		}
 		return domain.Message{}, err
 	}
-	_ = s.publisher.Publish(ctx, []uuid.UUID{input.SenderID, input.ReceiverID}, domain.Event{
-		Type: "chat", Message: &created, Timestamp: created.CreatedAt.UnixMilli(),
-	})
 	return created, nil
 }
 
@@ -249,14 +245,6 @@ func (s *Service) SendGroup(ctx context.Context, groupID, senderID uuid.UUID, cl
 		}
 		return domain.Message{}, err
 	}
-	members, _ := s.repo.Members(ctx, groupID)
-	recipients := make([]uuid.UUID, 0, len(members))
-	for _, member := range members {
-		recipients = append(recipients, member.UserID)
-	}
-	_ = s.publisher.Publish(ctx, recipients, domain.Event{
-		Type: "groupChat", Message: &created, Timestamp: created.CreatedAt.UnixMilli(),
-	})
 	return created, nil
 }
 

@@ -168,6 +168,7 @@ type IdentityRefreshTokenHistory struct {
 	TokenHash  []byte             `json:"token_hash"`
 	Generation int64              `json:"generation"`
 	UsedAt     pgtype.Timestamptz `json:"used_at"`
+	RotatedAt  pgtype.Timestamptz `json:"rotated_at"`
 }
 
 type IdentitySession struct {
@@ -358,6 +359,23 @@ type OrganizationUserPosition struct {
 	UserID     pgtype.UUID        `json:"user_id"`
 	PositionID pgtype.UUID        `json:"position_id"`
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
+type OutboxEvent struct {
+	ID               pgtype.UUID        `json:"id"`
+	AggregateType    string             `json:"aggregate_type"`
+	AggregateID      string             `json:"aggregate_id"`
+	EventType        string             `json:"event_type"`
+	DeduplicationKey string             `json:"deduplication_key"`
+	Payload          []byte             `json:"payload"`
+	Status           string             `json:"status"`
+	Attempts         int32              `json:"attempts"`
+	MaxAttempts      int32              `json:"max_attempts"`
+	AvailableAt      pgtype.Timestamptz `json:"available_at"`
+	LockedAt         pgtype.Timestamptz `json:"locked_at"`
+	PublishedAt      pgtype.Timestamptz `json:"published_at"`
+	LastError        string             `json:"last_error"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 }
 
 type SchedulerJob struct {

@@ -61,6 +61,13 @@ type OneTimeCodeAttempt struct {
 	Consumed bool
 }
 
+type RefreshReplayResult struct {
+	SessionID   uuid.UUID
+	Found       bool
+	WithinGrace bool
+	Revoked     bool
+}
+
 type LoginInput struct {
 	Username    string `json:"username"`
 	Password    string `json:"password"`
@@ -197,7 +204,8 @@ type Repository interface {
 	GetSessionByRefreshHash(ctx context.Context, hash []byte) (Session, error)
 	RotateSession(ctx context.Context, oldRefreshHash []byte, session Session) error
 	FindRefreshHistorySession(ctx context.Context, oldRefreshHash []byte) (uuid.UUID, error)
-	RevokeRefreshReplay(ctx context.Context, oldRefreshHash []byte) (bool, error)
+	ClassifyRefreshReplay(ctx context.Context, oldRefreshHash []byte, gracePeriod time.Duration) (RefreshReplayResult, error)
+	CleanupRefreshHistory(ctx context.Context, retention time.Duration) (int64, error)
 	TouchSession(ctx context.Context, id uuid.UUID) error
 	RevokeSession(ctx context.Context, id uuid.UUID) error
 	RevokeOwnedSession(ctx context.Context, id, userID uuid.UUID) error

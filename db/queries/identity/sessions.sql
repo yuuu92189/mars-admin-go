@@ -40,9 +40,9 @@ WITH rotated AS (
     RETURNING *
 ), history AS (
     INSERT INTO identity_refresh_token_history (
-        id, session_id, token_hash, generation
+        id, session_id, token_hash, generation, rotated_at
     )
-    SELECT $7, rotated.id, $2, rotated.refresh_generation
+    SELECT $7, rotated.id, $2, rotated.refresh_generation, now()
     FROM rotated
 )
 SELECT * FROM rotated;
@@ -52,20 +52,47 @@ SELECT session_id
 FROM identity_refresh_token_history
 WHERE token_hash = $1;
 
--- name: RevokeRefreshReplay :one
-WITH replayed AS (
-    SELECT history.session_id
+-- name: DeleteExpiredRefreshHistory :execrows
+DELETE FROM identity_refresh_token_history AS history
+USING identity_sessions AS session
+WHERE history.session_id = session.id
+  AND (
+      (
+          session.revoked_at IS NOT NULL
+          AND session.revoked_at < now() - ($1::bigint * interval '1 millisecond')
+      )
+      OR (
+          session.revoked_at IS NULL
+          AND session.refresh_expires_at < now() - ($1::bigint * interval '1 millisecond')
+      )
+  );
+
+-- name: ClassifyRefreshReplay :one
+WITH history AS (
+    SELECT history.session_id, history.rotated_at
     FROM identity_refresh_token_history AS history
     WHERE history.token_hash = $1
+), expired AS (
+    SELECT history.session_id
+    FROM history
+    WHERE history.rotated_at < now() - ($2::bigint * interval '1 millisecond')
 ), revoked AS (
     UPDATE identity_sessions AS session
     SET revoked_at = now()
-    FROM replayed
-    WHERE session.id = replayed.session_id
+    FROM expired
+    WHERE session.id = expired.session_id
       AND session.revoked_at IS NULL
     RETURNING session.id
 )
-SELECT EXISTS (SELECT 1 FROM replayed)::boolean AS replayed;
+SELECT
+    history.session_id,
+    COALESCE(
+        history.rotated_at >= now() - ($2::bigint * interval '1 millisecond'),
+        false
+    )::boolean AS within_grace,
+    EXISTS (SELECT 1 FROM revoked)::boolean AS revoked
+FROM (SELECT 1) AS singleton
+LEFT JOIN history ON true;
 
 -- name: TouchSession :exec
 UPDATE identity_sessions SET last_seen_at = now() WHERE id = $1 AND revoked_at IS NULL;

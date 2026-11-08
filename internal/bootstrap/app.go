@@ -26,12 +26,10 @@ import (
 	messaginghttp "mars-admin-go/internal/modules/messaging/adapter/http"
 	messagingpostgres "mars-admin-go/internal/modules/messaging/adapter/postgres"
 	messagingapp "mars-admin-go/internal/modules/messaging/application"
-	messagingdomain "mars-admin-go/internal/modules/messaging/domain"
 	"mars-admin-go/internal/modules/messaging/realtime"
 	"mars-admin-go/internal/modules/monitoring"
 	notificationhttp "mars-admin-go/internal/modules/notification/adapter/http"
 	notificationpostgres "mars-admin-go/internal/modules/notification/adapter/postgres"
-	notificationriver "mars-admin-go/internal/modules/notification/adapter/river"
 	notificationapp "mars-admin-go/internal/modules/notification/application"
 	organizationhttp "mars-admin-go/internal/modules/organization/adapter/http"
 	organizationpostgres "mars-admin-go/internal/modules/organization/adapter/postgres"
@@ -62,7 +60,6 @@ import (
 	"mars-admin-go/internal/platform/telemetry"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -119,7 +116,6 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	accessCache := cache.NewJSON(redisClient, "mars_admin:identity", 5*time.Minute)
 	accessService := accessapp.New(accessRepo, accessCache)
 	organizationRepo := organizationpostgres.New(pool)
-	organizationService := organizationapp.New(organizationRepo)
 	systemRepo := systempostgres.New(pool)
 	dictionaryCache := cache.NewJSON(redisClient, "mars_admin:dictionary", 5*time.Minute)
 	settingsCache := cache.NewJSON(redisClient, "mars_admin:settings", 2*time.Minute)
@@ -155,10 +151,12 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	}
 	identityService := identityapp.New(identityRepo, loginLimiter, identityapp.Options{
 		SessionTTL: cfg.Auth.SessionTTL, RefreshTTL: cfg.Auth.RefreshTTL,
-		MaxLoginAttempts: cfg.Auth.LoginMaxAttempts, LockDuration: cfg.Auth.LoginLockDuration,
+		RefreshGracePeriod: cfg.Auth.RefreshGracePeriod,
+		MaxLoginAttempts:   cfg.Auth.LoginMaxAttempts, LockDuration: cfg.Auth.LoginLockDuration,
 		CodeSender: codeSender, CaptchaEnabled: cfg.Auth.CaptchaEnabled,
 		SecretBox: secretBox, SocialProviders: socialProviders, AccessCache: accessCache,
 	})
+	organizationService := organizationapp.New(organizationRepo, identityService)
 	if cfg.Bootstrap.AdminPassword != "" {
 		if _, err := identityService.BootstrapAdmin(ctx, cfg.Bootstrap.AdminUsername, cfg.Bootstrap.AdminPassword, cfg.Bootstrap.AdminEmail); err != nil {
 			logger.Warn("bootstrap administrator was not created", "error", err)
@@ -168,13 +166,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 
 	messagingRepo := messagingpostgres.New(pool)
 	var hub *realtime.Hub
-	publisher := messagingdomain.PublisherFunc(func(ctx context.Context, recipients []uuid.UUID, event messagingdomain.Event) error {
-		if hub == nil {
-			return nil
-		}
-		return hub.Publish(ctx, recipients, event)
-	})
-	messagingService := messagingapp.New(messagingRepo, publisher)
+	messagingService := messagingapp.New(messagingRepo)
 	hub = realtime.New(logger, identityService, messagingService, redisClient, registry, cfg.App.CORSOrigins...)
 	if err := hub.Start(ctx); err != nil {
 		_ = redisClient.Close()
@@ -182,12 +174,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	}
 
 	notificationRepo := notificationpostgres.New(pool)
-	notificationEnqueuer, err := notificationriver.NewEnqueuer(ctx, pool, logger)
-	if err != nil {
-		_ = redisClient.Close()
-		return cleanupOnError(fmt.Errorf("create notification enqueuer: %w", err))
-	}
-	notificationService := notificationapp.New(notificationRepo, publisher, notificationEnqueuer)
+	notificationService := notificationapp.New(notificationRepo)
 
 	storageBackend, err := buildStorageBackend(cfg, logger)
 	if err != nil {

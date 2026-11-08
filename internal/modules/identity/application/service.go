@@ -19,31 +19,33 @@ import (
 )
 
 type Service struct {
-	repo             domain.Repository
-	rateLimiter      domain.RateLimiter
-	sessionTTL       time.Duration
-	refreshTTL       time.Duration
-	maxLoginAttempts int32
-	lockDuration     time.Duration
-	now              func() time.Time
-	codeSender       CodeSender
-	captchaEnabled   bool
-	secretBox        *security.SecretBox
-	socialProviders  map[string]domain.SocialProvider
-	accessCache      domain.Cache
+	repo               domain.Repository
+	rateLimiter        domain.RateLimiter
+	sessionTTL         time.Duration
+	refreshTTL         time.Duration
+	refreshGracePeriod time.Duration
+	maxLoginAttempts   int32
+	lockDuration       time.Duration
+	now                func() time.Time
+	codeSender         CodeSender
+	captchaEnabled     bool
+	secretBox          *security.SecretBox
+	socialProviders    map[string]domain.SocialProvider
+	accessCache        domain.Cache
 }
 
 type Options struct {
-	SessionTTL       time.Duration
-	RefreshTTL       time.Duration
-	MaxLoginAttempts int32
-	LockDuration     time.Duration
-	Now              func() time.Time
-	CodeSender       CodeSender
-	CaptchaEnabled   bool
-	SecretBox        *security.SecretBox
-	SocialProviders  map[string]domain.SocialProvider
-	AccessCache      domain.Cache
+	SessionTTL         time.Duration
+	RefreshTTL         time.Duration
+	RefreshGracePeriod time.Duration
+	MaxLoginAttempts   int32
+	LockDuration       time.Duration
+	Now                func() time.Time
+	CodeSender         CodeSender
+	CaptchaEnabled     bool
+	SecretBox          *security.SecretBox
+	SocialProviders    map[string]domain.SocialProvider
+	AccessCache        domain.Cache
 }
 
 type CodeSender interface {
@@ -64,6 +66,9 @@ func New(repo domain.Repository, rateLimiter domain.RateLimiter, opts Options) *
 	if opts.RefreshTTL <= 0 {
 		opts.RefreshTTL = 30 * 24 * time.Hour
 	}
+	if opts.RefreshGracePeriod < 0 {
+		opts.RefreshGracePeriod = 0
+	}
 	if opts.MaxLoginAttempts <= 0 {
 		opts.MaxLoginAttempts = 5
 	}
@@ -71,18 +76,19 @@ func New(repo domain.Repository, rateLimiter domain.RateLimiter, opts Options) *
 		opts.LockDuration = 30 * time.Minute
 	}
 	return &Service{
-		repo:             repo,
-		rateLimiter:      rateLimiter,
-		sessionTTL:       opts.SessionTTL,
-		refreshTTL:       opts.RefreshTTL,
-		maxLoginAttempts: opts.MaxLoginAttempts,
-		lockDuration:     opts.LockDuration,
-		now:              opts.Now,
-		codeSender:       opts.CodeSender,
-		captchaEnabled:   opts.CaptchaEnabled,
-		secretBox:        opts.SecretBox,
-		socialProviders:  opts.SocialProviders,
-		accessCache:      opts.AccessCache,
+		repo:               repo,
+		rateLimiter:        rateLimiter,
+		sessionTTL:         opts.SessionTTL,
+		refreshTTL:         opts.RefreshTTL,
+		refreshGracePeriod: opts.RefreshGracePeriod,
+		maxLoginAttempts:   opts.MaxLoginAttempts,
+		lockDuration:       opts.LockDuration,
+		now:                opts.Now,
+		codeSender:         opts.CodeSender,
+		captchaEnabled:     opts.CaptchaEnabled,
+		secretBox:          opts.SecretBox,
+		socialProviders:    opts.SocialProviders,
+		accessCache:        opts.AccessCache,
 	}
 }
 
@@ -120,6 +126,20 @@ func (s *Service) accessFor(ctx context.Context, userID uuid.UUID) (domain.Acces
 		})
 	}
 	return access, nil
+}
+
+func (s *Service) ResolveDataScope(ctx context.Context, userID uuid.UUID) (string, bool, error) {
+	access, err := s.accessFor(ctx, userID)
+	if err != nil {
+		return "", false, err
+	}
+	if access.IsSuperAdmin {
+		return "all", true, nil
+	}
+	if access.DataScope == "" {
+		return "self", false, nil
+	}
+	return access.DataScope, false, nil
 }
 
 func (s *Service) LoginSocial(ctx context.Context, providerName, code, clientType, deviceName, ip, userAgent string) (domain.LoginResult, error) {
@@ -534,10 +554,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (domain.Logi
 	session, err := s.repo.GetSessionByRefreshHash(ctx, oldRefreshHash)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			if _, replayErr := s.repo.RevokeRefreshReplay(ctx, oldRefreshHash); replayErr != nil {
-				return domain.LoginResult{}, replayErr
-			}
-			return domain.LoginResult{}, apperror.Unauthorized("The refresh token is invalid or expired.")
+			return domain.LoginResult{}, s.refreshReplayError(ctx, oldRefreshHash)
 		}
 		return domain.LoginResult{}, err
 	}
@@ -568,10 +585,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (domain.Logi
 	session.RefreshExpiresAt = now.Add(s.refreshTTL)
 	if err := s.repo.RotateSession(ctx, oldRefreshHash, session); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			if _, replayErr := s.repo.RevokeRefreshReplay(ctx, oldRefreshHash); replayErr != nil {
-				return domain.LoginResult{}, replayErr
-			}
-			return domain.LoginResult{}, apperror.Unauthorized("The refresh token is invalid or expired.")
+			return domain.LoginResult{}, s.refreshReplayError(ctx, oldRefreshHash)
 		}
 		return domain.LoginResult{}, err
 	}
@@ -584,6 +598,13 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (domain.Logi
 		User:         user,
 		Access:       access,
 	}, nil
+}
+
+func (s *Service) refreshReplayError(ctx context.Context, oldRefreshHash []byte) error {
+	if _, err := s.repo.ClassifyRefreshReplay(ctx, oldRefreshHash, s.refreshGracePeriod); err != nil {
+		return err
+	}
+	return apperror.Unauthorized("The refresh token is invalid or expired.")
 }
 
 func (s *Service) Logout(ctx context.Context, actor requestctx.Actor) error {

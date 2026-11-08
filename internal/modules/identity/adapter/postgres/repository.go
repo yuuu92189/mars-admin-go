@@ -12,7 +12,9 @@ import (
 	accesssqlc "mars-admin-go/internal/modules/access/adapter/postgres/sqlc"
 	identitysqlc "mars-admin-go/internal/modules/identity/adapter/postgres/sqlc"
 	"mars-admin-go/internal/modules/identity/domain"
+	"mars-admin-go/internal/modules/outbox/contracts"
 	"mars-admin-go/internal/platform/apperror"
+	platformoutbox "mars-admin-go/internal/platform/outbox"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -162,6 +164,12 @@ func (r *Repository) UpdateUser(ctx context.Context, id uuid.UUID, input domain.
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	q := identitysqlc.New(tx)
+	var previousStatus string
+	if err := tx.QueryRow(ctx, `
+		SELECT status FROM identity_users
+		WHERE id = $1 AND deleted_at IS NULL`, id).Scan(&previousStatus); err != nil {
+		return domain.User{}, err
+	}
 	row, err := q.UpdateUser(ctx, identitysqlc.UpdateUserParams{
 		ID:          pgUUID(id),
 		DisplayName: input.DisplayName,
@@ -196,6 +204,11 @@ func (r *Repository) UpdateUser(ctx context.Context, id uuid.UUID, input domain.
 			return domain.User{}, err
 		}
 	}
+	if previousStatus != row.Status {
+		if err := insertUserStatusEvent(ctx, tx, id, row.Status, row.Version); err != nil {
+			return domain.User{}, err
+		}
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return domain.User{}, err
 	}
@@ -217,6 +230,9 @@ func (r *Repository) SoftDeleteUser(ctx context.Context, id uuid.UUID) error {
 		return pgx.ErrNoRows
 	}
 	if _, err := q.RevokeUserSessions(ctx, pgUUID(id)); err != nil {
+		return err
+	}
+	if err := insertUserStatusEvent(ctx, tx, id, "deleted", time.Now().UTC().UnixNano()); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
@@ -249,6 +265,9 @@ func (r *Repository) ChangePasswordAndRevokeSessions(ctx context.Context, id uui
 		return pgx.ErrNoRows
 	}
 	if _, err := q.RevokeUserSessions(ctx, pgUUID(id)); err != nil {
+		return err
+	}
+	if err := insertUserStatusEvent(ctx, tx, id, "password_changed", time.Now().UTC().UnixNano()); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
@@ -326,8 +345,25 @@ func (r *Repository) FindRefreshHistorySession(ctx context.Context, oldRefreshHa
 	return uuid.UUID(sessionID.Bytes), nil
 }
 
-func (r *Repository) RevokeRefreshReplay(ctx context.Context, oldRefreshHash []byte) (bool, error) {
-	return identitysqlc.New(r.pool).RevokeRefreshReplay(ctx, oldRefreshHash)
+func (r *Repository) ClassifyRefreshReplay(ctx context.Context, oldRefreshHash []byte, gracePeriod time.Duration) (domain.RefreshReplayResult, error) {
+	row, err := identitysqlc.New(r.pool).ClassifyRefreshReplay(ctx, identitysqlc.ClassifyRefreshReplayParams{
+		TokenHash: oldRefreshHash,
+		Column2:   max(gracePeriod.Milliseconds(), 0),
+	})
+	if err != nil {
+		return domain.RefreshReplayResult{}, err
+	}
+	result := domain.RefreshReplayResult{
+		Found: row.SessionID.Valid, WithinGrace: row.WithinGrace, Revoked: row.Revoked,
+	}
+	if row.SessionID.Valid {
+		result.SessionID = uuid.UUID(row.SessionID.Bytes)
+	}
+	return result, nil
+}
+
+func (r *Repository) CleanupRefreshHistory(ctx context.Context, retention time.Duration) (int64, error) {
+	return identitysqlc.New(r.pool).DeleteExpiredRefreshHistory(ctx, max(retention.Milliseconds(), 0))
 }
 
 func (r *Repository) TouchSession(ctx context.Context, id uuid.UUID) error {
@@ -858,6 +894,18 @@ func mapPGError(err error, field string) error {
 		return apperror.Conflict(fmt.Sprintf("%s is already in use.", field))
 	}
 	return err
+}
+
+func insertUserStatusEvent(ctx context.Context, tx pgx.Tx, userID uuid.UUID, status string, version int64) error {
+	event, err := platformoutbox.NewEvent(
+		"identity_user", userID.String(), contracts.EventUserStatusChanged,
+		fmt.Sprintf("version:%d", version),
+		contracts.UserStatusChanged{UserID: userID, Status: status, ChangedAt: time.Now().UTC()},
+	)
+	if err != nil {
+		return err
+	}
+	return platformoutbox.Insert(ctx, tx, event)
 }
 
 func mustID() uuid.UUID {

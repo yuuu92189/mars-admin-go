@@ -16,6 +16,7 @@ RUN mkdir -p /out/uploads \
  && go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api \
  && go build -trimpath -ldflags="-s -w" -o /out/worker ./cmd/worker \
  && go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate \
+ && go build -trimpath -ldflags="-s -w" -o /out/outbox ./cmd/outbox \
  && go build -trimpath -ldflags="-s -w" -o /out/legacy-import ./cmd/legacy-import
 
 FROM ${RUNTIME_IMAGE}
@@ -24,6 +25,7 @@ WORKDIR /app
 COPY --from=builder /out/api /usr/local/bin/api
 COPY --from=builder /out/worker /usr/local/bin/worker
 COPY --from=builder /out/migrate /usr/local/bin/migrate
+COPY --from=builder /out/outbox /usr/local/bin/outbox
 COPY --from=builder /out/legacy-import /usr/local/bin/legacy-import
 COPY --from=builder /src/api/openapi/v1/openapi.yaml /app/openapi.yaml
 COPY --from=builder --chown=65532:65532 /out/uploads /app/uploads

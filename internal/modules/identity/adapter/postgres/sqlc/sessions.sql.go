@@ -75,6 +75,52 @@ func (q *Queries) AttemptOneTimeCode(ctx context.Context, arg AttemptOneTimeCode
 	return i, err
 }
 
+const classifyRefreshReplay = `-- name: ClassifyRefreshReplay :one
+WITH history AS (
+    SELECT history.session_id, history.rotated_at
+    FROM identity_refresh_token_history AS history
+    WHERE history.token_hash = $1
+), expired AS (
+    SELECT history.session_id
+    FROM history
+    WHERE history.rotated_at < now() - ($2::bigint * interval '1 millisecond')
+), revoked AS (
+    UPDATE identity_sessions AS session
+    SET revoked_at = now()
+    FROM expired
+    WHERE session.id = expired.session_id
+      AND session.revoked_at IS NULL
+    RETURNING session.id
+)
+SELECT
+    history.session_id,
+    COALESCE(
+        history.rotated_at >= now() - ($2::bigint * interval '1 millisecond'),
+        false
+    )::boolean AS within_grace,
+    EXISTS (SELECT 1 FROM revoked)::boolean AS revoked
+FROM (SELECT 1) AS singleton
+LEFT JOIN history ON true
+`
+
+type ClassifyRefreshReplayParams struct {
+	TokenHash []byte `json:"token_hash"`
+	Column2   int64  `json:"column_2"`
+}
+
+type ClassifyRefreshReplayRow struct {
+	SessionID   pgtype.UUID `json:"session_id"`
+	WithinGrace bool        `json:"within_grace"`
+	Revoked     bool        `json:"revoked"`
+}
+
+func (q *Queries) ClassifyRefreshReplay(ctx context.Context, arg ClassifyRefreshReplayParams) (ClassifyRefreshReplayRow, error) {
+	row := q.db.QueryRow(ctx, classifyRefreshReplay, arg.TokenHash, arg.Column2)
+	var i ClassifyRefreshReplayRow
+	err := row.Scan(&i.SessionID, &i.WithinGrace, &i.Revoked)
+	return i, err
+}
+
 const consumeCaptchaChallenge = `-- name: ConsumeCaptchaChallenge :one
 UPDATE identity_captcha_challenges AS challenge
 SET consumed_at = now()
@@ -164,6 +210,30 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (I
 		&i.RefreshGeneration,
 	)
 	return i, err
+}
+
+const deleteExpiredRefreshHistory = `-- name: DeleteExpiredRefreshHistory :execrows
+DELETE FROM identity_refresh_token_history AS history
+USING identity_sessions AS session
+WHERE history.session_id = session.id
+  AND (
+      (
+          session.revoked_at IS NOT NULL
+          AND session.revoked_at < now() - ($1::bigint * interval '1 millisecond')
+      )
+      OR (
+          session.revoked_at IS NULL
+          AND session.refresh_expires_at < now() - ($1::bigint * interval '1 millisecond')
+      )
+  )
+`
+
+func (q *Queries) DeleteExpiredRefreshHistory(ctx context.Context, dollar_1 int64) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredRefreshHistory, dollar_1)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const findRefreshHistorySession = `-- name: FindRefreshHistorySession :one
@@ -392,29 +462,6 @@ func (q *Queries) RevokeOwnedSession(ctx context.Context, arg RevokeOwnedSession
 	return result.RowsAffected(), nil
 }
 
-const revokeRefreshReplay = `-- name: RevokeRefreshReplay :one
-WITH replayed AS (
-    SELECT history.session_id
-    FROM identity_refresh_token_history AS history
-    WHERE history.token_hash = $1
-), revoked AS (
-    UPDATE identity_sessions AS session
-    SET revoked_at = now()
-    FROM replayed
-    WHERE session.id = replayed.session_id
-      AND session.revoked_at IS NULL
-    RETURNING session.id
-)
-SELECT EXISTS (SELECT 1 FROM replayed)::boolean AS replayed
-`
-
-func (q *Queries) RevokeRefreshReplay(ctx context.Context, tokenHash []byte) (bool, error) {
-	row := q.db.QueryRow(ctx, revokeRefreshReplay, tokenHash)
-	var replayed bool
-	err := row.Scan(&replayed)
-	return replayed, err
-}
-
 const revokeSession = `-- name: RevokeSession :execrows
 UPDATE identity_sessions SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL
 `
@@ -462,9 +509,9 @@ WITH rotated AS (
     RETURNING id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at, refresh_family_id, refresh_generation
 ), history AS (
     INSERT INTO identity_refresh_token_history (
-        id, session_id, token_hash, generation
+        id, session_id, token_hash, generation, rotated_at
     )
-    SELECT $7, rotated.id, $2, rotated.refresh_generation
+    SELECT $7, rotated.id, $2, rotated.refresh_generation, now()
     FROM rotated
 )
 SELECT id, user_id, client_type, token_hash, refresh_token_hash, device_name, ip_address, user_agent, expires_at, refresh_expires_at, last_seen_at, revoked_at, created_at, refresh_family_id, refresh_generation FROM rotated

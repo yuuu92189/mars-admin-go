@@ -9,6 +9,7 @@ import (
 	"mars-admin-go/internal/modules/organization/application"
 	"mars-admin-go/internal/modules/organization/domain"
 	"mars-admin-go/internal/platform/httpserver"
+	"mars-admin-go/internal/platform/requestctx"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -89,7 +90,8 @@ type legacyPositionInput struct {
 }
 
 func (h *Handler) legacyDepartments(w http.ResponseWriter, r *http.Request) {
-	items, err := h.service.Departments(r.Context())
+	actor, _ := requestctx.ActorFrom(r.Context())
+	items, err := h.service.Departments(r.Context(), actor)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -109,7 +111,8 @@ func (h *Handler) legacyCreateDepartment(w http.ResponseWriter, r *http.Request)
 	}
 	name := firstString(input.DeptName, input.Name)
 	code := firstString(input.Code, "dept_"+uuid.NewString())
-	item, err := h.service.CreateDepartment(r.Context(), domain.DepartmentInput{
+	actor, _ := requestctx.ActorFrom(r.Context())
+	item, err := h.service.CreateDepartment(r.Context(), actor, domain.DepartmentInput{
 		ParentID: parentID, Name: name, Code: code, LeaderName: input.Leader,
 		Phone: input.Phone, Email: input.Email, Sort: input.Sort,
 		Status: legacyOrganizationStatus(input.Status),
@@ -136,7 +139,8 @@ func (h *Handler) legacyUpdateDepartment(w http.ResponseWriter, r *http.Request)
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	item, err := h.service.UpdateDepartment(r.Context(), id, domain.DepartmentInput{
+	actor, _ := requestctx.ActorFrom(r.Context())
+	item, err := h.service.UpdateDepartment(r.Context(), actor, id, domain.DepartmentInput{
 		ParentID: parentID, Name: firstString(input.DeptName, input.Name),
 		Code: firstString(input.Code, "dept_"+id.String()), LeaderName: input.Leader,
 		Phone: input.Phone, Email: input.Email, Sort: input.Sort,
@@ -383,7 +387,8 @@ func organizationStatusCode(value string) int {
 }
 
 func (h *Handler) departments(w http.ResponseWriter, r *http.Request) {
-	items, err := h.service.Departments(r.Context())
+	actor, _ := requestctx.ActorFrom(r.Context())
+	items, err := h.service.Departments(r.Context(), actor)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -397,7 +402,8 @@ func (h *Handler) department(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	item, err := h.service.Department(r.Context(), id)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	item, err := h.service.Department(r.Context(), actor, id)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -410,7 +416,8 @@ func (h *Handler) createDepartment(w http.ResponseWriter, r *http.Request) {
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
-	item, err := h.service.CreateDepartment(r.Context(), input)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	item, err := h.service.CreateDepartment(r.Context(), actor, input)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -428,7 +435,8 @@ func (h *Handler) updateDepartment(w http.ResponseWriter, r *http.Request) {
 	if !httpserver.DecodeJSON(w, r, &input) {
 		return
 	}
-	item, err := h.service.UpdateDepartment(r.Context(), id, input)
+	actor, _ := requestctx.ActorFrom(r.Context())
+	item, err := h.service.UpdateDepartment(r.Context(), actor, id, input)
 	if err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
@@ -442,7 +450,8 @@ func (h *Handler) deleteDepartment(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
-	if err := h.service.DeleteDepartment(r.Context(), id); err != nil {
+	actor, _ := requestctx.ActorFrom(r.Context())
+	if err := h.service.DeleteDepartment(r.Context(), actor, id); err != nil {
 		httpserver.WriteError(w, r, h.logger, err)
 		return
 	}
