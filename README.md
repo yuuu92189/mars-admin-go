@@ -6,6 +6,8 @@ The original Java project is retained at `../mars-admin-master` as migration ref
 
 Current verified status and residual gaps are recorded in [`docs/status.md`](docs/status.md), [`docs/test-report.md`](docs/test-report.md) and [`docs/final-report.md`](docs/final-report.md).
 
+The unified first-round frontend/backend architecture audit, Vue page/component inventory, design and animation analysis, API mapping, target architecture and implementation roadmap are in [`docs/architecture-audit/README.md`](docs/architecture-audit/README.md).
+
 The latest Refresh concurrency and transactional Outbox audit is in [`docs/audit-round-3/audit-summary.md`](docs/audit-round-3/audit-summary.md).
 
 The current Go-standard audit and remediation plan are in
