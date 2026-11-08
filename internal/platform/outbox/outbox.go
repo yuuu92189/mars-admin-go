@@ -14,21 +14,32 @@ import (
 
 const DefaultMaxAttempts int32 = 10
 
+var ErrLeaseLost = errors.New("outbox lease is no longer owned")
+
 type Event struct {
-	ID               uuid.UUID       `json:"id"`
-	AggregateType    string          `json:"aggregateType"`
-	AggregateID      string          `json:"aggregateId"`
-	EventType        string          `json:"eventType"`
-	DeduplicationKey string          `json:"deduplicationKey"`
-	Payload          json.RawMessage `json:"payload"`
-	Status           string          `json:"status"`
-	Attempts         int32           `json:"attempts"`
-	MaxAttempts      int32           `json:"maxAttempts"`
-	AvailableAt      time.Time       `json:"availableAt"`
-	LockedAt         *time.Time      `json:"lockedAt,omitempty"`
-	PublishedAt      *time.Time      `json:"publishedAt,omitempty"`
-	LastError        string          `json:"lastError,omitempty"`
-	CreatedAt        time.Time       `json:"createdAt"`
+	ID                uuid.UUID       `json:"id"`
+	AggregateType     string          `json:"aggregateType"`
+	AggregateID       string          `json:"aggregateId"`
+	EventType         string          `json:"eventType"`
+	DeduplicationKey  string          `json:"deduplicationKey"`
+	Payload           json.RawMessage `json:"payload"`
+	Status            string          `json:"status"`
+	Attempts          int32           `json:"attempts"`
+	MaxAttempts       int32           `json:"maxAttempts"`
+	AvailableAt       time.Time       `json:"availableAt"`
+	LockedAt          *time.Time      `json:"lockedAt,omitempty"`
+	LeaseToken        uuid.UUID       `json:"leaseToken"`
+	LeaseGeneration   int64           `json:"leaseGeneration"`
+	LeaseExpiresAt    *time.Time      `json:"leaseExpiresAt,omitempty"`
+	ExecutionDeadline *time.Time      `json:"executionDeadline,omitempty"`
+	PublishedAt       *time.Time      `json:"publishedAt,omitempty"`
+	LastError         string          `json:"lastError,omitempty"`
+	CreatedAt         time.Time       `json:"createdAt"`
+}
+
+type Lease struct {
+	ExpiresAt         time.Time
+	ExecutionDeadline time.Time
 }
 
 func NewEvent(aggregateType, aggregateID, eventType, deduplicationKey string, payload any) (Event, error) {
@@ -50,7 +61,7 @@ func NewEvent(aggregateType, aggregateID, eventType, deduplicationKey string, pa
 	return Event{
 		ID: id, AggregateType: aggregateType, AggregateID: aggregateID,
 		EventType: eventType, DeduplicationKey: deduplicationKey, Payload: encoded,
-		Status: "pending", MaxAttempts: DefaultMaxAttempts, AvailableAt: now, CreatedAt: now,
+		Status: "pending", MaxAttempts: DefaultMaxAttempts, CreatedAt: now,
 	}, nil
 }
 
@@ -60,9 +71,6 @@ func Insert(ctx context.Context, executor outboxsqlc.DBTX, event Event) error {
 	}
 	if event.MaxAttempts <= 0 {
 		event.MaxAttempts = DefaultMaxAttempts
-	}
-	if event.AvailableAt.IsZero() {
-		event.AvailableAt = time.Now().UTC()
 	}
 	return outboxsqlc.New(executor).InsertOutboxEvent(ctx, outboxsqlc.InsertOutboxEventParams{
 		ID:               pgUUID(event.ID),

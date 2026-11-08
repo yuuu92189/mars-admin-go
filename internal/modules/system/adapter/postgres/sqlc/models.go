@@ -362,20 +362,24 @@ type OrganizationUserPosition struct {
 }
 
 type OutboxEvent struct {
-	ID               pgtype.UUID        `json:"id"`
-	AggregateType    string             `json:"aggregate_type"`
-	AggregateID      string             `json:"aggregate_id"`
-	EventType        string             `json:"event_type"`
-	DeduplicationKey string             `json:"deduplication_key"`
-	Payload          []byte             `json:"payload"`
-	Status           string             `json:"status"`
-	Attempts         int32              `json:"attempts"`
-	MaxAttempts      int32              `json:"max_attempts"`
-	AvailableAt      pgtype.Timestamptz `json:"available_at"`
-	LockedAt         pgtype.Timestamptz `json:"locked_at"`
-	PublishedAt      pgtype.Timestamptz `json:"published_at"`
-	LastError        string             `json:"last_error"`
-	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	ID                pgtype.UUID        `json:"id"`
+	AggregateType     string             `json:"aggregate_type"`
+	AggregateID       string             `json:"aggregate_id"`
+	EventType         string             `json:"event_type"`
+	DeduplicationKey  string             `json:"deduplication_key"`
+	Payload           []byte             `json:"payload"`
+	Status            string             `json:"status"`
+	Attempts          int32              `json:"attempts"`
+	MaxAttempts       int32              `json:"max_attempts"`
+	AvailableAt       pgtype.Timestamptz `json:"available_at"`
+	LockedAt          pgtype.Timestamptz `json:"locked_at"`
+	PublishedAt       pgtype.Timestamptz `json:"published_at"`
+	LastError         string             `json:"last_error"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	LeaseToken        pgtype.UUID        `json:"lease_token"`
+	LeaseGeneration   int64              `json:"lease_generation"`
+	LeaseExpiresAt    pgtype.Timestamptz `json:"lease_expires_at"`
+	ExecutionDeadline pgtype.Timestamptz `json:"execution_deadline"`
 }
 
 type SchedulerJob struct {

@@ -12,17 +12,58 @@ import (
 )
 
 const claimOutboxEvents = `-- name: ClaimOutboxEvents :many
-WITH candidates AS (
+WITH exhausted AS (
+    UPDATE outbox_events AS event
+    SET status = 'dead',
+        locked_at = NULL,
+        lease_token = NULL,
+        lease_expires_at = NULL,
+        execution_deadline = NULL,
+        last_error = left(
+            CASE
+                WHEN event.last_error = '' THEN 'maximum attempts reached'
+                ELSE event.last_error || E'\nmaximum attempts reached'
+            END,
+            4000
+        )
+    WHERE event.attempts >= event.max_attempts
+      AND (
+          (
+              event.status IN ('pending', 'failed')
+              AND event.available_at <= now()
+          )
+          OR (
+              event.status = 'processing'
+              AND COALESCE(
+                  event.lease_expires_at,
+                  event.locked_at + ($2::bigint * interval '1 millisecond')
+              ) <= now()
+          )
+      )
+    RETURNING event.id
+),
+candidates AS (
     SELECT event.id
     FROM outbox_events AS event
-    WHERE (
-        event.status IN ('pending', 'failed')
-        AND event.available_at <= now()
-    )
-    OR (
-        event.status = 'processing'
-        AND event.locked_at < now() - ($2::bigint * interval '1 millisecond')
-    )
+    WHERE event.attempts < event.max_attempts
+      AND NOT EXISTS (
+          SELECT 1
+          FROM exhausted
+          WHERE exhausted.id = event.id
+      )
+      AND (
+          (
+              event.status IN ('pending', 'failed')
+              AND event.available_at <= now()
+          )
+          OR (
+              event.status = 'processing'
+              AND COALESCE(
+                  event.lease_expires_at,
+                  event.locked_at + ($2::bigint * interval '1 millisecond')
+              ) <= now()
+          )
+      )
     ORDER BY event.available_at, event.created_at
     LIMIT $1
     FOR UPDATE SKIP LOCKED
@@ -31,19 +72,27 @@ UPDATE outbox_events AS event
 SET status = 'processing',
     attempts = event.attempts + 1,
     locked_at = now(),
-    last_error = ''
+    lease_token = gen_random_uuid(),
+    lease_generation = event.lease_generation + 1,
+    lease_expires_at = LEAST(
+        now() + ($2::bigint * interval '1 millisecond'),
+        now() + ($3::bigint * interval '1 millisecond')
+    ),
+    execution_deadline = now() + ($3::bigint * interval '1 millisecond'),
+    last_error = event.last_error
 FROM candidates
 WHERE event.id = candidates.id
-RETURNING event.id, event.aggregate_type, event.aggregate_id, event.event_type, event.deduplication_key, event.payload, event.status, event.attempts, event.max_attempts, event.available_at, event.locked_at, event.published_at, event.last_error, event.created_at
+RETURNING event.id, event.aggregate_type, event.aggregate_id, event.event_type, event.deduplication_key, event.payload, event.status, event.attempts, event.max_attempts, event.available_at, event.locked_at, event.published_at, event.last_error, event.created_at, event.lease_token, event.lease_generation, event.lease_expires_at, event.execution_deadline
 `
 
 type ClaimOutboxEventsParams struct {
 	Limit   int32 `json:"limit"`
 	Column2 int64 `json:"column_2"`
+	Column3 int64 `json:"column_3"`
 }
 
 func (q *Queries) ClaimOutboxEvents(ctx context.Context, arg ClaimOutboxEventsParams) ([]OutboxEvent, error) {
-	rows, err := q.db.Query(ctx, claimOutboxEvents, arg.Limit, arg.Column2)
+	rows, err := q.db.Query(ctx, claimOutboxEvents, arg.Limit, arg.Column2, arg.Column3)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +115,10 @@ func (q *Queries) ClaimOutboxEvents(ctx context.Context, arg ClaimOutboxEventsPa
 			&i.PublishedAt,
 			&i.LastError,
 			&i.CreatedAt,
+			&i.LeaseToken,
+			&i.LeaseGeneration,
+			&i.LeaseExpiresAt,
+			&i.ExecutionDeadline,
 		); err != nil {
 			return nil, err
 		}
@@ -92,7 +145,7 @@ func (q *Queries) DeletePublishedOutboxEvents(ctx context.Context, dollar_1 int6
 }
 
 const getOutboxEvent = `-- name: GetOutboxEvent :one
-SELECT id, aggregate_type, aggregate_id, event_type, deduplication_key, payload, status, attempts, max_attempts, available_at, locked_at, published_at, last_error, created_at FROM outbox_events WHERE id = $1
+SELECT id, aggregate_type, aggregate_id, event_type, deduplication_key, payload, status, attempts, max_attempts, available_at, locked_at, published_at, last_error, created_at, lease_token, lease_generation, lease_expires_at, execution_deadline FROM outbox_events WHERE id = $1
 `
 
 func (q *Queries) GetOutboxEvent(ctx context.Context, id pgtype.UUID) (OutboxEvent, error) {
@@ -113,6 +166,10 @@ func (q *Queries) GetOutboxEvent(ctx context.Context, id pgtype.UUID) (OutboxEve
 		&i.PublishedAt,
 		&i.LastError,
 		&i.CreatedAt,
+		&i.LeaseToken,
+		&i.LeaseGeneration,
+		&i.LeaseExpiresAt,
+		&i.ExecutionDeadline,
 	)
 	return i, err
 }
@@ -122,7 +179,7 @@ INSERT INTO outbox_events (
     id, aggregate_type, aggregate_id, event_type, deduplication_key,
     payload, max_attempts, available_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, COALESCE($8::timestamptz, now())
 )
 ON CONFLICT (aggregate_type, aggregate_id, event_type, deduplication_key)
 DO NOTHING
@@ -154,7 +211,7 @@ func (q *Queries) InsertOutboxEvent(ctx context.Context, arg InsertOutboxEventPa
 }
 
 const listOutboxEvents = `-- name: ListOutboxEvents :many
-SELECT id, aggregate_type, aggregate_id, event_type, deduplication_key, payload, status, attempts, max_attempts, available_at, locked_at, published_at, last_error, created_at
+SELECT id, aggregate_type, aggregate_id, event_type, deduplication_key, payload, status, attempts, max_attempts, available_at, locked_at, published_at, last_error, created_at, lease_token, lease_generation, lease_expires_at, execution_deadline
 FROM outbox_events
 WHERE ($1::text = '' OR status = $1)
 ORDER BY created_at DESC
@@ -191,6 +248,10 @@ func (q *Queries) ListOutboxEvents(ctx context.Context, arg ListOutboxEventsPara
 			&i.PublishedAt,
 			&i.LastError,
 			&i.CreatedAt,
+			&i.LeaseToken,
+			&i.LeaseGeneration,
+			&i.LeaseExpiresAt,
+			&i.ExecutionDeadline,
 		); err != nil {
 			return nil, err
 		}
@@ -208,27 +269,38 @@ SET status = CASE WHEN attempts >= max_attempts THEN 'dead' ELSE 'failed' END,
     available_at = CASE
         WHEN attempts >= max_attempts THEN available_at
         ELSE now() + make_interval(
-            secs => LEAST($3::double precision * power(2, attempts), $4::double precision)
+            secs => LEAST($5::double precision * power(2, attempts), $6::double precision)
         )
     END,
     locked_at = NULL,
-    last_error = left($2::text, 4000)
-WHERE id = $1 AND status = 'processing'
+    lease_token = NULL,
+    lease_expires_at = NULL,
+    execution_deadline = NULL,
+    last_error = left($4::text, 4000)
+WHERE id = $1
+  AND lease_token = $2
+  AND lease_generation = $3
+  AND status = 'processing'
+  AND lease_expires_at > now()
 `
 
 type MarkOutboxFailedParams struct {
-	ID      pgtype.UUID `json:"id"`
-	Column2 string      `json:"column_2"`
-	Column3 float64     `json:"column_3"`
-	Column4 float64     `json:"column_4"`
+	ID              pgtype.UUID `json:"id"`
+	LeaseToken      pgtype.UUID `json:"lease_token"`
+	LeaseGeneration int64       `json:"lease_generation"`
+	Column4         string      `json:"column_4"`
+	Column5         float64     `json:"column_5"`
+	Column6         float64     `json:"column_6"`
 }
 
 func (q *Queries) MarkOutboxFailed(ctx context.Context, arg MarkOutboxFailedParams) (int64, error) {
 	result, err := q.db.Exec(ctx, markOutboxFailed,
 		arg.ID,
-		arg.Column2,
-		arg.Column3,
+		arg.LeaseToken,
+		arg.LeaseGeneration,
 		arg.Column4,
+		arg.Column5,
+		arg.Column6,
 	)
 	if err != nil {
 		return 0, err
@@ -241,16 +313,68 @@ UPDATE outbox_events
 SET status = 'published',
     published_at = now(),
     locked_at = NULL,
-    last_error = ''
-WHERE id = $1 AND status = 'processing'
+    lease_token = NULL,
+    lease_expires_at = NULL,
+    execution_deadline = NULL
+WHERE id = $1
+  AND lease_token = $2
+  AND lease_generation = $3
+  AND status = 'processing'
+  AND lease_expires_at > now()
 `
 
-func (q *Queries) MarkOutboxPublished(ctx context.Context, id pgtype.UUID) (int64, error) {
-	result, err := q.db.Exec(ctx, markOutboxPublished, id)
+type MarkOutboxPublishedParams struct {
+	ID              pgtype.UUID `json:"id"`
+	LeaseToken      pgtype.UUID `json:"lease_token"`
+	LeaseGeneration int64       `json:"lease_generation"`
+}
+
+func (q *Queries) MarkOutboxPublished(ctx context.Context, arg MarkOutboxPublishedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markOutboxPublished, arg.ID, arg.LeaseToken, arg.LeaseGeneration)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const renewOutboxLease = `-- name: RenewOutboxLease :one
+UPDATE outbox_events
+SET locked_at = now(),
+    lease_expires_at = LEAST(
+        now() + ($4::bigint * interval '1 millisecond'),
+        execution_deadline
+    )
+WHERE id = $1
+  AND lease_token = $2
+  AND lease_generation = $3
+  AND status = 'processing'
+  AND lease_expires_at > now()
+  AND execution_deadline > now()
+RETURNING lease_expires_at, execution_deadline
+`
+
+type RenewOutboxLeaseParams struct {
+	ID              pgtype.UUID `json:"id"`
+	LeaseToken      pgtype.UUID `json:"lease_token"`
+	LeaseGeneration int64       `json:"lease_generation"`
+	Column4         int64       `json:"column_4"`
+}
+
+type RenewOutboxLeaseRow struct {
+	LeaseExpiresAt    pgtype.Timestamptz `json:"lease_expires_at"`
+	ExecutionDeadline pgtype.Timestamptz `json:"execution_deadline"`
+}
+
+func (q *Queries) RenewOutboxLease(ctx context.Context, arg RenewOutboxLeaseParams) (RenewOutboxLeaseRow, error) {
+	row := q.db.QueryRow(ctx, renewOutboxLease,
+		arg.ID,
+		arg.LeaseToken,
+		arg.LeaseGeneration,
+		arg.Column4,
+	)
+	var i RenewOutboxLeaseRow
+	err := row.Scan(&i.LeaseExpiresAt, &i.ExecutionDeadline)
+	return i, err
 }
 
 const requeueOutboxEvent = `-- name: RequeueOutboxEvent :execrows
@@ -259,8 +383,11 @@ SET status = 'pending',
     attempts = 0,
     available_at = now(),
     locked_at = NULL,
+    lease_token = NULL,
+    lease_expires_at = NULL,
+    execution_deadline = NULL,
     published_at = NULL,
-    last_error = ''
+    last_error = last_error
 WHERE id = $1 AND status IN ('failed', 'dead')
 `
 

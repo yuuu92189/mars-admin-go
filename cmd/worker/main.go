@@ -121,7 +121,11 @@ func run() error {
 		return fmt.Errorf("start outbox River worker: %w", err)
 	}
 	outboxRelay := outboxapp.NewRelay(
-		outboxpostgres.New(pool), outboxBackend, logger, outboxapp.RelayOptions{},
+		outboxpostgres.New(pool), outboxBackend, logger, outboxapp.RelayOptions{
+			LeaseTTL:         outboxapp.DefaultLeaseTTL,
+			RenewInterval:    outboxapp.DefaultRenewInterval,
+			MaxExecutionTime: outboxapp.DefaultMaxExecutionTime,
+		},
 	)
 	relayCtx, stopRelay := context.WithCancel(ctx)
 	relayErr := make(chan error, 1)

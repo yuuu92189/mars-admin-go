@@ -109,12 +109,15 @@ func (b *Backend) Publish(ctx context.Context, event platformoutbox.Event) error
 	if err != nil {
 		return fmt.Errorf("insert outbox River job: %w", err)
 	}
-	affected, err := outboxsqlc.New(tx).MarkOutboxPublished(ctx, pgUUID(event.ID))
+	affected, err := outboxsqlc.New(tx).MarkOutboxPublished(ctx, outboxsqlc.MarkOutboxPublishedParams{
+		ID: pgUUID(event.ID), LeaseToken: pgUUID(event.LeaseToken),
+		LeaseGeneration: event.LeaseGeneration,
+	})
 	if err != nil {
 		return fmt.Errorf("mark outbox event published: %w", err)
 	}
 	if affected == 0 {
-		return fmt.Errorf("outbox event %s is no longer processing", event.ID)
+		return fmt.Errorf("outbox event %s: %w", event.ID, platformoutbox.ErrLeaseLost)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit outbox event %s and River job %d: %w", event.ID, result.Job.ID, err)

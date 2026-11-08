@@ -113,6 +113,9 @@ func TestBackendS3Protocol(t *testing.T) {
 	if err := backend.Delete(context.Background(), "integration/object.txt"); err != nil {
 		t.Fatal(err)
 	}
+	if err := backend.Delete(context.Background(), "integration/object.txt"); err != nil {
+		t.Fatalf("repeated delete must be idempotent: %v", err)
+	}
 	exists, err = backend.Exists(context.Background(), "integration/object.txt")
 	if err != nil || exists {
 		t.Fatalf("expected object deletion, exists=%v err=%v", exists, err)

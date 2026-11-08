@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	platformoutbox "mars-admin-go/internal/platform/outbox"
@@ -21,9 +22,16 @@ func New(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
-func (r *Repository) Claim(ctx context.Context, limit int, lockTimeout time.Duration) ([]platformoutbox.Event, error) {
+func (r *Repository) Claim(
+	ctx context.Context,
+	limit int,
+	leaseTTL time.Duration,
+	maxExecutionTime time.Duration,
+) ([]platformoutbox.Event, error) {
 	rows, err := outboxsqlc.New(r.pool).ClaimOutboxEvents(ctx, outboxsqlc.ClaimOutboxEventsParams{
-		Limit: int32(limit), Column2: max(lockTimeout.Milliseconds(), 0), // #nosec G115 -- relay batch size is bounded by application configuration.
+		Limit:   int32(limit), // #nosec G115 -- relay batch size is bounded by application configuration.
+		Column2: max(leaseTTL.Milliseconds(), 1),
+		Column3: max(maxExecutionTime.Milliseconds(), 1),
 	})
 	if err != nil {
 		return nil, err
@@ -35,13 +43,62 @@ func (r *Repository) Claim(ctx context.Context, limit int, lockTimeout time.Dura
 	return events, nil
 }
 
-func (r *Repository) MarkFailed(ctx context.Context, id uuid.UUID, reason string, baseDelay, maxDelay time.Duration) error {
-	_, err := outboxsqlc.New(r.pool).MarkOutboxFailed(ctx, outboxsqlc.MarkOutboxFailedParams{
-		ID: pgUUID(id), Column2: reason,
-		Column3: max(baseDelay.Seconds(), 1),
-		Column4: max(maxDelay.Seconds(), baseDelay.Seconds()),
+func (r *Repository) MarkFailed(
+	ctx context.Context,
+	event platformoutbox.Event,
+	reason string,
+	baseDelay time.Duration,
+	maxDelay time.Duration,
+) error {
+	affected, err := outboxsqlc.New(r.pool).MarkOutboxFailed(ctx, outboxsqlc.MarkOutboxFailedParams{
+		ID: pgUUID(event.ID), LeaseToken: pgUUID(event.LeaseToken),
+		LeaseGeneration: event.LeaseGeneration, Column4: reason,
+		Column5: max(baseDelay.Seconds(), 1),
+		Column6: max(maxDelay.Seconds(), baseDelay.Seconds()),
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return platformoutbox.ErrLeaseLost
+	}
+	return nil
+}
+
+func (r *Repository) RenewLease(
+	ctx context.Context,
+	event platformoutbox.Event,
+	leaseTTL time.Duration,
+) (platformoutbox.Lease, error) {
+	row, err := outboxsqlc.New(r.pool).RenewOutboxLease(ctx, outboxsqlc.RenewOutboxLeaseParams{
+		ID: pgUUID(event.ID), LeaseToken: pgUUID(event.LeaseToken),
+		LeaseGeneration: event.LeaseGeneration,
+		Column4:         max(leaseTTL.Milliseconds(), 1),
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return platformoutbox.Lease{}, platformoutbox.ErrLeaseLost
+	}
+	if err != nil {
+		return platformoutbox.Lease{}, err
+	}
+	return platformoutbox.Lease{
+		ExpiresAt:         timeValue(row.LeaseExpiresAt),
+		ExecutionDeadline: timeValue(row.ExecutionDeadline),
+	}, nil
+}
+
+func (r *Repository) MarkPublished(ctx context.Context, event platformoutbox.Event) error {
+	affected, err := outboxsqlc.New(r.pool).MarkOutboxPublished(ctx, outboxsqlc.MarkOutboxPublishedParams{
+		ID: pgUUID(event.ID), LeaseToken: pgUUID(event.LeaseToken),
+		LeaseGeneration: event.LeaseGeneration,
+	})
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return platformoutbox.ErrLeaseLost
+	}
+	return nil
 }
 
 func (r *Repository) Requeue(ctx context.Context, id uuid.UUID) error {
@@ -87,10 +144,15 @@ func mapEvent(row outboxsqlc.OutboxEvent) platformoutbox.Event {
 		AggregateID: row.AggregateID, EventType: row.EventType,
 		DeduplicationKey: row.DeduplicationKey, Payload: row.Payload,
 		Status: row.Status, Attempts: row.Attempts, MaxAttempts: row.MaxAttempts,
-		AvailableAt: timeValue(row.AvailableAt), LastError: row.LastError,
-		CreatedAt: timeValue(row.CreatedAt),
+		AvailableAt: timeValue(row.AvailableAt), LeaseGeneration: row.LeaseGeneration,
+		LastError: row.LastError, CreatedAt: timeValue(row.CreatedAt),
 	}
 	event.LockedAt = timePtr(row.LockedAt)
+	if row.LeaseToken.Valid {
+		event.LeaseToken = uuid.UUID(row.LeaseToken.Bytes)
+	}
+	event.LeaseExpiresAt = timePtr(row.LeaseExpiresAt)
+	event.ExecutionDeadline = timePtr(row.ExecutionDeadline)
 	event.PublishedAt = timePtr(row.PublishedAt)
 	return event
 }

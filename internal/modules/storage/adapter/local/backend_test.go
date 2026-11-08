@@ -33,10 +33,18 @@ func TestBackendRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = reader.Close() }()
 	data := new(bytes.Buffer)
 	_, _ = data.ReadFrom(reader)
+	if err := reader.Close(); err != nil {
+		t.Fatal(err)
+	}
 	if data.String() != "content" {
 		t.Fatalf("unexpected content %q", data.String())
+	}
+	if err := backend.Delete(ctx, "2026/11/object"); err != nil {
+		t.Fatal(err)
+	}
+	if err := backend.Delete(ctx, "2026/11/object"); err != nil {
+		t.Fatalf("repeated delete must be idempotent: %v", err)
 	}
 }

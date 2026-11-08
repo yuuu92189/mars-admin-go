@@ -22,10 +22,8 @@ import (
 	"mars-admin-go/internal/platform/config"
 	"mars-admin-go/internal/platform/database"
 	platformoutbox "mars-admin-go/internal/platform/outbox"
-	outboxsqlc "mars-admin-go/internal/platform/outbox/sqlc"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	redisclient "github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
@@ -118,7 +116,7 @@ func TestOutboxAgainstRealPostgresAndRedis(t *testing.T) {
 			require.NoError(t, platformoutbox.Insert(ctx, tx, event))
 			require.NoError(t, tx.Commit(ctx))
 		}
-		publisher := &markingPublisher{pool: pool, delay: 2 * time.Millisecond}
+		publisher := &markingPublisher{repo: repo, delay: 2 * time.Millisecond}
 		start := make(chan struct{})
 		var wait sync.WaitGroup
 		errs := make(chan error, 8)
@@ -128,7 +126,7 @@ func TestOutboxAgainstRealPostgresAndRedis(t *testing.T) {
 				defer wait.Done()
 				<-start
 				relay := outboxapp.NewRelay(repo, publisher, logger, outboxapp.RelayOptions{
-					BatchSize: 5, LockTimeout: time.Minute,
+					BatchSize: 5, LeaseTTL: time.Minute,
 				})
 				errs <- relay.RunOnce(ctx)
 			}()
@@ -160,7 +158,7 @@ func TestOutboxAgainstRealPostgresAndRedis(t *testing.T) {
 			return errors.New("simulated River enqueue failure")
 		})
 		relay := outboxapp.NewRelay(repo, failing, logger, outboxapp.RelayOptions{
-			BatchSize: 1, LockTimeout: time.Minute, BaseBackoff: 50 * time.Millisecond, MaxBackoff: time.Second,
+			BatchSize: 1, LeaseTTL: time.Minute, BaseBackoff: 50 * time.Millisecond, MaxBackoff: time.Second,
 		})
 		require.Error(t, relay.RunOnce(ctx))
 		var status string
@@ -182,7 +180,7 @@ func TestOutboxAgainstRealPostgresAndRedis(t *testing.T) {
 		require.Equal(t, 2, attempts)
 
 		require.NoError(t, repo.Requeue(ctx, event.ID))
-		success := &markingPublisher{pool: pool}
+		success := &markingPublisher{repo: repo}
 		require.NoError(t, outboxapp.NewRelay(repo, success, logger, outboxapp.RelayOptions{BatchSize: 1}).RunOnce(ctx))
 		require.NoError(t, pool.QueryRow(ctx, `SELECT status FROM outbox_events WHERE id = $1`, event.ID).Scan(&status))
 		require.Equal(t, "published", status)
@@ -195,18 +193,274 @@ func TestOutboxAgainstRealPostgresAndRedis(t *testing.T) {
 		require.NoError(t, platformoutbox.Insert(ctx, tx, event))
 		require.NoError(t, tx.Commit(ctx))
 
-		claimed, err := repo.Claim(ctx, 1, 20*time.Millisecond)
+		claimed, err := repo.Claim(ctx, 1, 20*time.Millisecond, time.Minute)
 		require.NoError(t, err)
 		require.Len(t, claimed, 1)
 		require.Equal(t, int32(1), claimed[0].Attempts)
 		time.Sleep(30 * time.Millisecond)
-		reclaimed, err := repo.Claim(ctx, 1, 20*time.Millisecond)
+		reclaimed, err := repo.Claim(ctx, 1, 20*time.Millisecond, time.Minute)
 		require.NoError(t, err)
 		require.Len(t, reclaimed, 1)
 		require.Equal(t, event.ID, reclaimed[0].ID)
 		require.Equal(t, int32(2), reclaimed[0].Attempts)
-		_, err = pool.Exec(ctx, `UPDATE outbox_events SET status = 'published', published_at = now() WHERE id = $1`, event.ID)
+		require.NoError(t, repo.MarkPublished(ctx, reclaimed[0]))
+	})
+
+	t.Run("stale lease owner cannot publish or fail a reassigned event", func(t *testing.T) {
+		event := newOutboxEvent(t, "lease-owner", uuid.NewString(), contracts.EventUserStatusChanged, "lease")
+		insertEvent(t, ctx, pool, event)
+
+		claimedA, err := repo.Claim(ctx, 1, time.Second, time.Minute)
 		require.NoError(t, err)
+		require.Len(t, claimedA, 1)
+		require.Equal(t, event.ID, claimedA[0].ID)
+		require.NotEqual(t, uuid.Nil, claimedA[0].LeaseToken)
+		require.Equal(t, int64(1), claimedA[0].LeaseGeneration)
+
+		expireLease(t, ctx, pool, event.ID)
+		claimedB, err := repo.Claim(ctx, 1, time.Second, time.Minute)
+		require.NoError(t, err)
+		require.Len(t, claimedB, 1)
+		require.Equal(t, event.ID, claimedB[0].ID)
+		require.NotEqual(t, claimedA[0].LeaseToken, claimedB[0].LeaseToken)
+		require.Equal(t, int64(2), claimedB[0].LeaseGeneration)
+
+		require.ErrorIs(t, repo.MarkPublished(ctx, claimedA[0]), platformoutbox.ErrLeaseLost)
+		require.ErrorIs(t,
+			repo.MarkFailed(ctx, claimedA[0], "stale failure", 10*time.Millisecond, time.Second),
+			platformoutbox.ErrLeaseLost,
+		)
+		require.NoError(t, repo.MarkPublished(ctx, claimedB[0]))
+
+		var status string
+		var attempts int
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT status, attempts FROM outbox_events WHERE id = $1`, event.ID).
+			Scan(&status, &attempts))
+		require.Equal(t, "published", status)
+		require.Equal(t, 2, attempts)
+	})
+
+	t.Run("lease renewal requires the current token and generation", func(t *testing.T) {
+		event := newOutboxEvent(t, "lease-renewal", uuid.NewString(), contracts.EventUserStatusChanged, "renew")
+		insertEvent(t, ctx, pool, event)
+
+		claimed, err := repo.Claim(ctx, 1, time.Second, time.Minute)
+		require.NoError(t, err)
+		require.Len(t, claimed, 1)
+		renewed, err := repo.RenewLease(ctx, claimed[0], 2*time.Second)
+		require.NoError(t, err)
+		require.False(t, renewed.ExpiresAt.IsZero())
+		require.False(t, renewed.ExecutionDeadline.IsZero())
+
+		stale := claimed[0]
+		stale.LeaseToken = uuid.New()
+		_, err = repo.RenewLease(ctx, stale, time.Second)
+		require.ErrorIs(t, err, platformoutbox.ErrLeaseLost)
+		require.ErrorIs(t,
+			repo.MarkFailed(ctx, stale, "wrong owner", 10*time.Millisecond, time.Second),
+			platformoutbox.ErrLeaseLost,
+		)
+		require.ErrorIs(t, repo.MarkPublished(ctx, stale), platformoutbox.ErrLeaseLost)
+
+		wrongGeneration := claimed[0]
+		wrongGeneration.LeaseGeneration++
+		_, err = repo.RenewLease(ctx, wrongGeneration, time.Second)
+		require.ErrorIs(t, err, platformoutbox.ErrLeaseLost)
+		require.NoError(t, repo.MarkPublished(ctx, claimed[0]))
+	})
+
+	t.Run("expired lease is reassigned exactly once under concurrent claims", func(t *testing.T) {
+		event := newOutboxEvent(t, "lease-race", uuid.NewString(), contracts.EventUserStatusChanged, "race")
+		insertEvent(t, ctx, pool, event)
+
+		claimed, err := repo.Claim(ctx, 1, time.Second, time.Minute)
+		require.NoError(t, err)
+		require.Len(t, claimed, 1)
+		expireLease(t, ctx, pool, event.ID)
+
+		const workers = 8
+		start := make(chan struct{})
+		results := make(chan []platformoutbox.Event, workers)
+		errs := make(chan error, workers)
+		var wait sync.WaitGroup
+		for range workers {
+			wait.Add(1)
+			go func() {
+				defer wait.Done()
+				<-start
+				items, claimErr := repo.Claim(ctx, 1, time.Second, time.Minute)
+				errs <- claimErr
+				results <- items
+			}()
+		}
+		close(start)
+		wait.Wait()
+		close(results)
+		close(errs)
+		for claimErr := range errs {
+			require.NoError(t, claimErr)
+		}
+		var reassigned []platformoutbox.Event
+		for items := range results {
+			reassigned = append(reassigned, items...)
+		}
+		require.Len(t, reassigned, 1)
+		require.Equal(t, event.ID, reassigned[0].ID)
+		require.Equal(t, int64(2), reassigned[0].LeaseGeneration)
+		require.Equal(t, int32(2), reassigned[0].Attempts)
+		require.NoError(t, repo.MarkPublished(ctx, reassigned[0]))
+	})
+
+	t.Run("crash recovery cannot bypass max attempts and requeue resets attempts", func(t *testing.T) {
+		event := newOutboxEvent(t, "lease-max-attempts", uuid.NewString(), contracts.EventUserStatusChanged, "max")
+		event.MaxAttempts = 1
+		insertEvent(t, ctx, pool, event)
+
+		claimed, err := repo.Claim(ctx, 1, 20*time.Millisecond, time.Minute)
+		require.NoError(t, err)
+		require.Len(t, claimed, 1)
+		expireLease(t, ctx, pool, event.ID)
+
+		reclaimed, err := repo.Claim(ctx, 1, 20*time.Millisecond, time.Minute)
+		require.NoError(t, err)
+		require.Empty(t, reclaimed)
+
+		var status, lastError string
+		var attempts int
+		var leaseCleared bool
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT status, attempts, lease_token IS NULL, last_error
+			FROM outbox_events WHERE id = $1`, event.ID).
+			Scan(&status, &attempts, &leaseCleared, &lastError))
+		require.Equal(t, "dead", status)
+		require.Equal(t, 1, attempts)
+		require.True(t, leaseCleared)
+		require.Contains(t, lastError, "maximum attempts reached")
+
+		reclaimed, err = repo.Claim(ctx, 1, 20*time.Millisecond, time.Minute)
+		require.NoError(t, err)
+		require.Empty(t, reclaimed, "dead events must never be claimed automatically")
+
+		require.NoError(t, repo.Requeue(ctx, event.ID))
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT status, attempts, last_error FROM outbox_events WHERE id = $1`, event.ID).
+			Scan(&status, &attempts, &lastError))
+		require.Equal(t, "pending", status)
+		require.Zero(t, attempts)
+		require.Contains(t, lastError, "maximum attempts reached")
+
+		requeued, err := repo.Claim(ctx, 1, time.Second, time.Minute)
+		require.NoError(t, err)
+		require.Len(t, requeued, 1)
+		require.Equal(t, int32(1), requeued[0].Attempts)
+		require.NoError(t, repo.MarkPublished(ctx, requeued[0]))
+	})
+
+	t.Run("claim atomically dead-letters a ready event already at max attempts", func(t *testing.T) {
+		event := newOutboxEvent(t, "ready-max-attempts", uuid.NewString(), contracts.EventUserStatusChanged, "ready-max")
+		insertEvent(t, ctx, pool, event)
+		_, err := pool.Exec(ctx, `
+			UPDATE outbox_events
+			SET attempts = 2, max_attempts = 2, last_error = 'previous delivery failed'
+			WHERE id = $1`, event.ID)
+		require.NoError(t, err)
+
+		claimed, err := repo.Claim(ctx, 1, time.Second, time.Minute)
+		require.NoError(t, err)
+		require.Empty(t, claimed)
+
+		var status, lastError string
+		var attempts int
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT status, attempts, last_error FROM outbox_events WHERE id = $1`, event.ID).
+			Scan(&status, &attempts, &lastError))
+		require.Equal(t, "dead", status)
+		require.Equal(t, 2, attempts)
+		require.Contains(t, lastError, "previous delivery failed")
+		require.Contains(t, lastError, "maximum attempts reached")
+	})
+
+	t.Run("relay renews a lease while publication is slow", func(t *testing.T) {
+		event := newOutboxEvent(t, "lease-heartbeat", uuid.NewString(), contracts.EventUserStatusChanged, "heartbeat")
+		insertEvent(t, ctx, pool, event)
+
+		counted := &countingRepository{Repository: repo}
+		publisher := &slowMarkingPublisher{repo: repo, delay: 350 * time.Millisecond}
+		relay := outboxapp.NewRelay(counted, publisher, logger, outboxapp.RelayOptions{
+			BatchSize: 1, LeaseTTL: 200 * time.Millisecond,
+			RenewInterval: 40 * time.Millisecond, MaxExecutionTime: 2 * time.Second,
+		})
+		require.NoError(t, relay.RunOnce(ctx))
+		require.GreaterOrEqual(t, counted.renewCalls.Load(), int32(2))
+
+		var status string
+		require.NoError(t, pool.QueryRow(ctx, `SELECT status FROM outbox_events WHERE id = $1`, event.ID).Scan(&status))
+		require.Equal(t, "published", status)
+	})
+
+	t.Run("relay stops renewal at the execution deadline and leaves recovery to a new owner", func(t *testing.T) {
+		event := newOutboxEvent(t, "lease-deadline", uuid.NewString(), contracts.EventUserStatusChanged, "deadline")
+		insertEvent(t, ctx, pool, event)
+
+		counted := &countingRepository{Repository: repo}
+		publisher := &contextBlockingPublisher{}
+		relay := outboxapp.NewRelay(counted, publisher, logger, outboxapp.RelayOptions{
+			BatchSize: 1, LeaseTTL: 120 * time.Millisecond,
+			RenewInterval: 30 * time.Millisecond, MaxExecutionTime: 360 * time.Millisecond,
+		})
+		require.NoError(t, relay.RunOnce(ctx))
+		require.Greater(t, counted.renewCalls.Load(), int32(0))
+
+		var status string
+		var attempts int
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT status, attempts FROM outbox_events WHERE id = $1`, event.ID).
+			Scan(&status, &attempts))
+		require.Equal(t, "processing", status)
+		require.Equal(t, 1, attempts)
+
+		expireLease(t, ctx, pool, event.ID)
+		reclaimed, err := repo.Claim(ctx, 1, time.Second, time.Minute)
+		require.NoError(t, err)
+		require.Len(t, reclaimed, 1)
+		require.Equal(t, event.ID, reclaimed[0].ID)
+		require.Equal(t, int64(2), reclaimed[0].LeaseGeneration)
+		require.NoError(t, repo.MarkPublished(ctx, reclaimed[0]))
+	})
+
+	t.Run("relay propagates parent context cancellation without writing failure", func(t *testing.T) {
+		event := newOutboxEvent(t, "relay-context", uuid.NewString(), contracts.EventUserStatusChanged, "context")
+		insertEvent(t, ctx, pool, event)
+
+		publisher := &signalingBlockingPublisher{started: make(chan struct{})}
+		relay := outboxapp.NewRelay(repo, publisher, logger, outboxapp.RelayOptions{
+			BatchSize: 1, LeaseTTL: 200 * time.Millisecond,
+			RenewInterval: 40 * time.Millisecond, MaxExecutionTime: time.Second,
+		})
+		relayCtx, cancel := context.WithCancel(ctx)
+		result := make(chan error, 1)
+		go func() {
+			result <- relay.RunOnce(relayCtx)
+		}()
+		<-publisher.started
+		cancel()
+		require.ErrorIs(t, <-result, context.Canceled)
+
+		var status string
+		var attempts int
+		require.NoError(t, pool.QueryRow(ctx, `
+			SELECT status, attempts FROM outbox_events WHERE id = $1`, event.ID).
+			Scan(&status, &attempts))
+		require.Equal(t, "processing", status)
+		require.Equal(t, 1, attempts)
+
+		expireLease(t, ctx, pool, event.ID)
+		reclaimed, err := repo.Claim(ctx, 1, time.Second, time.Minute)
+		require.NoError(t, err)
+		require.Len(t, reclaimed, 1)
+		require.Equal(t, event.ID, reclaimed[0].ID)
+		require.NoError(t, repo.MarkPublished(ctx, reclaimed[0]))
 	})
 
 	t.Run("River insert and published status are atomic", func(t *testing.T) {
@@ -215,7 +469,7 @@ func TestOutboxAgainstRealPostgresAndRedis(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, platformoutbox.Insert(ctx, tx, event))
 		require.NoError(t, tx.Commit(ctx))
-		claimed, err := repo.Claim(ctx, 1, time.Minute)
+		claimed, err := repo.Claim(ctx, 1, time.Minute, 5*time.Minute)
 		require.NoError(t, err)
 		require.Len(t, claimed, 1)
 		require.Equal(t, event.ID, claimed[0].ID)
@@ -259,7 +513,7 @@ func TestOutboxAgainstRealPostgresAndRedis(t *testing.T) {
 		require.NoError(t, backend.Start(ctx))
 		relayCtx, relayCancel := context.WithCancel(ctx)
 		relay := outboxapp.NewRelay(repo, backend, logger, outboxapp.RelayOptions{
-			BatchSize: 1, Interval: 50 * time.Millisecond, LockTimeout: time.Minute,
+			BatchSize: 1, Interval: 50 * time.Millisecond, LeaseTTL: time.Minute,
 		})
 		relayErr := make(chan error, 1)
 		go func() { relayErr <- relay.Run(relayCtx) }()
@@ -338,7 +592,7 @@ func TestOutboxAgainstRealPostgresAndRedis(t *testing.T) {
 }
 
 type markingPublisher struct {
-	pool  *pgxpool.Pool
+	repo  *outboxpostgres.Repository
 	delay time.Duration
 	mu    sync.Mutex
 	seen  map[uuid.UUID]struct{}
@@ -348,12 +602,8 @@ func (p *markingPublisher) Publish(ctx context.Context, event platformoutbox.Eve
 	if p.delay > 0 {
 		time.Sleep(p.delay)
 	}
-	affected, err := outboxsqlc.New(p.pool).MarkOutboxPublished(ctx, pgUUID(event.ID))
-	if err != nil {
+	if err := p.repo.MarkPublished(ctx, event); err != nil {
 		return err
-	}
-	if affected == 0 {
-		return errors.New("event is not processing")
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -373,10 +623,75 @@ func (p *markingPublisher) Count() int {
 	return len(p.seen)
 }
 
+type slowMarkingPublisher struct {
+	repo  *outboxpostgres.Repository
+	delay time.Duration
+}
+
+func (p *slowMarkingPublisher) Publish(ctx context.Context, event platformoutbox.Event) error {
+	timer := time.NewTimer(p.delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return p.repo.MarkPublished(ctx, event)
+	}
+}
+
+type contextBlockingPublisher struct{}
+
+func (*contextBlockingPublisher) Publish(ctx context.Context, _ platformoutbox.Event) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+type signalingBlockingPublisher struct {
+	started chan struct{}
+}
+
+func (p *signalingBlockingPublisher) Publish(ctx context.Context, _ platformoutbox.Event) error {
+	close(p.started)
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+type countingRepository struct {
+	*outboxpostgres.Repository
+	renewCalls atomic.Int32
+}
+
+func (r *countingRepository) RenewLease(
+	ctx context.Context,
+	event platformoutbox.Event,
+	leaseTTL time.Duration,
+) (platformoutbox.Lease, error) {
+	r.renewCalls.Add(1)
+	return r.Repository.RenewLease(ctx, event, leaseTTL)
+}
+
 type publisherFunc func(context.Context, platformoutbox.Event) error
 
 func (f publisherFunc) Publish(ctx context.Context, event platformoutbox.Event) error {
 	return f(ctx, event)
+}
+
+func insertEvent(t *testing.T, ctx context.Context, pool *pgxpool.Pool, event platformoutbox.Event) {
+	t.Helper()
+	tx, err := pool.Begin(ctx)
+	require.NoError(t, err)
+	require.NoError(t, platformoutbox.Insert(ctx, tx, event))
+	require.NoError(t, tx.Commit(ctx))
+}
+
+func expireLease(t *testing.T, ctx context.Context, pool *pgxpool.Pool, eventID uuid.UUID) {
+	t.Helper()
+	_, err := pool.Exec(ctx, `
+		UPDATE outbox_events
+		SET locked_at = now() - interval '2 seconds',
+		    lease_expires_at = now() - interval '1 second'
+		WHERE id = $1 AND status = 'processing'`, eventID)
+	require.NoError(t, err)
 }
 
 func newOutboxEvent(t *testing.T, aggregateType, aggregateID, eventType, dedup string) platformoutbox.Event {
@@ -387,10 +702,6 @@ func newOutboxEvent(t *testing.T, aggregateType, aggregateID, eventType, dedup s
 	)
 	require.NoError(t, err)
 	return event
-}
-
-func pgUUID(id uuid.UUID) pgtype.UUID {
-	return pgtype.UUID{Bytes: [16]byte(id), Valid: id != uuid.Nil}
 }
 
 func messagingrealtimeEvent(userID uuid.UUID) messagingdomain.Event {

@@ -70,7 +70,10 @@ func run() error {
 		if err := repo.Requeue(ctx, id); err != nil {
 			return err
 		}
-		return writeJSON(map[string]any{"id": id, "status": "pending"})
+		return writeJSON(map[string]any{
+			"id": id, "status": "pending", "attempts": 0,
+			"attemptsReset": true, "lastErrorPreserved": true,
+		})
 	case "cleanup":
 		retention := 7 * 24 * time.Hour
 		if len(os.Args) > 2 {
