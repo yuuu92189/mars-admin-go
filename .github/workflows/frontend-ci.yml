@@ -1,27 +1,46 @@
 name: Frontend CI
 
+permissions:
+  contents: read
+
 on:
   push:
     paths:
       - "frontend/**"
       - "frontend-api/**"
       - "api/openapi/v1/openapi.yaml"
+      - "internal/modules/identity/**"
+      - "internal/platform/httpserver/**"
+      - "internal/bootstrap/**"
       - ".github/workflows/frontend-ci.yml"
   pull_request:
     paths:
       - "frontend/**"
       - "frontend-api/**"
       - "api/openapi/v1/openapi.yaml"
+      - "internal/modules/identity/**"
+      - "internal/platform/httpserver/**"
+      - "internal/bootstrap/**"
       - ".github/workflows/frontend-ci.yml"
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      API_BASE_URL: http://localhost:8080
     defaults:
       run:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
       - uses: pnpm/action-setup@v4
         with:
           version: 12.15.0
@@ -30,6 +49,9 @@ jobs:
           node-version: 24
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Run Go auth and HTTP tests
+        working-directory: .
+        run: go test ./internal/modules/identity/... ./internal/platform/httpserver/...
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint

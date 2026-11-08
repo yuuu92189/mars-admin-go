@@ -1,5 +1,8 @@
 name: Frontend E2E
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
   push:
@@ -11,15 +14,75 @@ on:
       - "frontend/**"
       - "frontend-api/**"
       - "api/openapi/v1/openapi.yaml"
+      - "internal/modules/identity/**"
+      - "internal/platform/httpserver/**"
+      - "internal/bootstrap/**"
+      - ".github/workflows/frontend-e2e.yml"
+
+concurrency:
+  group: frontend-e2e-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  login-shell:
+  go-backed-e2e:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
+    env:
+      API_BASE_URL: http://127.0.0.1:8080
+      E2E_ADMIN_USERNAME: admin
+      E2E_ADMIN_PASSWORD: ci-admin-password
+      E2E_SESSION_TTL_SECONDS: "10"
+      DATABASE_URL: postgres://mars:ci-postgres-password@127.0.0.1:5432/mars_admin?sslmode=disable
+      REDIS_URL: redis://127.0.0.1:6379/0
+      APP_ENV: development
+      APP_NAME: Mars Admin Go Edition
+      APP_VERSION: 0.1.0
+      APP_PORT: "8080"
+      APP_LOG_LEVEL: info
+      APP_PUBLIC_BASE_URL: http://127.0.0.1:8080
+      APP_CORS_ORIGINS: http://127.0.0.1:3000
+      AUTO_MIGRATE: "true"
+      AUTH_SESSION_TTL: 10s
+      AUTH_REFRESH_TTL: 1h
+      AUTH_COOKIE_SECURE: "false"
+      AUTH_COOKIE_SAME_SITE: lax
+      AUTH_CAPTCHA_ENABLED: "false"
+      AUTH_LOGIN_MAX_ATTEMPTS: "100"
+      AUTH_LOGIN_LOCK_DURATION: 1m
+      STORAGE_PROVIDER: local
+      STORAGE_LOCAL_DIR: /tmp/mars-admin-uploads
+      STORAGE_PUBLIC_BASE_URL: http://127.0.0.1:8080/files
+      BOOTSTRAP_ADMIN_USERNAME: admin
+      BOOTSTRAP_ADMIN_PASSWORD: ci-admin-password
+      BOOTSTRAP_ADMIN_EMAIL: admin@example.invalid
+    services:
+      postgres:
+        image: postgres:18.6-bookworm
+        env:
+          POSTGRES_DB: mars_admin
+          POSTGRES_USER: mars
+          POSTGRES_PASSWORD: ci-postgres-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mars -d mars_admin"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:8.10.1-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
       - uses: pnpm/action-setup@v4
         with:
           version: 12.15.0
@@ -28,7 +91,44 @@ jobs:
           node-version: 24
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm build
-      - run: pnpm exec playwright test e2e/login.spec.ts --project=desktop
+      - name: Download Go modules
+        run: go mod download
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Start current-source Go API
+        run: |
+          go run ./cmd/api > /tmp/mars-api.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080/health/ready; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/mars-api.log
+          exit 1
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm build
+      - name: Run Go-backed Playwright E2E
+        working-directory: frontend
+        run: |
+          pnpm exec playwright test \
+            e2e/login.spec.ts \
+            e2e/authenticated.spec.ts \
+            e2e/session-refresh.spec.ts \
+            e2e/password-change.spec.ts \
+            e2e/responsive.spec.ts
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-e2e-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            /tmp/mars-api.log
