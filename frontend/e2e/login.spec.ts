@@ -18,6 +18,13 @@ test("default appearance matches the Vue reference", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-rail-collapsed", "false");
 });
 
+test("register route is policy-aware and links back to login", async ({ page }) => {
+  await page.goto("/register");
+  await expect(page.getByRole("heading", { name: "注册", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "立即登录" })).toBeVisible();
+  await expect(page.getByText(/系统暂未开放注册|填写账号信息/)).toBeVisible();
+});
+
 test("protected dashboard redirects unauthenticated users", async ({ page }) => {
   await page.goto("/dashboard");
   await expect(page).toHaveURL(/\/login\?redirect=/);

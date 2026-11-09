@@ -40,6 +40,19 @@ func TestCanonicalLoginInputUsesCanonicalCaptchaFields(t *testing.T) {
 	require.Equal(t, "5678", input.CaptchaCode)
 }
 
+func TestCanonicalRegisterInputUsesCanonicalCaptchaFields(t *testing.T) {
+	var input identitydomain.RegisterInput
+	require.NoError(t, json.Unmarshal([]byte(`{
+		"username": "register-user",
+		"password": "correct-horse-battery-staple",
+		"displayName": "Register User",
+		"captchaId": "019b0000-0000-7000-8000-000000000003",
+		"captchaCode": "9012"
+	}`), &input))
+	require.Equal(t, "019b0000-0000-7000-8000-000000000003", input.CaptchaID)
+	require.Equal(t, "9012", input.CaptchaCode)
+}
+
 func TestLoginResultJSONUsesAbsoluteExpiry(t *testing.T) {
 	resultType := reflect.TypeOf(identitydomain.LoginResult{})
 	expiresAt, ok := resultType.FieldByName("ExpiresAt")

@@ -5,6 +5,9 @@ import type {
   CurrentUser,
   LoginRequest,
   LoginResult,
+  RegisterRequest,
+  UpdateUser,
+  User,
 } from "./types";
 
 export function issueCaptcha(): Promise<CaptchaResponse> {
@@ -26,8 +29,27 @@ export async function login(input: LoginRequest): Promise<LoginResult> {
   return result;
 }
 
+export async function register(input: RegisterRequest): Promise<User> {
+  return apiRequest<User>("/api/v1/auth/register", {
+    method: "POST",
+    body: input,
+    skipAuthRefresh: true,
+  });
+}
+
 export function getCurrentUser(): Promise<CurrentUser> {
   return apiRequest<CurrentUser>("/api/v1/auth/me");
+}
+
+export function getProfile(): Promise<User> {
+  return apiRequest<User>("/api/v1/auth/profile");
+}
+
+export function updateProfile(input: UpdateUser): Promise<User> {
+  return apiRequest<User>("/api/v1/auth/profile", {
+    method: "PUT",
+    body: input,
+  });
 }
 
 export async function logout(): Promise<void> {

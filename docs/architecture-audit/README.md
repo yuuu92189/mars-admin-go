@@ -34,6 +34,7 @@
 | [11-risk-and-decision-log.md](11-risk-and-decision-log.md) | P0/P1/P2 风险、技术决策和待确认事项 |
 | [12-phase-1-implementation-report.md](12-phase-1-implementation-report.md) | Phase 1 实际修改、契约变化、测试证据和剩余风险 |
 | [13-phase-1-final-acceptance.md](13-phase-1-final-acceptance.md) | Phase 1 最终验收、四项补强、真实测试结果和 Phase 2 准入结论 |
+| [14-java-product-traceability.md](14-java-product-traceability.md) | Java 产品页面/领域追踪矩阵、React 实际缺口和第一批实现边界 |
 
 ## First-Round Status
 
@@ -41,6 +42,7 @@
 - Go 模块、迁移、OpenAPI、认证、权限、测试和部署已完成源码盘点。
 - 目标架构与实施路线已形成。
 - React/Next.js 页面尚未实现；本轮没有用静态假页面冒充迁移完成。
+- 后续 P0/P1 已实现注册、个人中心、文件管理和直接聊天，但 Java 页面追踪矩阵仍保留明确缺口；不得用“13 页 PASS”替代产品验收。
 - `scaffold-vue` 当前连接的是参考仓库内的 Spring Boot `scaffold-system`，不是 Go 后端。Go 集成仍需独立适配或新 API 实现。
 - `scaffold-vue` 的资产、漏洞和修复工单页面只属于参考项目；Phase 4 已明确排除这些业务。
 

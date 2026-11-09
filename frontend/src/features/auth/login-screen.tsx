@@ -8,6 +8,7 @@ import {
   type FormEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { gsap } from "gsap";
@@ -33,6 +34,7 @@ export function LoginScreen() {
   const [captcha, setCaptcha] = useState<CaptchaResponse | null>(null);
   const [captchaLoading, setCaptchaLoading] = useState(false);
   const [captchaEnabled, setCaptchaEnabled] = useState(false);
+  const [registrationEnabled, setRegistrationEnabled] = useState(false);
   const [settingsReady, setSettingsReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
@@ -58,6 +60,13 @@ export function LoginScreen() {
           settings["security.auth.captcha_enabled"] ?? nestedEnabled ?? false,
         );
         setCaptchaEnabled(enabled);
+        setRegistrationEnabled(
+          Boolean(
+            settings["site.registration_enabled"] ??
+            settings["system.site.registration_enabled"] ??
+            false,
+          ),
+        );
         setSettingsReady(true);
         if (enabled) void refreshCaptcha();
       })
@@ -368,6 +377,7 @@ export function LoginScreen() {
                 ) : null}
                 <div className="login-options">
                   <Checkbox checked={remember} onChange={setRemember} label="记住账号" />
+                  {registrationEnabled ? <Link href="/register">没有账号？立即注册</Link> : null}
                 </div>
                 <div className="login-submit-slot">
                   {succeeded ? (

@@ -1,0 +1,88 @@
+.loginStage {
+  container-type: inline-size;
+  background: var(--stage);
+}
+
+.loginPearl {
+  grid-template-columns: minmax(0, 1.3fr) minmax(400px, 1fr);
+  padding: 16px;
+}
+
+.loginSide {
+  padding-inline: clamp(20px, 4vw, 64px);
+}
+
+.loginCard {
+  max-width: 560px;
+}
+
+.registerCard .loginCardInner {
+  padding-block: 28px;
+}
+
+.registerForm {
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.twoColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 22px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--input-bg);
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.notice strong {
+  color: var(--ink);
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 20px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.footer a {
+  color: var(--blue);
+  font-weight: 650;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+@container (max-width: 900px) {
+  .loginPearl {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .loginSide {
+    flex: 1;
+    min-height: auto;
+    padding: 0 18px 26px;
+    background: var(--canvas);
+  }
+}
+
+@media (max-width: 560px) {
+  .twoColumns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

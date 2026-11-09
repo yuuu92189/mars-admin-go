@@ -4,8 +4,9 @@ Updated: 2026-11-09
 
 ## Current State
 
-Phase 4 completed a repository-wide audit and remediation pass against the current Go source,
-database migrations, OpenAPI contract, React pages and automated test suites.
+The current state is **Go foundation + partial React prototype**, not Java product acceptance.
+Phase 4 records the completed engineering remediation; the corrected Java product traceability
+matrix is in [`architecture-audit/14-java-product-traceability.md`](architecture-audit/14-java-product-traceability.md).
 
 - Go module directories: 14 (`access`, `audit`, `codegen`, `identity`, `integrations`,
   `messaging`, `monitoring`, `notification`, `organization`, `outbox`, `scheduler`, `storage`,
@@ -13,11 +14,13 @@ database migrations, OpenAPI contract, React pages and automated test suites.
 - Canonical OpenAPI operations: 137 (12 public, 12 authenticated-only, 113 business-permission
   routes).
 - Goose migrations: 25, latest `000025_payment_ledger.sql`.
-- React App Router pages: 18, including all 13 Go-supported business pages.
-- Go test functions: 91 across unit, domain, security, contract and integration tests.
-- Frontend tests: 20 files / 58 Vitest tests.
-- Full Go-backed Playwright suite: 52 tests with the visual suite included; the conditional
-  session-refresh test is skipped unless the test TTL environment is supplied.
+- React App Router page files: 22, including the first P0/P1 slices for login, registration,
+  profile, dashboard, users/roles/menus/departments/positions/dictionaries/settings, notices,
+  direct chat, scheduler/logs, codegen and file upload/download. The remaining Java pages are explicitly
+  tracked as missing or partial in the traceability matrix.
+- Go test functions: 93 across unit, domain, security, contract and integration tests.
+- Frontend tests: 20 files / 60 Vitest tests after the P0 additions.
+- Full Go-backed Playwright regression: 36 passed, 18 conditional skips, 0 failed.
 - GitHub Actions: frontend CI, frontend E2E and Backend CI all passed remotely for commit
   `d0e23f1417a5884a347b926386c0887082974e7c`.
 
@@ -26,7 +29,9 @@ database migrations, OpenAPI contract, React pages and automated test suites.
 - Identity users, Argon2id, durable sessions, refresh rotation, replay classification and
   configurable refresh history cleanup.
 - Dynamic captcha and registration policy from public system settings, with server-side
-  enforcement.
+  enforcement, including registration captcha consumption.
+- Policy-aware React registration, editable profile, authenticated avatar upload, profile shell
+  entry and Java-shaped nested menu flattening.
 - TOTP MFA setup/enable/disable, including protection against replacing an enabled secret without
   a deliberate disable flow.
 - RBAC roles, permissions, menus, data scopes and server-side route authorization. Non-super
@@ -35,6 +40,9 @@ database migrations, OpenAPI contract, React pages and automated test suites.
 - Dictionaries, encrypted sensitive settings, revisions and audited updates.
 - Local and S3-compatible storage with bounded uploads, content checks, private downloads and
   asynchronous object cleanup.
+- React file management slice with upload, pagination, authenticated download and deletion.
+- React direct-chat slice with real history, send/read state, same-origin WebSocket reconnect and
+  polling fallback; group chat and blocklist UI remain tracked as gaps.
 - Direct/group messaging, read receipts, Redis fan-out, WebSocket heartbeat and compatibility
   routes.
 - Notices, target resolution, recipient/read state and River delivery jobs.

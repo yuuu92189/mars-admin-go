@@ -132,6 +132,12 @@ test("desktop shell supports rail collapse and command palette keyboard flow", a
   await expect(page.getByRole("dialog", { name: "命令面板" })).toBeHidden();
 
   await page.locator(".user-chip").click();
+  await page.getByRole("menuitem", { name: "个人中心" }).click();
+  await expect(page).toHaveURL(/\/profile$/);
+  await expect(page.getByRole("heading", { name: "个人资料" })).toBeVisible();
+  await page.goto("/dashboard");
+
+  await page.locator(".user-chip").click();
   await page.getByRole("menuitem", { name: "修改密码" }).click();
   await expect(page.getByRole("dialog", { name: "修改密码" })).toBeVisible();
   await page.getByRole("button", { name: "确认修改" }).click();

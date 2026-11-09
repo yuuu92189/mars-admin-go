@@ -48,22 +48,27 @@ function normalizeIcon(icon?: string): string {
   return aliases[icon] ?? icon;
 }
 
+function collectLeaves(menu: Menu): NavItem[] {
+  if (!menu.visible) return [];
+  if (menu.type === 2 && menu.visible) return [menuToItem(menu)];
+  if (menu.type !== 1 || !menu.children?.length) return [];
+  return menu.children.flatMap((child) => collectLeaves(child));
+}
+
 export function buildNavGroups(user: CurrentUser): NavGroup[] {
   const groups: NavGroup[] = [];
+  const rootItems: NavItem[] = [];
   for (const menu of user.menus ?? []) {
     if (!menu.visible) continue;
-    if (menu.type === 1 && menu.children?.length) {
-      const items = menu.children
-        .filter((child) => child.visible && child.type === 2)
-        .map(menuToItem);
+    if (menu.type === 1) {
+      const items = collectLeaves(menu);
       if (items.length) groups.push({ key: menu.id, label: menu.name, items });
       continue;
     }
     if (menu.type === 2) {
-      const existing = groups.find((group) => group.key === "root");
-      if (existing) existing.items.push(menuToItem(menu));
-      else groups.push({ key: "root", label: "导航", items: [menuToItem(menu)] });
+      rootItems.push(menuToItem(menu));
     }
   }
+  if (rootItems.length) groups.unshift({ key: "root", label: "导航", items: rootItems });
   return groups;
 }

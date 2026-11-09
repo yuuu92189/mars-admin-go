@@ -11,12 +11,13 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { logout as logoutRequest } from "@/lib/api/auth";
+import { getCurrentUser, logout as logoutRequest } from "@/lib/api/auth";
 import { ApiError, setSessionRefreshEnabled } from "@/lib/api/client";
 import type { CurrentUser } from "@/lib/api/types";
 
 type AuthContextValue = {
   user: CurrentUser | null;
+  refreshUser: () => Promise<CurrentUser>;
   logout: () => Promise<void>;
 };
 
@@ -52,6 +53,12 @@ export function AuthProvider({
     router.replace("/login");
   }, [router]);
 
+  const refreshUser = useCallback(async () => {
+    const current = await getCurrentUser();
+    setUser(current);
+    return current;
+  }, []);
+
   useEffect(() => {
     const onUnauthorized = () => {
       if (handlingUnauthorized.current) return;
@@ -69,7 +76,7 @@ export function AuthProvider({
     return () => window.removeEventListener("mars:unauthorized", onUnauthorized);
   }, [pathname, router]);
 
-  const value = useMemo(() => ({ user, logout }), [user, logout]);
+  const value = useMemo(() => ({ user, refreshUser, logout }), [user, refreshUser, logout]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

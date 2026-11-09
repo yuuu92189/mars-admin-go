@@ -2,11 +2,13 @@
 
 审计日期：2026-11-08
 基线提交：`eb33bb36ab8b841f280784db1f7e9ba321fca3ef`
-最终状态：**PASS WITH CONDITIONS**
+历史工程门禁：**PASS WITH CONDITIONS**
 
 本目录记录基于当前源码、数据库迁移、OpenAPI、测试和 CI 证据的 Phase 4 全项目审计。
 历史 Phase 1-3 文档保留为历史记录，不作为本轮完成的唯一证据。
 历史文档中的资产、漏洞和修复工单内容均带有范围说明，并标记为 EXCLUDED，不是当前待办。
+本目录不是 Java 产品最终验收；“13 个 Go 支持页面”只表示历史 React 原型覆盖面。当前产品边界和
+缺口以 [Java 产品追踪矩阵](../architecture-audit/14-java-product-traceability.md) 为准。
 
 ## Documents
 

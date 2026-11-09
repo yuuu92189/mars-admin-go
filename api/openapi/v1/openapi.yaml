@@ -923,6 +923,12 @@ paths:
       tags: [Auth]
       operationId: registerUser
       security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
       responses:
         "201":
           description: Registered user
@@ -2157,6 +2163,33 @@ components:
           type: string
         platform:
           type: string
+    RegisterRequest:
+      type: object
+      required: [username, password, displayName]
+      properties:
+        username:
+          type: string
+          minLength: 4
+          maxLength: 50
+        password:
+          type: string
+          format: password
+        displayName:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        userType:
+          type: string
+          enum: [pc, app]
+        captchaId:
+          type: string
+          format: uuid
+        captchaCode:
+          type: string
     LoginResult:
       type: object
       required: [token, sessionId, expiresAt, user, access]
@@ -2581,9 +2614,15 @@ components:
         id:
           type: string
           format: uuid
+        clientMessageId:
+          type: string
         senderId:
           type: string
           format: uuid
+        senderName:
+          type: string
+        senderAvatar:
+          type: string
         receiverId:
           type: string
           format: uuid

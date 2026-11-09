@@ -91,6 +91,35 @@ describe("buildNavGroups", () => {
     expect(groups[0]?.label).toBe("导航");
     expect(groups[0]?.items.map((item) => item.path)).toEqual(["/dashboard", "/settings/profile"]);
   });
+
+  it("flattens nested Java directory menus into visible leaves", () => {
+    const groups = buildNavGroups(
+      userWithMenus([
+        menu({
+          id: "monitor",
+          name: "系统监控",
+          type: 1,
+          children: [
+            menu({
+              id: "runtime",
+              name: "运行时",
+              type: 1,
+              children: [
+                menu({
+                  id: "server",
+                  name: "服务监控",
+                  type: 2,
+                  path: "monitor/server",
+                }),
+              ],
+            }),
+          ],
+        }),
+      ]),
+    );
+
+    expect(groups[0]?.items.map((item) => item.path)).toEqual(["/monitor/server"]);
+  });
 });
 
 describe("isVisibleMenuPath", () => {

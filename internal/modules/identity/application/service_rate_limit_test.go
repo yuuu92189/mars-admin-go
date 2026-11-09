@@ -98,3 +98,17 @@ func TestRegistrationPolicyFailsClosed(t *testing.T) {
 		t.Fatal("expected disabled registration policy to reject registration")
 	}
 }
+
+func TestRegistrationRequiresCaptchaWhenPolicyEnabled(t *testing.T) {
+	service := &Service{
+		registrationPolicy: staticCaptchaPolicy{enabled: true},
+		captchaPolicy:      staticCaptchaPolicy{enabled: true},
+	}
+	_, err := service.Register(context.Background(), domain.RegisterInput{
+		Username: "registration-test",
+		Password: "identity-test-password-123",
+	})
+	if err == nil {
+		t.Fatal("expected captcha-enabled registration to reject a missing captcha")
+	}
+}

@@ -7,7 +7,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, Search } from "lucide-react";
 import { Avatar } from "@/components/ui/surface";
 import { IconButton } from "@/components/ui/button";
@@ -32,6 +32,7 @@ export function Header({
   onLogout: () => void;
 }) {
   const { user } = useAuth();
+  const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -135,6 +136,17 @@ export function Header({
               @{user?.user?.username}
             </div>
           </div>
+          <button
+            type="button"
+            className="menu-item"
+            role="menuitem"
+            onClick={() => {
+              setMenuOpen(false);
+              router.push("/profile");
+            }}
+          >
+            <AppIcon name="users" size={16} /> 个人中心
+          </button>
           <button
             type="button"
             className="menu-item"

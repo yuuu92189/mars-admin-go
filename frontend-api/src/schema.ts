@@ -1754,6 +1754,20 @@ export interface components {
             authCode?: string;
             platform?: string;
         } | unknown | unknown | unknown | unknown;
+        RegisterRequest: {
+            username: string;
+            /** Format: password */
+            password: string;
+            displayName: string;
+            /** Format: email */
+            email?: string;
+            phone?: string;
+            /** @enum {string} */
+            userType?: "pc" | "app";
+            /** Format: uuid */
+            captchaId?: string;
+            captchaCode?: string;
+        };
         LoginResult: {
             token: string;
             refreshToken?: string;
@@ -1963,8 +1977,11 @@ export interface components {
         Message: {
             /** Format: uuid */
             id?: string;
+            clientMessageId?: string;
             /** Format: uuid */
             senderId?: string;
+            senderName?: string;
+            senderAvatar?: string;
             /** Format: uuid */
             receiverId?: string;
             /** Format: uuid */
@@ -3829,7 +3846,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterRequest"];
+            };
+        };
         responses: {
             /** @description Registered user */
             201: {

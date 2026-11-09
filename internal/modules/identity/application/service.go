@@ -404,33 +404,8 @@ func (s *Service) Login(ctx context.Context, input domain.LoginInput) (domain.Lo
 		s.recordEvent(ctx, nil, input.Username, input.ClientType, "failure", "source rate limited", input)
 		return domain.LoginResult{}, err
 	}
-	captchaRequired, err := s.captchaRequired(ctx)
-	if err != nil {
-		return domain.LoginResult{}, apperror.Wrap(
-			apperror.KindUnavailable,
-			"captcha_policy_unavailable",
-			"Login is temporarily unavailable.",
-			err,
-		)
-	}
-	if captchaRequired {
-		if input.CaptchaID == "" || input.CaptchaCode == "" {
-			return domain.LoginResult{}, apperror.Validation("code", "A captcha is required.")
-		}
-		captchaID, parseErr := uuid.Parse(input.CaptchaID)
-		if parseErr != nil {
-			return domain.LoginResult{}, apperror.Unauthorized("The captcha is invalid or expired.")
-		}
-		sliderX := int64(-1)
-		if parsed, err := strconv.ParseInt(input.CaptchaCode, 10, 32); err == nil {
-			sliderX = parsed
-		}
-		if _, err := s.repo.ConsumeCaptcha(ctx, captchaID, security.HashToken(input.CaptchaCode), int32(sliderX)); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return domain.LoginResult{}, apperror.Unauthorized("The captcha is invalid or expired.")
-			}
-			return domain.LoginResult{}, err
-		}
+	if err := s.consumeCaptcha(ctx, input.CaptchaID, input.CaptchaCode); err != nil {
+		return domain.LoginResult{}, err
 	}
 
 	user, err := s.repo.FindUserByUsername(ctx, input.Username)
@@ -947,6 +922,9 @@ func (s *Service) Register(ctx context.Context, input domain.RegisterInput) (dom
 	if err := s.enforceRegistrationRateLimits(ctx, input); err != nil {
 		return domain.User{}, err
 	}
+	if err := s.consumeCaptcha(ctx, input.CaptchaID, input.CaptchaCode); err != nil {
+		return domain.User{}, err
+	}
 	input.UserType = strings.ToLower(strings.TrimSpace(input.UserType))
 	if input.UserType == "" {
 		input.UserType = "pc"
@@ -971,6 +949,39 @@ func (s *Service) Register(ctx context.Context, input domain.RegisterInput) (dom
 		s.invalidateUserAccess(ctx, user.ID)
 	}
 	return user, nil
+}
+
+func (s *Service) consumeCaptcha(ctx context.Context, captchaID, captchaCode string) error {
+	required, err := s.captchaRequired(ctx)
+	if err != nil {
+		return apperror.Wrap(
+			apperror.KindUnavailable,
+			"captcha_policy_unavailable",
+			"Captcha verification is temporarily unavailable.",
+			err,
+		)
+	}
+	if !required {
+		return nil
+	}
+	if captchaID == "" || captchaCode == "" {
+		return apperror.Validation("code", "A captcha is required.")
+	}
+	id, parseErr := uuid.Parse(captchaID)
+	if parseErr != nil {
+		return apperror.Unauthorized("The captcha is invalid or expired.")
+	}
+	sliderX := int64(-1)
+	if parsed, err := strconv.ParseInt(captchaCode, 10, 32); err == nil {
+		sliderX = parsed
+	}
+	if _, err := s.repo.ConsumeCaptcha(ctx, id, security.HashToken(captchaCode), int32(sliderX)); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apperror.Unauthorized("The captcha is invalid or expired.")
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *Service) BootstrapAdmin(ctx context.Context, username, password, email string) (uuid.UUID, error) {

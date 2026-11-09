@@ -2,12 +2,17 @@
 
 Status: **PASS WITH CONDITIONS**
 
+This document is a historical Phase 4 engineering gate, not the final Java product acceptance.
+The corrected product scope and page matrix are in
+[`../architecture-audit/14-java-product-traceability.md`](../architecture-audit/14-java-product-traceability.md).
+The prior "13 Go-supported pages" result is a foundation/prototype result, not a completion claim.
+
 ## Requirement Matrix
 
 | Area | Result | Evidence |
 | --- | --- | --- |
-| Business scope | PASS | 13 Go-supported pages; excluded domains have no schema/API/UI. |
-| Frontend | PASS | Live Go API, strict TypeScript, 20 test files / 58 tests, build, Go-backed E2E. |
+| Business scope | HISTORICAL | 13 Go route prototypes; corrected Java traceability matrix has 35 pages and explicit gaps. |
+| Frontend | PROTOTYPE | Live Go API, strict TypeScript, P0 registration/profile/file slices and Go-backed regression; remaining Java pages are not accepted. |
 | Go architecture | PASS | Explicit injection, narrow ports, adapter boundaries, focused remediation. |
 | Database | PASS | 25 migrations, SQLC regeneration, real PostgreSQL integration tests. |
 | Concurrency | PASS | Refresh/outbox/River/workflow tests and Linux race detector. |
