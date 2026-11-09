@@ -21,8 +21,9 @@ matrix is in [`architecture-audit/14-java-product-traceability.md`](architecture
 - Go test functions: 93 across unit, domain, security, contract and integration tests.
 - Frontend tests: 20 files / 60 Vitest tests after the P0 additions.
 - Full Go-backed Playwright regression: 36 passed, 18 conditional skips, 0 failed.
-- GitHub Actions: frontend CI, frontend E2E and Backend CI all passed remotely for commit
-  `d0e23f1417a5884a347b926386c0887082974e7c`.
+- GitHub Actions: the P0/P1 code commit `20c81ea6bfb890bb3581995e79a5524106dea2dd` passed
+  Backend CI, Frontend CI and Frontend E2E remotely; the register locator follow-up
+  `968f47118afac5bd38f4297343769e1ccce28a9d` passed Frontend CI and Frontend E2E.
 
 ## Implemented
 
