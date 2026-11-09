@@ -24,6 +24,7 @@ Final verification rerun: 2026-11-09.
 | Docker images | `docker compose build api worker migrate` | PASS, 1.82 MB build context |
 | Helm chart | `helm lint` + `helm template` via `alpine/helm:3.18.4` | PASS |
 | GitHub workflow syntax | `actionlint` via Docker | PASS |
+| GitHub Actions remote run | commit `d0e23f1417a5884a347b926386c0887082974e7c` | PASS: Backend CI, Frontend CI and Frontend E2E |
 | Local Markdown links | `README.md` and `docs/**/*.md` relative-link scan | PASS |
 | Payment ledger | PostgreSQL integration: amount binding, callback dedupe and mismatch rejection | PASS |
 | Scheduler concurrency | PostgreSQL advisory-lock same-key exclusion and release | PASS |
@@ -59,7 +60,7 @@ buttons. All visual baseline captures hide the Next.js development portal first.
 - The Windows host lacks a C compiler, so Race Detector was run inside Docker.
 - `gcr.io` is unreachable; Compose uses the explicitly documented Alpine fallback.
 - Real external provider credentials were unavailable; not-configured behavior is tested instead.
-- The new Backend CI workflow has not run remotely because the worktree has not been pushed.
+- The Backend CI workflow completed successfully on the remote `main` branch.
 
 ## Historical Visual Evidence
 

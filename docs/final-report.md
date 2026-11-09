@@ -72,7 +72,8 @@ The current evidence is recorded in [`docs/phase-4/11-test-acceptance.md`](phase
 - Frontend format, lint, typecheck, Vitest, API type check and production build: PASS.
 - Docker Compose backend image build: PASS.
 - Helm lint and template rendering: PASS.
-- Backend CI workflow syntax: PASS; remote run pending an authorized push.
+- Backend CI, Frontend CI and Frontend E2E remote runs: PASS for commit
+  `d0e23f1417a5884a347b926386c0887082974e7c`.
 - Payment ledger, callback replay, scheduler concurrency and legacy token rejection tests: PASS.
 - Isolated backup/restore rehearsal: PASS, migration version 25.
 - Go-backed Playwright and visual baselines: see the Phase 4 acceptance report for the final
@@ -85,7 +86,6 @@ The current evidence is recorded in [`docs/phase-4/11-test-acceptance.md`](phase
 - Certify a real S3/MinIO/OSS bucket and external notification/payment providers.
 - Upgrade legacy Vue/UniApp clients to Bearer or Cookie authentication.
 - Certify real payment provider settlement with production credentials.
-- Push the new Backend CI workflow and confirm its remote run.
 
 ## Final Status
 

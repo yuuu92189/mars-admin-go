@@ -48,10 +48,13 @@ Status: **PASS WITH CONDITIONS**
 
 ## Remote CI
 
-No new commit was pushed during this local Phase 4 run. A Backend CI workflow was added locally and
-passed `actionlint`, but it has not run remotely. The prior Phase 3 remote CI links remain historical
-evidence for commit `1054449b74d980fd301c9885aee1e4147d69bb14`; they are not evidence for the
-current uncommitted remediation.
+The Phase 4 remediation was uploaded to the public `main` branch as commit
+`d0e23f1417a5884a347b926386c0887082974e7c` through the GitHub API because direct GitHub HTTPS Git
+access was unavailable from the host. The remote tree matches the locally verified tree.
+
+- Backend CI: PASS, run `42539072952`.
+- Frontend CI: PASS, run `42539073102`.
+- Frontend E2E: PASS, run `42539072959`.
 
 ## Conclusion
 

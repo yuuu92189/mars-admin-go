@@ -18,8 +18,8 @@ database migrations, OpenAPI contract, React pages and automated test suites.
 - Frontend tests: 20 files / 58 Vitest tests.
 - Full Go-backed Playwright suite: 52 tests with the visual suite included; the conditional
   session-refresh test is skipped unless the test TTL environment is supplied.
-- GitHub Actions: frontend CI, frontend E2E and the newly added Backend CI workflow. Backend CI
-  remains pending an authorized push for its first remote run.
+- GitHub Actions: frontend CI, frontend E2E and Backend CI all passed remotely for commit
+  `d0e23f1417a5884a347b926386c0887082974e7c`.
 
 ## Implemented
 
