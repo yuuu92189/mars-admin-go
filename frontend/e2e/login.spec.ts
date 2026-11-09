@@ -22,7 +22,9 @@ test("register route is policy-aware and links back to login", async ({ page }) 
   await page.goto("/register");
   await expect(page.getByRole("heading", { name: "注册", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "立即登录" })).toBeVisible();
-  await expect(page.getByText(/系统暂未开放注册|填写账号信息/)).toBeVisible();
+  await expect(
+    page.getByText("填写账号信息，注册结果由 Go 后端策略校验。", { exact: true }),
+  ).toBeVisible();
 });
 
 test("protected dashboard redirects unauthenticated users", async ({ page }) => {
