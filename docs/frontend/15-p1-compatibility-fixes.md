@@ -24,6 +24,10 @@ conversation:
 Group messages and messages for other contacts are ignored. The WebSocket remains connected while
 the user switches contacts; filtering uses the latest selected contact without reconnecting.
 
+Polling history is merged by message ID for the same contact. Switching contacts replaces the
+message list, preventing both cross-conversation leakage and loss of a realtime message that has
+not appeared in a history response yet.
+
 ## WebSocket Proxy
 
 Next.js rewrites `/ws/message` to the configured Go API. Next 16 proxies WebSocket upgrade

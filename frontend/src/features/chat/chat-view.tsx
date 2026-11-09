@@ -18,7 +18,7 @@ import {
 import type { ChatMessage, ChatUser } from "@/lib/api/types";
 import { useDeferredEffect } from "@/lib/use-deferred-effect";
 import styles from "./chat-view.module.css";
-import { isDirectMessageForPeer } from "./realtime";
+import { isDirectMessageForPeer, mergeDirectMessageHistory } from "./realtime";
 
 type RealtimeEvent = {
   type?: string;
@@ -57,6 +57,7 @@ export function ChatView() {
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
   const selectedIdRef = useRef<string | null>(null);
+  const messagesPeerIdRef = useRef<string | null>(null);
   const selected = users.find((item) => item.id === selectedId) ?? null;
   const currentUserId = user?.user?.id;
   const visibleUsers = useMemo(() => {
@@ -85,7 +86,11 @@ export function ChatView() {
     async (peerId: string) => {
       try {
         const result = await listDirectMessages(peerId, { limit: 50 });
-        setMessages(result);
+        const samePeer = messagesPeerIdRef.current === peerId;
+        setMessages((current) =>
+          samePeer ? mergeDirectMessageHistory(current, result, currentUserId, peerId) : result,
+        );
+        messagesPeerIdRef.current = peerId;
         await markDirectMessagesRead(peerId).catch(() => undefined);
       } catch (cause) {
         pushToast({
@@ -95,7 +100,7 @@ export function ChatView() {
         });
       }
     },
-    [pushToast],
+    [currentUserId, pushToast],
   );
 
   useDeferredEffect(loadUsers);

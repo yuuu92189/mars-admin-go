@@ -28,7 +28,7 @@ The appropriate conclusion is **PASS WITH CONDITIONS**, not an unqualified produ
 - Java product coverage: partial; tracked in the 35-page traceability matrix.
 - Go test functions: 88.
 - Frontend test files: 23.
-- Frontend Vitest tests: 65.
+- Frontend Vitest tests: 66.
 
 ## Completed Remediation
 
@@ -61,7 +61,8 @@ The appropriate conclusion is **PASS WITH CONDITIONS**, not an unqualified produ
   channel logs and retry remain explicit product gaps until implemented on `/api/v1`.
 - Registration entry/form policy now consumes the actual public key
   `site.site.registration_enabled`.
-- Realtime chat ignores events outside the selected direct conversation.
+- Realtime chat ignores events outside the selected direct conversation and merges polling history
+  without dropping newer realtime messages.
 - Next.js proxies `/ws/message` upgrades through the same-origin server, preserving session cookies
   and configured Origin validation.
 - The duplicate `/settings/profile` page now redirects to canonical `/profile`, with a migration

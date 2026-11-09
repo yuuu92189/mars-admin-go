@@ -21,7 +21,7 @@ compatibility envelope have been removed while the offline legacy importer remai
   direct chat, scheduler/logs, codegen and file upload/download. The remaining Java pages are explicitly
   tracked as missing or partial in the traceability matrix.
 - Go test functions: 88 across unit, domain, security, contract and integration tests.
-- Frontend tests: 23 files / 65 Vitest tests after the P1 compatibility fixes.
+- Frontend tests: 23 files / 66 Vitest tests after the P1 compatibility fixes.
 - Full concurrent Go-backed Playwright regression: 37 passed, 19 conditional skips, 0 failed.
 - GitHub Actions: the P0/P1 code commit `20c81ea6bfb890bb3581995e79a5524106dea2dd` passed
   Backend CI, Frontend CI and Frontend E2E remotely; the register locator follow-up
@@ -36,8 +36,9 @@ compatibility envelope have been removed while the offline legacy importer remai
 - Policy-aware React registration, editable profile, authenticated avatar upload, profile shell
   entry and Java-shaped nested menu flattening.
 - Registration policy reads the backend's actual `site.site.registration_enabled` public key.
-- Direct-chat realtime events are scoped to the selected sender/receiver pair, and the Next.js
-  same-origin proxy forwards `/ws/message` WebSocket upgrades with cookies and Origin intact.
+- Direct-chat realtime events are scoped to the selected sender/receiver pair. Polling merges
+  history by message ID instead of dropping realtime messages, and the Next.js same-origin proxy
+  forwards `/ws/message` WebSocket upgrades with cookies and Origin intact.
 - `/profile` is the canonical profile route; `/settings/profile` redirects to it and the menu
   migration normalizes imported legacy paths.
 - TOTP MFA setup/enable/disable, including protection against replacing an enabled secret without
