@@ -3,9 +3,7 @@ import { readCookieValue, safeRefreshRedirect } from "./refresh";
 
 describe("server refresh helpers", () => {
   it("accepts only relative redirect targets", () => {
-    expect(safeRefreshRedirect("/settings/profile?tab=security")).toBe(
-      "/settings/profile?tab=security",
-    );
+    expect(safeRefreshRedirect("/profile?tab=security")).toBe("/profile?tab=security");
     expect(safeRefreshRedirect("//evil.test")).toBe("/dashboard");
     expect(safeRefreshRedirect("https://evil.test")).toBe("/dashboard");
     expect(safeRefreshRedirect("\\evil")).toBe("/dashboard");

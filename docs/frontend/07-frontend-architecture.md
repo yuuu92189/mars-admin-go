@@ -7,7 +7,10 @@ frontend/
 ├── e2e/
 │   ├── authenticated.spec.ts
 │   ├── login.spec.ts
+│   ├── password-change.spec.ts
+│   ├── phase3-business-pages.spec.ts
 │   ├── responsive.spec.ts
+│   ├── session-refresh.spec.ts
 │   └── visual.spec.ts
 ├── scripts/capture-visual-comparison.mjs
 ├── visual-baselines/
@@ -17,7 +20,8 @@ frontend/
 │   │   ├── (auth)/login/page.tsx
 │   │   ├── (dashboard)/layout.tsx
 │   │   ├── (dashboard)/dashboard/page.tsx
-│   │   ├── (dashboard)/settings/profile/page.tsx
+│   │   ├── (dashboard)/profile/page.tsx
+│   │   ├── (dashboard)/settings/profile/page.tsx  # redirect to /profile
 │   │   ├── api/[...path]/route.ts
 │   │   ├── globals.css
 │   │   ├── layout.tsx

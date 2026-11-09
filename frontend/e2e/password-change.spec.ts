@@ -93,7 +93,9 @@ test("a temporary user can change password and sign in with the new credential",
           });
           await test.step("submit and wait for the revoked session redirect", async () => {
             await userPage.getByRole("button", { name: "确认修改" }).click();
-            await expect(userPage).toHaveURL(/\/login\?reason=password-changed/);
+            await expect(userPage).toHaveURL(/\/login\?reason=password-changed/, {
+              timeout: 20_000,
+            });
           });
         });
       });

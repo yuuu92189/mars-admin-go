@@ -22,7 +22,7 @@ Execution date: 2026-11-08 through 2026-11-09
 | Docker Compose | PostgreSQL, Redis, migration, API, Worker | API healthy, Worker running |
 | Helm chart | `helm lint` and `helm template` via Docker | pass |
 | GitHub workflow syntax | `actionlint` via Docker | pass |
-| Migrations | Goose through version 25 | pass |
+| Migrations | Goose through version 26 | pass |
 | Payment ledger and replay | PostgreSQL integration: amount binding, event dedupe, rejected mismatch | pass |
 | Scheduler concurrency | PostgreSQL advisory lock same-key exclusion and release | pass |
 | Authentication boundary | Raw Authorization and WebSocket query token rejection tests | pass |
@@ -34,7 +34,8 @@ Execution date: 2026-11-08 through 2026-11-09
 | Import idempotency | second full import run | 0 inserted, 0 failed, 2,605 skipped |
 | Historical Vue reference | Pre-removal visual/reference exercise only | not online acceptance |
 | Phase 4 frontend checks | `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm check:api-types`, `pnpm build` | pass |
-| Phase 4 Go-backed E2E | Playwright against current API; visual suite included | see Phase 4 acceptance |
+| P1 compatibility regressions | registration key, realtime conversation isolation, WebSocket proxy and profile redirect | pass |
+| Full concurrent Playwright | 4 workers, current production build and real Go API | 37 passed, 19 conditional skips, 0 failed |
 
 ## Runtime Scenarios Observed
 

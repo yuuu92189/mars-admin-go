@@ -182,7 +182,7 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	require.Empty(t, response.Header.Values("Set-Cookie"), "failed refresh must not clear cookies issued by the winning request")
 	_ = response.Body.Close()
 
-	// Re-authenticate for the remaining compatibility checks.
+	// Re-authenticate for the remaining canonical API checks.
 	body, _ = json.Marshal(map[string]any{
 		"username": "admin", "password": "integration-password-123", "clientType": "admin",
 	})
@@ -191,6 +191,14 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&login))
 	_ = response.Body.Close()
+
+	response, err = http.Get(server.URL + "/api/v1/admin/settings/public")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, response.StatusCode)
+	var publicSettings map[string]any
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&publicSettings))
+	_ = response.Body.Close()
+	require.Contains(t, publicSettings, "site.site.registration_enabled")
 
 	createBody, _ := json.Marshal(map[string]any{
 		"username": "integration-user", "password": "integration-user-password",

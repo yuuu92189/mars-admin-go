@@ -12,6 +12,7 @@ import { ApiError } from "@/lib/api/client";
 import { getPublicSettings, issueCaptcha, register } from "@/lib/api/auth";
 import type { CaptchaResponse } from "@/lib/api/types";
 import { useDeferredEffect } from "@/lib/use-deferred-effect";
+import { booleanPublicSetting, isRegistrationEnabled, publicSetting } from "./public-settings";
 import styles from "./register-screen.module.css";
 
 type FormState = {
@@ -32,29 +33,13 @@ type PublicRegistrationSettings = {
   minPasswordLength: number;
 };
 
-function setting(settings: Record<string, unknown>, keys: string[]): unknown {
-  for (const key of keys) {
-    if (settings[key] !== undefined) return settings[key];
-  }
-  return undefined;
-}
-
-function boolSetting(settings: Record<string, unknown>, keys: string[], fallback = false) {
-  const value = setting(settings, keys);
-  return typeof value === "boolean" ? value : fallback;
-}
-
 function readSettings(settings: Record<string, unknown>): PublicRegistrationSettings {
   return {
-    enabled: boolSetting(
-      settings,
-      ["site.registration_enabled", "system.site.registration_enabled", "register.enabled"],
-      false,
-    ),
-    verifyEmail: boolSetting(settings, ["register.verifyEmail", "register.verify_email"]),
-    verifyPhone: boolSetting(settings, ["register.verifyPhone", "register.verify_phone"]),
-    captchaEnabled: boolSetting(settings, ["security.auth.captcha_enabled"], false),
-    minPasswordLength: Number(setting(settings, ["password.minLength"]) ?? 8),
+    enabled: isRegistrationEnabled(settings),
+    verifyEmail: booleanPublicSetting(settings, ["register.verifyEmail", "register.verify_email"]),
+    verifyPhone: booleanPublicSetting(settings, ["register.verifyPhone", "register.verify_phone"]),
+    captchaEnabled: booleanPublicSetting(settings, ["security.auth.captcha_enabled"]),
+    minPasswordLength: Number(publicSetting(settings, ["password.minLength"]) ?? 8),
   };
 }
 

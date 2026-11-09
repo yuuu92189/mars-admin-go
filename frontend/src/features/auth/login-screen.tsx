@@ -22,6 +22,7 @@ import type { CaptchaResponse } from "@/lib/api/types";
 import { EASE, prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 import styles from "./login-screen.module.css";
+import { isRegistrationEnabled } from "./public-settings";
 
 type FormState = { username: string; password: string; captcha: string };
 
@@ -60,13 +61,7 @@ export function LoginScreen() {
           settings["security.auth.captcha_enabled"] ?? nestedEnabled ?? false,
         );
         setCaptchaEnabled(enabled);
-        setRegistrationEnabled(
-          Boolean(
-            settings["site.registration_enabled"] ??
-            settings["system.site.registration_enabled"] ??
-            false,
-          ),
-        );
+        setRegistrationEnabled(isRegistrationEnabled(settings));
         setSettingsReady(true);
         if (enabled) void refreshCaptcha();
       })

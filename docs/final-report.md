@@ -23,12 +23,12 @@ The appropriate conclusion is **PASS WITH CONDITIONS**, not an unqualified produ
 - Go files: 181.
 - Go module directories: 14.
 - Canonical OpenAPI operations: 137.
-- Goose migrations: 25.
+- Goose migrations: 26.
 - React App Router pages: 22.
 - Java product coverage: partial; tracked in the 35-page traceability matrix.
 - Go test functions: 88.
-- Frontend test files: 20.
-- Frontend Vitest tests: 60.
+- Frontend test files: 23.
+- Frontend Vitest tests: 65.
 
 ## Completed Remediation
 
@@ -59,6 +59,13 @@ The appropriate conclusion is **PASS WITH CONDITIONS**, not an unqualified produ
 - Existing sensitive settings remain encrypted when updated through the settings API.
 - The removed legacy notice retry/send-log aliases no longer masquerade as canonical features;
   channel logs and retry remain explicit product gaps until implemented on `/api/v1`.
+- Registration entry/form policy now consumes the actual public key
+  `site.site.registration_enabled`.
+- Realtime chat ignores events outside the selected direct conversation.
+- Next.js proxies `/ws/message` upgrades through the same-origin server, preserving session cookies
+  and configured Origin validation.
+- The duplicate `/settings/profile` page now redirects to canonical `/profile`, with a migration
+  normalizing legacy menu paths.
 - The backend Docker context now excludes frontend, dependency and test artifacts; the verified
   build context is 1.82 MB.
 
@@ -82,7 +89,7 @@ The current evidence is recorded in [`docs/phase-4/11-test-acceptance.md`](phase
 - Backend CI, Frontend CI and Frontend E2E remote runs: PASS for commit
   `d0e23f1417a5884a347b926386c0887082974e7c`.
 - Payment ledger, callback replay, scheduler concurrency and legacy token rejection tests: PASS.
-- Isolated backup/restore rehearsal: PASS, migration version 25.
+- Isolated backup/restore rehearsal: PASS, migration version 25; current schema version is 26.
 - Go-backed Playwright and visual baselines: see the Phase 4 acceptance report for the final
   run evidence.
 

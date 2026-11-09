@@ -15,14 +15,14 @@ compatibility envelope have been removed while the offline legacy importer remai
   `system`, `workflow`).
 - Canonical OpenAPI operations: 137 (12 public, 12 authenticated-only, 113 business-permission
   routes).
-- Goose migrations: 25, latest `000025_payment_ledger.sql`.
+- Goose migrations: 26, latest `000026_profile_route.sql`.
 - React App Router page files: 22, including the first P0/P1 slices for login, registration,
   profile, dashboard, users/roles/menus/departments/positions/dictionaries/settings, notices,
   direct chat, scheduler/logs, codegen and file upload/download. The remaining Java pages are explicitly
   tracked as missing or partial in the traceability matrix.
 - Go test functions: 88 across unit, domain, security, contract and integration tests.
-- Frontend tests: 20 files / 60 Vitest tests after the P0 additions.
-- Full Go-backed Playwright regression: 36 passed, 18 conditional skips, 0 failed.
+- Frontend tests: 23 files / 65 Vitest tests after the P1 compatibility fixes.
+- Full concurrent Go-backed Playwright regression: 37 passed, 19 conditional skips, 0 failed.
 - GitHub Actions: the P0/P1 code commit `20c81ea6bfb890bb3581995e79a5524106dea2dd` passed
   Backend CI, Frontend CI and Frontend E2E remotely; the register locator follow-up
   `968f47118afac5bd38f4297343769e1ccce28a9d` passed Frontend CI and Frontend E2E.
@@ -35,6 +35,11 @@ compatibility envelope have been removed while the offline legacy importer remai
   enforcement, including registration captcha consumption.
 - Policy-aware React registration, editable profile, authenticated avatar upload, profile shell
   entry and Java-shaped nested menu flattening.
+- Registration policy reads the backend's actual `site.site.registration_enabled` public key.
+- Direct-chat realtime events are scoped to the selected sender/receiver pair, and the Next.js
+  same-origin proxy forwards `/ws/message` WebSocket upgrades with cookies and Origin intact.
+- `/profile` is the canonical profile route; `/settings/profile` redirects to it and the menu
+  migration normalizes imported legacy paths.
 - TOTP MFA setup/enable/disable, including protection against replacing an enabled secret without
   a deliberate disable flow.
 - RBAC roles, permissions, menus, data scopes and server-side route authorization. Non-super

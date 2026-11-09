@@ -8,6 +8,9 @@ on:
   push:
     paths:
       - "frontend/**"
+      - "frontend-api/**"
+      - "api/openapi/v1/openapi.yaml"
+      - "internal/**"
       - ".github/workflows/frontend-e2e.yml"
   pull_request:
     paths:
@@ -116,13 +119,7 @@ jobs:
         run: pnpm build
       - name: Run Go-backed Playwright E2E
         working-directory: frontend
-        run: |
-          pnpm exec playwright test \
-            e2e/login.spec.ts \
-            e2e/authenticated.spec.ts \
-            e2e/session-refresh.spec.ts \
-            e2e/password-change.spec.ts \
-            e2e/responsive.spec.ts
+        run: pnpm exec playwright test
       - name: Upload failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4

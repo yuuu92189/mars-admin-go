@@ -18,6 +18,7 @@ import {
 import type { ChatMessage, ChatUser } from "@/lib/api/types";
 import { useDeferredEffect } from "@/lib/use-deferred-effect";
 import styles from "./chat-view.module.css";
+import { isDirectMessageForPeer } from "./realtime";
 
 type RealtimeEvent = {
   type?: string;
@@ -55,6 +56,7 @@ export function ChatView() {
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
+  const selectedIdRef = useRef<string | null>(null);
   const selected = users.find((item) => item.id === selectedId) ?? null;
   const currentUserId = user?.user?.id;
   const visibleUsers = useMemo(() => {
@@ -106,6 +108,10 @@ export function ChatView() {
   useDeferredEffect(loadSelectedMessages);
 
   useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
+
+  useEffect(() => {
     if (!selectedId) return;
     const timer = window.setInterval(() => {
       void loadMessages(selectedId);
@@ -114,7 +120,7 @@ export function ChatView() {
   }, [loadMessages, selectedId]);
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!currentUserId) return;
     const url = websocketUrl();
     if (!url) return;
     let closed = false;
@@ -133,7 +139,11 @@ export function ChatView() {
       socket.onmessage = (event) => {
         try {
           const payload = JSON.parse(String(event.data)) as RealtimeEvent;
-          if (payload.type === "chat" && payload.message) {
+          if (
+            payload.type === "chat" &&
+            payload.message &&
+            isDirectMessageForPeer(payload.message, currentUserId, selectedIdRef.current)
+          ) {
             const incoming = payload.message;
             setMessages((current) => {
               if (current.some((message) => message.id === incoming.id)) return current;
@@ -161,7 +171,7 @@ export function ChatView() {
       socketRef.current?.close();
       socketRef.current = null;
     };
-  }, [selectedId]);
+  }, [currentUserId]);
 
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -59,6 +59,24 @@ test("all Phase 3 Go-backed pages render real business content", async ({ page }
   }
 });
 
+test("chat WebSocket connects through the same-origin proxy", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "WebSocket proxy coverage runs once.");
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+  await login(page);
+  const websocketPromise = page.waitForEvent("websocket", {
+    predicate: (socket) => socket.url().includes("/ws/message"),
+    timeout: 15_000,
+  });
+  await page.goto("/message/chat");
+  const websocket = await websocketPromise;
+  expect(websocket.url()).toMatch(/\/ws\/message$/);
+  await expect(page.getByText("实时连接", { exact: true })).toBeVisible({ timeout: 15_000 });
+  expect(consoleErrors).toEqual([]);
+});
+
 test("users, roles, dictionaries and scheduler expose their primary interactions", async ({
   page,
 }, testInfo) => {

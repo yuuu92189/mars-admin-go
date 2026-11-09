@@ -135,6 +135,9 @@ test("desktop shell supports rail collapse and command palette keyboard flow", a
   await page.getByRole("menuitem", { name: "个人中心" }).click();
   await expect(page).toHaveURL(/\/profile$/);
   await expect(page.getByRole("heading", { name: "个人资料" })).toBeVisible();
+  await page.goto("/settings/profile");
+  await expect(page).toHaveURL(/\/profile$/);
+  await expect(page.getByRole("heading", { name: "个人资料" })).toBeVisible();
   await page.goto("/dashboard");
 
   await page.locator(".user-chip").click();

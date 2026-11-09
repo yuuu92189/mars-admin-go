@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/health/:path*", destination: `${apiBaseUrl}/health/:path*` },
       { source: "/openapi.yaml", destination: `${apiBaseUrl}/openapi.yaml` },
+      { source: "/ws/message", destination: `${apiBaseUrl}/ws/message` },
     ];
   },
 };

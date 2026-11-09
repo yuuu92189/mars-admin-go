@@ -1,5 +1,5 @@
-import { ProfileView } from "@/features/profile/profile-view";
+import { redirect } from "next/navigation";
 
 export default function LegacyProfilePage() {
-  return <ProfileView />;
+  redirect("/profile");
 }

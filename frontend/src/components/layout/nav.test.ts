@@ -83,13 +83,13 @@ describe("buildNavGroups", () => {
     const groups = buildNavGroups(
       userWithMenus([
         menu({ id: "dashboard", name: "工作台", type: 2, path: "/dashboard" }),
-        menu({ id: "profile", name: "个人资料", type: 2, path: "settings/profile" }),
+        menu({ id: "profile", name: "个人资料", type: 2, path: "profile" }),
       ]),
     );
 
     expect(groups).toHaveLength(1);
     expect(groups[0]?.label).toBe("导航");
-    expect(groups[0]?.items.map((item) => item.path)).toEqual(["/dashboard", "/settings/profile"]);
+    expect(groups[0]?.items.map((item) => item.path)).toEqual(["/dashboard", "/profile"]);
   });
 
   it("flattens nested Java directory menus into visible leaves", () => {
