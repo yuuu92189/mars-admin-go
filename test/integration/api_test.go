@@ -317,24 +317,20 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	socialBody, _ := json.Marshal(map[string]any{
 		"loginType": "MINIPROGRAM", "wxCode": "integration-login-code",
 	})
-	response, err = http.Post(server.URL+"/api/app/auth/login", "application/json", bytes.NewReader(socialBody))
+	response, err = http.Post(server.URL+"/api/v1/auth/login", "application/json", bytes.NewReader(socialBody))
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode)
-	var legacySocial struct {
-		Code int `json:"code"`
-		Data struct {
-			Token string `json:"token"`
-			User  struct {
-				ID       string `json:"id"`
-				UserType string `json:"userType"`
-			} `json:"user"`
-		} `json:"data"`
+	var socialLogin struct {
+		Token string `json:"token"`
+		User  struct {
+			ID       string `json:"id"`
+			UserType string `json:"userType"`
+		} `json:"user"`
 	}
-	require.NoError(t, json.NewDecoder(response.Body).Decode(&legacySocial))
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&socialLogin))
 	_ = response.Body.Close()
-	require.Equal(t, 200, legacySocial.Code)
-	require.NotEmpty(t, legacySocial.Data.Token)
-	require.Equal(t, "app", legacySocial.Data.User.UserType)
+	require.NotEmpty(t, socialLogin.Token)
+	require.Equal(t, "app", socialLogin.User.UserType)
 
 	noticeBody, _ := json.Marshal(map[string]any{
 		"title": "Integration SMS notice", "content": "Delivered asynchronously",
@@ -371,82 +367,88 @@ func TestAPIAgainstRealPostgresAndRedis(t *testing.T) {
 	require.Equal(t, "success", sendStatus)
 	require.Equal(t, 1, successCount)
 
-	response = authenticatedRequest(t, http.MethodGet, server.URL+"/api/auth/info", login.Token, nil)
+	response = authenticatedRequest(t, http.MethodGet, server.URL+"/api/v1/auth/info", login.Token, nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
-	var legacyInfo struct {
-		Code int `json:"code"`
-		Data struct {
-			Menus []map[string]any `json:"menus"`
-		} `json:"data"`
+	var currentUser struct {
+		Menus []struct {
+			Visible bool `json:"visible"`
+		} `json:"menus"`
 	}
-	require.NoError(t, json.NewDecoder(response.Body).Decode(&legacyInfo))
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&currentUser))
 	_ = response.Body.Close()
-	require.Equal(t, http.StatusOK, legacyInfo.Code)
-	require.NotEmpty(t, legacyInfo.Data.Menus)
-	require.Contains(t, legacyInfo.Data.Menus[0], "visible")
-	require.Equal(t, float64(1), legacyInfo.Data.Menus[0]["visible"])
+	require.NotEmpty(t, currentUser.Menus)
+	require.True(t, currentUser.Menus[0].Visible)
 
-	response = authenticatedRequest(t, http.MethodGet, server.URL+"/api/sys/user/page?page=1&pageSize=10", login.Token, nil)
+	response = authenticatedRequest(t, http.MethodGet, server.URL+"/api/v1/admin/users?page=1&pageSize=10", login.Token, nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
-	var legacyUsers struct {
-		Code int `json:"code"`
-		Data struct {
-			List []map[string]any `json:"list"`
-		} `json:"data"`
+	var usersPage struct {
+		Items []struct {
+			DisplayName string `json:"displayName"`
+		} `json:"items"`
+		Total int64 `json:"total"`
 	}
-	require.NoError(t, json.NewDecoder(response.Body).Decode(&legacyUsers))
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&usersPage))
 	_ = response.Body.Close()
-	require.Equal(t, http.StatusOK, legacyUsers.Code)
-	require.NotEmpty(t, legacyUsers.Data.List)
-	require.Contains(t, legacyUsers.Data.List[0], "nickname")
+	require.NotEmpty(t, usersPage.Items)
+	require.NotEmpty(t, usersPage.Items[0].DisplayName)
+	require.Greater(t, usersPage.Total, int64(0))
 
-	response = authenticatedRequest(t, http.MethodGet, server.URL+"/api/dashboard/stats", login.Token, nil)
+	response = authenticatedRequest(t, http.MethodGet, server.URL+"/api/v1/admin/monitoring/dashboard", login.Token, nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
-	var legacyDashboard struct {
-		Code int            `json:"code"`
-		Data map[string]any `json:"data"`
-	}
-	require.NoError(t, json.NewDecoder(response.Body).Decode(&legacyDashboard))
+	var dashboard map[string]any
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&dashboard))
 	_ = response.Body.Close()
-	require.Contains(t, legacyDashboard.Data, "userCount")
-	require.Contains(t, legacyDashboard.Data, "permissionCount")
+	require.Contains(t, dashboard, "userCount")
+	require.Contains(t, dashboard, "permissionCount")
 
-	legacyMessageBody, _ := json.Marshal(map[string]any{
-		"receiverId": createdUser.ID, "msgType": 1, "content": "legacy compatibility message",
+	canonicalMessageBody, _ := json.Marshal(map[string]any{
+		"receiverId": createdUser.ID, "messageType": "text", "content": "canonical message",
 	})
-	response = authenticatedRequest(t, http.MethodPost, server.URL+"/api/sys/chat/send", login.Token, legacyMessageBody)
-	require.Equal(t, http.StatusOK, response.StatusCode)
-	var legacyMessage struct {
-		Code int            `json:"code"`
-		Data map[string]any `json:"data"`
+	response = authenticatedRequest(t, http.MethodPost, server.URL+"/api/v1/messages", login.Token, canonicalMessageBody)
+	require.Equal(t, http.StatusCreated, response.StatusCode)
+	var message struct {
+		MessageType string `json:"messageType"`
 	}
-	require.NoError(t, json.NewDecoder(response.Body).Decode(&legacyMessage))
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&message))
 	_ = response.Body.Close()
-	require.Equal(t, http.StatusOK, legacyMessage.Code)
-	require.Equal(t, float64(1), legacyMessage.Data["msgType"])
+	require.Equal(t, "text", message.MessageType)
 
-	codegenImport, _ := json.Marshal([]string{"access_menus"})
-	response = authenticatedRequest(t, http.MethodPost, server.URL+"/api/tool/gen/import", login.Token, codegenImport)
-	require.Equal(t, http.StatusOK, response.StatusCode)
+	codegenImport, _ := json.Marshal(map[string]any{"schema": "public", "tables": []string{"access_menus"}})
+	response = authenticatedRequest(t, http.MethodPost, server.URL+"/api/v1/admin/codegen/imported", login.Token, codegenImport)
+	require.Equal(t, http.StatusCreated, response.StatusCode)
 	_ = response.Body.Close()
-	response = authenticatedRequest(t, http.MethodGet, server.URL+"/api/tool/gen/page?page=1&pageSize=10", login.Token, nil)
+	response = authenticatedRequest(t, http.MethodGet, server.URL+"/api/v1/admin/codegen/imported?page=1&pageSize=10", login.Token, nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	var codegenPage struct {
-		Code int `json:"code"`
-		Data struct {
-			Total int64 `json:"total"`
-			List  []struct {
-				ID string `json:"id"`
-			} `json:"list"`
-		} `json:"data"`
+		Total int64 `json:"total"`
+		Items []struct {
+			ID string `json:"id"`
+		} `json:"items"`
 	}
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&codegenPage))
 	_ = response.Body.Close()
-	require.Equal(t, int64(1), codegenPage.Data.Total)
-	require.NotEmpty(t, codegenPage.Data.List)
-	response = authenticatedRequest(t, http.MethodGet, server.URL+"/api/tool/gen/preview/"+codegenPage.Data.List[0].ID, login.Token, nil)
+	require.Equal(t, int64(1), codegenPage.Total)
+	require.NotEmpty(t, codegenPage.Items)
+	response = authenticatedRequest(t, http.MethodGet, server.URL+"/api/v1/admin/codegen/imported/"+codegenPage.Items[0].ID+"/preview", login.Token, nil)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 	_ = response.Body.Close()
+
+	legacyPaths := []string{
+		"/api/crypto/config",
+		"/api/auth/info",
+		"/api/sys/user/page?page=1&pageSize=10",
+		"/api/dashboard/stats",
+		"/api/sys/chat/users",
+		"/api/monitor/server/info",
+		"/api/workflow/definition/list",
+		"/api/tool/gen/page?page=1&pageSize=10",
+	}
+	for _, path := range legacyPaths {
+		response = authenticatedRequest(t, http.MethodGet, server.URL+path, login.Token, nil)
+		require.Equal(t, http.StatusNotFound, response.StatusCode, "legacy route must not be mounted: %s", path)
+		require.Contains(t, response.Header.Get("Content-Type"), "application/problem+json")
+		_ = response.Body.Close()
+	}
 
 }
 

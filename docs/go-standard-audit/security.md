@@ -131,20 +131,22 @@
 
 ### 已确认问题
 
-#### SEC-007 旧接口 envelope 缓冲大文件 — 已修复
+#### SEC-007 旧接口 envelope 缓冲大文件 — 已随兼容层删除
 
 位置：
 
-- `internal/platform/compat/envelope.go:34`
+- historical: `internal/platform/compat/envelope.go:34`
 
-问题：
+历史问题：
 
-- 所有 legacy `/api/*` 响应先完整写入 `bytes.Buffer`。
+- 删除前，所有 legacy `/api/*` 响应先完整写入 `bytes.Buffer`。
 - 文件下载和 ZIP 下载会整文件进入内存。
 
-影响：
+历史影响：
 
 - 大文件下载可能造成高内存占用或 OOM。
+
+当前处理：兼容层已删除；canonical 文件/ZIP 下载直接流式写响应。
 
 #### SEC-008 全局 1 MiB BodyLimit 阻止合法上传 — 已修复
 

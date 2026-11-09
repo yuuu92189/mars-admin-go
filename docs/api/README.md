@@ -5,7 +5,7 @@ The canonical contract is `api/openapi/v1/openapi.yaml`, OpenAPI 3.1. Runtime do
 ## Boundaries
 
 - `/api/v1/*` is the canonical API. Successful responses use direct resource JSON; errors use RFC 9457 Problem Details.
-- `/api/*` is the legacy Vue/UniApp compatibility surface. Responses are wrapped as `{code,message,msg,data}` by the HTTP boundary adapter.
+- `/api/*` is not mounted. Legacy routes, field aliases and `{code,message,msg,data}` envelopes are removed and covered by `404` integration assertions.
 - `/ws/message` is the authenticated WebSocket endpoint.
 
 ## Generation
@@ -28,4 +28,5 @@ The legacy raw `Authorization` header and WebSocket query token are rejected. AP
 
 ## Compatibility
 
-See `frontend-compatibility.md` for the old-to-new route mapping and browser validation status.
+See `frontend-compatibility.md` for the canonical React contract, removed routes and offline
+import boundary.

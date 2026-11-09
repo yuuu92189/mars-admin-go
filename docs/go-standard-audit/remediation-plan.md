@@ -13,12 +13,11 @@
 - 修复：multipart 由 storage Handler 使用配置上限约束
 - 验证：>1 MiB 上传测试
 
-### P1-002 Legacy 下载内存放大 — 已修复
+### P1-002 Legacy 下载内存放大 — 已随兼容层删除
 
-- 文件：`internal/platform/compat/envelope.go`
-- 问题：所有旧 API 响应完整缓冲
-- 修复：非 JSON 响应直接流式透传，JSON 响应才缓冲 envelope
-- 验证：大文件下载流式测试
+- 原文件：`internal/platform/compat/envelope.go`
+- 最终处理：删除 online envelope 和 `/api/*` 兼容路由
+- 验证：代表性旧路径返回 `404`；canonical 文件/ZIP 下载直接流式响应
 
 ### P1-003 监控接口缺少权限 — 已修复
 
@@ -69,14 +68,14 @@
 - 修复：不存在表报错；按列条件生成 imports；写接口要求 `codegen:manage`
 - 验证：生成代码 parse/compile；权限测试
 
-### P1-010 通知分页和 read-all — 已修复
+### P1-010 通知分页和 read-all — 历史兼容修复已移除
 
 - 文件：notification repository/service/handler、messaging SQL
 - 问题：My total 错误；legacy read-all 只处理首屏；重复 read 返回 404
 - 修复：增加 My count；批量/全量 read；read 幂等
-- 验证：>20 条公告分页和 read-all
+- 当前：canonical notice 分页与幂等 read 保留；旧 read-all 路由已删除
 
-### P1-011 Access legacy role 查询截断 — 已修复
+### P1-011 Access role 查询截断 — 已修复
 
 - 文件：`internal/modules/access/adapter/http/handler.go`
 - 问题：按 ID 查询先拉 1000，但 service 实际截断到 20
@@ -105,8 +104,9 @@
 - 统一 PostgreSQL 错误映射为 SQLSTATE。
 - 修复 Identity 关系加载错误被忽略。
 - 修复 Audit 数组脱敏和写入错误可观测性。
-- 减少 legacy Handler 中 `map[string]any` 拼装。
-- 替换 `legacyFileConfigTest`、`legacyRefreshSettings`、`legacyEmptySMSLogs`、`legacyNoFiles` 等静默 stub。
+- 在线 legacy Handler 和 Java 形状 `map[string]any` 拼装已删除。
+- `legacyFileConfigTest`、`legacyRefreshSettings`、`legacyEmptySMSLogs`、`legacyNoFiles` 等
+  在线 stub 已删除；对应能力如需保留，必须在 canonical API 中真实实现。
 - 改进 Legacy Import 的流式读取和内存上限。
 - 增加 scheduler/storage/setting/notification 索引。
 - 清理未使用的 generated API 或明确其契约用途。
@@ -116,6 +116,6 @@
 
 - 不重写模块分层。
 - 不替换 pgx、sqlc、Goose、River 或 Redis。
-- 不删除 legacy 兼容路由。
+- 不恢复已删除的 legacy 在线兼容路由。
 - 不在没有订单模型的情况下虚构支付回调结算功能。
 - 不将外部 Provider 宣称为 exactly-once。

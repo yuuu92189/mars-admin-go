@@ -20,7 +20,8 @@ The `integration` build-tag suite runs against real Testcontainers PostgreSQL, R
 - Publish a notice and verify recipient rows are committed before WebSocket fan-out.
 - Queue a scheduler job and verify River persists retries and run history.
 - Approve one workflow task twice and verify the second decision conflicts.
-- Legacy menu, user-page, unread-count, direct-message and codegen compatibility routes.
+- Canonical social login, current-user/menu, user-page, dashboard, direct-message and codegen flows.
+- Explicit `404` checks for representative removed `/api/*` routes.
 - Governance regression suite covering monitoring authorization, profile field protection, group owner protection, soft-delete reuse, Codegen permissions, notification pagination, encrypted settings, fixed-window rate limiting and workflow termination races.
 
 ## Security Cases

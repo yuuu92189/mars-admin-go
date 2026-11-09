@@ -34,8 +34,8 @@
 | P2-04 | system settings | Existing sensitive settings could lose sensitivity on update. | Preserve existing sensitivity and encrypt. |
 | P2-05 | storage upload | Multipart temporary files were not removed; Office ZIP types were rejected. | `RemoveAll`, bounded parse and ZIP-based MIME compatibility. |
 | P2-06 | login screen | Protocol-relative post-login redirect was accepted. | Safe destination validation. |
-| P2-07 | notification compatibility | Retry/send-log routes returned fake success/empty data. | Explicit not-configured errors. |
-| P2-08 | workflow compatibility | Definition compatibility lists silently truncated at 20 rows. | Bounded page-through helper. |
+| P2-07 | notification compatibility | Retry/send-log routes returned fake success/empty data. | Online compatibility routes removed; canonical channel logs/retry remain product gaps. |
+| P2-08 | workflow compatibility | Definition compatibility lists silently truncated at 20 rows. | Online compatibility routes removed; canonical workflow list APIs remain. |
 | P2-09 | visual E2E | Screenshot ran before the settings-ready button state. | Wait for enabled submit button. |
 | P2-10 | realtime hub | Subscription context was not cancelled on application close. | Store/cancel subscription context. |
 | P2-11 | current documentation | OpenAPI operation counts and migration/status statements were stale. | Phase 4 docs and current status/report updates. |
@@ -57,5 +57,6 @@
 
 - Live provider credentials and real production payment settlement certification.
 - Production legacy-data cutover approval and production execution.
-- Existing legacy clients that have not adopted Bearer/Cookie authentication.
+- Existing legacy clients that have not moved to the canonical `/api/v1` contract and supported
+  authentication.
 - Historical-statistics APIs for compatibility charts.

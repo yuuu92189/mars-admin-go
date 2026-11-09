@@ -20,15 +20,15 @@ The appropriate conclusion is **PASS WITH CONDITIONS**, not an unqualified produ
 
 ## Verified Statistics
 
-- Go files: 176.
+- Go files: 181.
 - Go module directories: 14.
 - Canonical OpenAPI operations: 137.
 - Goose migrations: 25.
-- React App Router pages: 18.
-- Migrated Go-supported business pages: 13.
-- Go test functions: 91.
+- React App Router pages: 22.
+- Java product coverage: partial; tracked in the 35-page traceability matrix.
+- Go test functions: 88.
 - Frontend test files: 20.
-- Frontend Vitest tests: 58.
+- Frontend Vitest tests: 60.
 
 ## Completed Remediation
 
@@ -44,6 +44,11 @@ The appropriate conclusion is **PASS WITH CONDITIONS**, not an unqualified produ
   snoozes.
 - Raw legacy Authorization headers and WebSocket query tokens are rejected; Bearer and session
   cookie authentication remain supported.
+- Online compatibility route mounts and the `{code,message,data}` envelope are removed. The
+  integration suite verifies canonical social login, current-user/menu, users, dashboard,
+  messaging and codegen flows, then asserts representative removed `/api/*` paths return `404`.
+- Java-shaped legacy handler mappings were removed from the HTTP adapters; offline migration
+  tooling remains isolated in `cmd/legacy-import` and `internal/migration/legacy`.
 - Login branding now describes Identity, Access, Workflow and Audit instead of excluded reference
   domains.
 - Historical Phase 1/3 and architecture documents now mark excluded security domains as
@@ -52,8 +57,8 @@ The appropriate conclusion is **PASS WITH CONDITIONS**, not an unqualified produ
 - Multipart uploads are bounded and temporary files are removed after parsing.
 - ZIP generation streams to the response and rejects unbounded table selections.
 - Existing sensitive settings remain encrypted when updated through the settings API.
-- Legacy notice retry/send-log routes return explicit not-configured errors instead of fake
-  success.
+- The removed legacy notice retry/send-log aliases no longer masquerade as canonical features;
+  channel logs and retry remain explicit product gaps until implemented on `/api/v1`.
 - The backend Docker context now excludes frontend, dependency and test artifacts; the verified
   build context is 1.82 MB.
 
@@ -65,6 +70,8 @@ The current evidence is recorded in [`docs/phase-4/11-test-acceptance.md`](phase
 - `go vet ./...`: PASS.
 - `go test ./...`: PASS.
 - `go test -tags=integration ./test/integration -count=1`: PASS.
+- Compatibility-removal integration run on 2026-11-09: PASS, including canonical route coverage
+  and explicit `404` assertions for removed `/api/*` paths.
 - Linux container `go test -race ./...`: PASS.
 - `golangci-lint run`: PASS after remediation.
 - `govulncheck ./...`: no reachable vulnerabilities.
@@ -84,7 +91,8 @@ The current evidence is recorded in [`docs/phase-4/11-test-acceptance.md`](phase
 - Rotate and live-test all legacy/provider credentials.
 - Complete production cutover approval; the isolated backup/restore rehearsal passed locally.
 - Certify a real S3/MinIO/OSS bucket and external notification/payment providers.
-- Upgrade legacy Vue/UniApp clients to Bearer or Cookie authentication.
+- Move any remaining Vue/UniApp callers to the canonical `/api/v1` contract and supported
+  authentication modes.
 - Certify real payment provider settlement with production credentials.
 
 ## Final Status

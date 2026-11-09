@@ -2,6 +2,8 @@
 
 > Historical first-round backend audit. The current Phase 4 business boundary excludes Asset
 > Management, Vulnerability Management and Remediation Work Orders.
+> The online compatibility routes and envelope described below were removed on 2026-11-09; see
+> [`07-legacy-compatibility-removal.md`](07-legacy-compatibility-removal.md) for the completed boundary.
 
 ## 1. Current Structure
 
@@ -45,7 +47,7 @@ cmd/*
 - Phase 1 后为 100 paths，135 operations；所有需要响应体的 2xx response 都有 content schema。
 - `api/openapi_test.go` 验证 OpenAPI 文档可加载、operationId 唯一。
 - 规范 API 前缀：`/api/v1/*`。
-- 旧 API：`/api/*`，由 `internal/platform/compat` 包装。
+- 在线 API 仅为 `/api/v1/*`；旧 `/api/*` 挂载与 envelope 已删除，并由集成测试断言返回 `404`。
 
 ### Confirmed Contract Issues (First-Round Snapshot)
 
@@ -65,14 +67,14 @@ The following entries record the first-round audit findings. Phase 1 remediation
 - Go `identitydomain.LoginInput` 使用 `uuid`、`code` JSON 标签。
 - `internal/modules/identity/adapter/http/handler.go` 的 `login` 直接解码 `LoginInput`，未知字段会被忽略。
 - 前端期望 `LoginResponse.expiresIn`；Go `LoginResult` 返回 `expiresAt`、`token`、`user`、`access` 等。
-- 影响：验证码开启时兼容登录可能失败；`expiresIn` 缺失会让前端过期时间计算异常。
-- 处理：在兼容 HTTP 层做显式字段映射，或在 OpenAPI 中定义统一登录契约并更新前端；不能靠字段同名猜测。
+- 历史影响：第一轮兼容登录存在字段漂移。当前 React 已使用 canonical `captchaId`/`captchaCode`、
+  `expiresAt`，旧字段不再由在线后端接受。
 
 #### GO-API-003 分页和 ID 类型不一致
 
 - `scaffold-vue` 使用数字 ID 和 `{pageNum,pageSize,total,rows}`。
 - Go 原生使用 UUID 字符串和 `{items,total,page,pageSize}`。
-- 旧 `/api/sys/user/page` 等兼容路由会做部分映射；`/api/v1` 原生路由不保证与 Vue 类型兼容。
+- 旧 `/api/sys/user/page` 已删除；React 使用 `/api/v1` 的 UUID 与 canonical 分页类型。
 - 影响：不能直接把 `scaffold-vue` 的 `system.ts` 指向 `/api/v1`。
 - 处理：生成 TypeScript 类型后逐页适配；UUID 在前端统一按字符串处理，禁止转 `number`。
 
@@ -102,7 +104,7 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 `scaffold-vue` 页面使用 `system:user:*`、`monitor:operlog:*`、`tool:gen:*` 等旧码；
 `vuln:*` 仅为参考项目旧码，已排除，不属于 Go 目标权限。两者不能直接共用授权菜单。
 
-处理：建立明确的权限码迁移表，或让兼容层做只读映射；不要同时接受两套码导致权限膨胀。
+处理：React 使用 canonical 权限码；兼容映射层已删除，不能同时接受两套码。
 
 ## 4. Authentication and Authorization
 
@@ -122,7 +124,7 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 
 - 第一轮审计发现 Workflow 读接口缺少实例级 Data Scope；Phase 1 已在实例、详情和事件读取中修复，见 section 9。
 - `internal/modules/integrations/http.go` 的 provider status 路由只使用认证，没有 `settings:read`；是否允许普通登录用户查看 Provider 状态需明确。
-- 兼容层仍接受 legacy raw Authorization；这是迁移期边界，不是目标浏览器认证。
+- 在线兼容层已删除；运行时不再接受 raw Authorization 或旧认证分支。
 - `scaffold-vue` 仍把 token 和明文密码放在浏览器存储中；Go 后端无法修复该前端漏洞。
 
 ## 5. Database and Migrations
@@ -152,13 +154,13 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 - 健康检查区分 live/ready；ready 检查 PostgreSQL 和 Redis。
 - Graceful shutdown、River worker、Outbox relay。
 - CORS 白名单、Security Headers、BodyLimit、Timeout、RateLimit、CSRF。
-- 旧 envelope 仅在 HTTP 兼容层。
+- 旧 envelope 已删除；所有在线响应使用 canonical JSON 或 RFC 9457 Problem。
 
 ### Gaps
 
 - `/metrics` 契约与实现不一致。
 - Audit metadata 数组中的 map 递归脱敏仍需加强；审计写入错误可观测性不足。
-- 旧兼容 handler 仍有大量 `map[string]any`，迁移完成后应删除而不是继续扩展。
+- 旧兼容 handler 已删除；新实现继续使用 typed resource responses。
 - 多个 application/adapter 包单测覆盖为 0%，关键错误分支主要依赖集成测试。
 
 ## 7. Known Architecture Debt
@@ -170,7 +172,7 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 | GO-ARCH-003 | Domain Repository 接口过大 | P2 | Identity/Access/Messaging；按用例拆分 reader/store |
 | GO-ARCH-004 | Monitoring 直接读多模块表 | P2 | 标记为 read model；长期使用 view/独立 dashboard query |
 | GO-ARCH-005 | Workflow 实例级 Data Scope 缺失 | 已修复 | 实例/详情/事件 SQL 使用统一 visibility predicate |
-| GO-ARCH-006 | Legacy stubs 返回固定成功/空数据 | 已处理已确认项 | 调度统计读取真实 run；无能力接口返回 501 Problem |
+| GO-ARCH-006 | Legacy stubs 返回固定成功/空数据 | 已消除 | 在线兼容层及 stubs 已删除；后续能力必须在 canonical API 中真实实现 |
 
 ## 8. Verification Status
 
@@ -193,14 +195,14 @@ Go 种子权限见 `db/migrations/000007_seed_authorization.sql`，例如 `user:
 ### Resolved
 
 - `GO-API-001`：`/metrics` 保持 `audit:read`，OpenAPI 继承安全方案并声明权限、401/403/500。
-- `GO-API-002`：新登录 API 使用 `captchaId`/`captchaCode`、`expiresAt`；旧字段和 `expiresIn` 只存在于 legacy adapter。
-- `GO-API-003`：新 API 分页固定为 `items/total/page/pageSize`；旧别名只在兼容边界保留。
+- `GO-API-002`：新登录 API 使用 `captchaId`/`captchaCode`、`expiresAt`；旧字段和 `expiresIn` 已删除。
+- `GO-API-003`：新 API 分页固定为 `items/total/page/pageSize`；旧别名已删除。
 - `GO-API-004`：OpenAPI 当前所有需要响应体的 2xx response 都有 content schema；动态 metadata/settings/variables 保留明确说明。
 - `GO-API-005`：群组成员删除、角色、禁言和群主转让已进入 OpenAPI。
 - `GO-ARCH-001`：Identity 不再直接导入 Access sqlc。
 - `GO-ARCH-002`：Notification 不再直接导入 Messaging sqlc。
 - `GO-ARCH-005`：Workflow 实例、详情和事件读取执行实例级 Data Scope。
-- `GO-ARCH-006`：已确认的 Legacy Stub 已改为真实统计或显式 501 Problem。
+- `GO-ARCH-006`：在线 Legacy Stub 已随兼容层删除；未实现能力不能重新伪装成成功响应。
 - PostgreSQL SQLSTATE 在 `internal/platform/httpserver/json.go` 统一映射，包含唯一、外键、非空、检查、序列化、死锁和取消。
 - Access 的 Role/Menu Repository 和 Workflow 的 Definition/Runtime Repository 已按使用方拆分。
 

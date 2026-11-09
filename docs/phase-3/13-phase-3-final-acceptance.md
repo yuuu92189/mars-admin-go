@@ -2,12 +2,16 @@
 
 > Historical Phase 3 acceptance record. The security domains named below are excluded by the
 > Phase 4 business-scope decision, not unfinished Phase 3 deliverables.
+> The 13-route result is a foundation/prototype milestone, not Java product acceptance; use
+> [`../architecture-audit/14-java-product-traceability.md`](../architecture-audit/14-java-product-traceability.md)
+> for the current 35-page gap matrix.
 
 Status: ACCEPTED WITH CONDITIONS
 
 ## Accepted Scope
 
-All 13 Go-supported business pages are implemented in React and connected to the real Go API:
+The then-supported 13 prototype business pages were implemented in React and connected to the
+real Go API:
 
 - Dashboard
 - Users

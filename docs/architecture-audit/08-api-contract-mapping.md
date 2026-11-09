@@ -5,11 +5,11 @@
 
 ## 1. Contract Layers
 
-当前存在三套相关契约：
+历史参考契约与当前目标契约如下：
 
 | 层 | 路径/来源 | 形状 | 状态 |
 | --- | --- | --- | --- |
-| 参考前端 | `scaffold-vue/src/api/*` | `/api/*`、`{code,message,data}`、数字 ID、`{rows,pageNum,pageSize,total}` | 当前页面实际调用 |
+| 参考前端 | `scaffold-vue/src/api/*` | `/api/*`、`{code,message,data}`、数字 ID、`{rows,pageNum,pageSize,total}` | 历史/设计参考，不在线调用 |
 | 参考 Spring Boot | `scaffold-system` | 参考前端对应的后端 | 仅作为参考，不进入目标运行时 |
 | Go 目标后端 | `api/openapi/v1/openapi.yaml` + `/api/v1/*` | 直接 JSON、RFC 9457、UUID、`{items,page,pageSize,total}` | Phase 1 后：100 paths、135 operations；2xx schema、权限元数据和群组路由已补齐 |
 
@@ -18,7 +18,7 @@
 1. 先定义统一 OpenAPI。
 2. 生成 TypeScript 类型/client。
 3. React 页面只调用新 API。
-4. 旧 `/api/*` 仅在迁移期服务旧客户端。
+4. 旧 `/api/*` 在线兼容层已删除；离线导入工具继续保留。
 
 ## 1.1 Phase 1 Contract Update
 

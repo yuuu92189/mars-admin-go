@@ -96,4 +96,4 @@ or page has only a subset of the Java operations.
 2. P1 files, notices, chat and monitoring read models.
 3. P1 workflow definition/tasks/monitor and user/role/permission completion.
 4. P2 file configuration, customers/students, cache/server manager and designer.
-5. Remove online compatibility routes only after callers, OpenAPI and tests prove replacement.
+5. Online compatibility routes are removed; future work must extend canonical `/api/v1` routes and tests.

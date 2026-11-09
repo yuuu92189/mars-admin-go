@@ -20,9 +20,11 @@ and [`docs/frontend/14-phase-2.1-final-acceptance.md`](docs/frontend/14-phase-2.
 The latest Refresh concurrency and transactional Outbox audit is in [`docs/audit-round-3/audit-summary.md`](docs/audit-round-3/audit-summary.md).
 
 Phase 4 full-project audit, remediation, test acceptance and residual-risk register are in
-[`docs/phase-4/README.md`](docs/phase-4/README.md). The current verified status is
-[`PASS WITH CONDITIONS`](docs/phase-4/14-phase-4-final-acceptance.md): 137 canonical API
-  operations, 25 Goose migrations and all 13 Go-supported business pages are implemented.
+[`docs/phase-4/README.md`](docs/phase-4/README.md). Phase 4 records completed engineering
+remediation, not Java product acceptance. The corrected 35-page product matrix is in
+[`docs/architecture-audit/14-java-product-traceability.md`](docs/architecture-audit/14-java-product-traceability.md).
+The current product state is **Go foundation + partial React prototype**, with remaining slices
+tracked as missing or partial rather than counted as migrated pages.
 
 Phase 3 migration and visual-regression evidence is indexed in
 [`docs/phase-3/README.md`](docs/phase-3/README.md); its excluded-domain references are historical
@@ -89,7 +91,7 @@ Required environment variables are documented in `.env.example`. `DATABASE_URL` 
 
 - `cmd/api`, `cmd/worker`, `cmd/migrate`, `cmd/outbox`, `cmd/legacy-import`: separate process entry points.
 - `internal/modules/*`: feature-owned domain, application, HTTP adapter and PostgreSQL adapter code.
-- `internal/platform/*`: configuration, security primitives, HTTP middleware, database, Redis, telemetry and compatibility envelope.
+- `internal/platform/*`: configuration, security primitives, HTTP middleware, database, Redis and telemetry.
 - `db/migrations`: Goose schema migrations.
 - `db/queries`: sqlc query sources, generated into module-local packages.
 - `api/openapi/v1/openapi.yaml`: canonical API contract.
@@ -111,11 +113,15 @@ go tool oapi-codegen -config api/oapi-codegen.yaml api/openapi/v1/openapi.yaml
 
 Integration tests requiring containers are documented in `docs/testing.md`.
 
-## Legacy Compatibility
+## API Boundary
 
-The Vue and UniApp clients can continue to call `/api/auth`, `/api/sys/*`, `/api/chat/*`, `/api/workflow/*` and `/ws/message`. A boundary adapter wraps only those legacy routes in `{code,message,data}`. New clients should use `/api/v1`.
+The online runtime exposes canonical `/api/v1/*` routes only. Legacy `/api/*` routes, Java-shaped
+field aliases and the `{code,message,data}` envelope are removed; integration tests assert that
+representative old routes return `404`. React uses direct JSON and RFC 9457 Problem responses.
 
-The primary Vue pages were exercised against the Go API, including dynamic menus, CRUD lists, files, chat, notices, monitoring, workflow and codegen. See [`docs/api/frontend-compatibility.md`](docs/api/frontend-compatibility.md).
+`cmd/legacy-import` and `internal/migration/legacy` remain as offline data-migration tooling. They
+are not mounted into the API or Worker runtime. The Vue capture mocks are visual-reference fixtures,
+not a supported online API. See [`docs/api/frontend-compatibility.md`](docs/api/frontend-compatibility.md).
 
 ## Security
 

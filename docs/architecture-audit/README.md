@@ -51,7 +51,7 @@
 Phase 1 已实施已确认的技术基线：
 
 - `/metrics` 使用 `audit:read`，OpenAPI、Handler 和集成测试一致。
-- 登录新 API 使用 `captchaId`/`captchaCode` 和 `expiresAt`；旧 `/api` 客户端只在兼容层映射 `captcha`/`captchaUuid` 和 `expiresIn`。
+- 登录新 API 使用 `captchaId`/`captchaCode` 和 `expiresAt`；旧字段、`expiresIn` 和 `/api` 在线兼容层已删除。
 - 分页统一为 `items`/`total`/`page`/`pageSize`。
 - PostgreSQL SQLSTATE 在统一 HTTP 错误边界映射为 RFC 9457 Problem。
 - Phase 4 当前 OpenAPI 为 137 operations；所有需要响应体的 2xx response 都有 content schema，113 个 operation 声明 required permission，12 个 operation 声明仅认证。

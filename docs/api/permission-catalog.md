@@ -96,4 +96,5 @@ The reference Vue application uses older permission strings. The mapping is docu
 - Seed new codes with an idempotent migration.
 - Copy grants from a legacy code to the canonical code only after the migration mapping is approved.
 - Validate role count, permission count and representative allow/deny requests before and after migration.
-- Keep legacy compatibility routes on their existing permission checks until the old clients are removed.
+- Do not restore removed compatibility routes to bridge permission-code differences; migrate the
+  caller to canonical permissions.

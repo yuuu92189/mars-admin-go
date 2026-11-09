@@ -90,7 +90,7 @@ Go 仓库已有可复核的专题文档：
 - `docs/database/`：旧库盘点、表映射、类型映射、关系映射和导入验证。
 - `docs/go-standard-audit/`：Go 结构、依赖、数据库、并发、安全、测试和整改。
 - `docs/audit-round-2/`、`docs/audit-round-3/`、`docs/audit-final/`：Refresh、Outbox、多 Worker、权限和运行验证。
-- `docs/api/frontend-compatibility.md`：旧 `/api` 兼容层。
+- `docs/api/frontend-compatibility.md`：canonical React 契约、已删除兼容入口和离线导入边界。
 
 本目录不是对上述证据的替代，而是把前端参考、Go 后端、契约缺口和目标架构放进同一套可执行路线。
 

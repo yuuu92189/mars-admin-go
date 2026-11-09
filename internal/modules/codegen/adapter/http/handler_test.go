@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLegacyDownloadRejectsUnboundedTableSelection(t *testing.T) {
+func TestDownloadRejectsUnboundedTableSelection(t *testing.T) {
 	ids := make([]string, 51)
 	for index := range ids {
 		ids[index] = uuid.NewString()
@@ -24,7 +24,7 @@ func TestLegacyDownloadRejectsUnboundedTableSelection(t *testing.T) {
 	)
 	recorder := httptest.NewRecorder()
 
-	(&Handler{}).legacyDownload(recorder, request)
+	(&Handler{}).download(recorder, request)
 
 	require.Equal(t, http.StatusUnprocessableEntity, recorder.Code)
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"mars-admin-go/api"
@@ -52,7 +53,6 @@ import (
 	workflowpostgres "mars-admin-go/internal/modules/workflow/adapter/postgres"
 	workflowapp "mars-admin-go/internal/modules/workflow/application"
 	"mars-admin-go/internal/platform/cache"
-	"mars-admin-go/internal/platform/compat"
 	"mars-admin-go/internal/platform/config"
 	"mars-admin-go/internal/platform/database"
 	"mars-admin-go/internal/platform/httpserver"
@@ -246,7 +246,6 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	router.Use(httpserver.Logging(logger))
 	router.Use(httpserver.Metrics(httpMetrics))
 	router.Use(httpserver.BodyLimit(1 << 20))
-	router.Use(compat.Envelope)
 
 	router.Get("/health/live", func(w http.ResponseWriter, _ *http.Request) {
 		httpserver.WriteJSON(w, http.StatusOK, map[string]string{"status": "live"})
@@ -269,11 +268,6 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	})
 	router.Get("/docs", scalarDocs)
 	router.Handle("/ws/message", hub)
-	router.Get("/api/crypto/config", func(w http.ResponseWriter, _ *http.Request) {
-		httpserver.WriteJSON(w, http.StatusOK, map[string]any{
-			"enabled": false, "publicKey": "", "aesKey": "",
-		})
-	})
 
 	router.Route("/api/v1/auth", func(r chi.Router) { r.Mount("/", identityHandler.Routes()) })
 	router.Route("/api/v1/admin/users", func(r chi.Router) { r.Mount("/", identityHandler.AdminRoutes()) })
@@ -282,7 +276,6 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	router.Route("/api/v1/admin", func(r chi.Router) { r.Mount("/", systemHandler.Routes()) })
 	router.Route("/api/v1/admin/audit", func(r chi.Router) { r.Mount("/", auditHandler.Routes()) })
 	router.Route("/api/v1/admin/monitoring", func(r chi.Router) { r.Mount("/", monitoringHandler.Routes()) })
-	router.Route("/api/dashboard", func(r chi.Router) { r.Mount("/", monitoringHandler.LegacyRoutes()) })
 	router.Route("/api/v1/files", func(r chi.Router) { r.Mount("/", storageHandler.Routes()) })
 	router.Route("/api/v1", func(r chi.Router) { r.Mount("/", messagingHandler.Routes()) })
 	router.Route("/api/v1/notices", func(r chi.Router) { r.Mount("/", notificationHandler.Routes()) })
@@ -291,29 +284,15 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	router.Route("/api/v1/admin/codegen", func(r chi.Router) { r.Mount("/", codegenHandler.Routes()) })
 	router.Route("/api/v1/admin/integrations", func(r chi.Router) { r.Mount("/", integrationHandler.Routes()) })
 	router.Route("/api/v1/payments/callbacks", func(r chi.Router) { r.Mount("/", integrationHandler.CallbackRoutes()) })
-
-	router.Route("/api/auth", func(r chi.Router) { r.Mount("/", identityHandler.LegacyRoutes()) })
-	router.Route("/api/app/auth", func(r chi.Router) { r.Mount("/", identityHandler.LegacyRoutes()) })
-	router.Route("/api/web/auth", func(r chi.Router) { r.Mount("/", identityHandler.LegacyRoutes()) })
-	router.Route("/api/sys/user", func(r chi.Router) { r.Mount("/", identityHandler.LegacyAdminRoutes()) })
-	router.Route("/api/sys/role", func(r chi.Router) { r.Mount("/", accessHandler.LegacyRolesRoutes()) })
-	router.Route("/api/sys/menu", func(r chi.Router) { r.Mount("/", accessHandler.LegacyMenuRoutes()) })
-	router.Route("/api/sys/dept", func(r chi.Router) { r.Mount("/", organizationHandler.LegacyDepartmentRoutes()) })
-	router.Route("/api/sys/post", func(r chi.Router) { r.Mount("/", organizationHandler.LegacyPositionRoutes()) })
-	router.Route("/api/sys", func(r chi.Router) { r.Mount("/", systemHandler.LegacyRoutes()) })
-	router.Route("/api/monitor", func(r chi.Router) { r.Mount("/", auditHandler.LegacyRoutes()) })
-	router.Route("/api/monitor/server", func(r chi.Router) { r.Mount("/", monitoringHandler.LegacyRoutes()) })
-	router.Route("/api/monitor/job", func(r chi.Router) { r.Mount("/", schedulerHandler.LegacyRoutes()) })
-	router.Route("/api/monitor/online", func(r chi.Router) { r.Mount("/", identityHandler.LegacyOnlineRoutes()) })
-	router.Route("/api/monitor/cache", func(r chi.Router) { r.Mount("/", monitoringHandler.LegacyCacheRoutes()) })
-	router.Route("/api/monitor/api-access", func(r chi.Router) { r.Mount("/", monitoringHandler.LegacyAPIAccessRoutes()) })
-	router.Route("/api/sys/file", func(r chi.Router) { r.Mount("/", storageHandler.LegacyRoutes()) })
-	router.Route("/api/sys/file-group", func(r chi.Router) { r.Mount("/", storageHandler.LegacyGroupRoutes()) })
-	router.Route("/api/sys/chat", func(r chi.Router) { r.Mount("/", messagingHandler.LegacyDirectRoutes()) })
-	router.Route("/api/chat/group", func(r chi.Router) { r.Mount("/", messagingHandler.LegacyGroupRoutes()) })
-	router.Route("/api/sys/notice", func(r chi.Router) { r.Mount("/", notificationHandler.LegacyRoutes()) })
-	router.Route("/api/workflow", func(r chi.Router) { r.Mount("/", workflowHandler.LegacyRoutes()) })
-	router.Route("/api/tool/gen", func(r chi.Router) { r.Mount("/", codegenHandler.LegacyRoutes()) })
+	router.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			httpserver.WriteProblem(w, r, httpserver.NewProblem(
+				http.StatusNotFound, "not_found", "The requested API resource was not found.",
+			))
+			return
+		}
+		http.NotFound(w, r)
+	})
 
 	return &App{
 		Config: cfg, Logger: logger, Pool: pool, Redis: redisClient,

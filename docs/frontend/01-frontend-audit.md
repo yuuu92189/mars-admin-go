@@ -52,5 +52,5 @@ The following source areas were checked directly:
 | No React application existed | Initialize `frontend/` rather than reuse Vue |
 | Superadmin flag not in `CurrentUser` | Do not infer superadmin from a role name; request Dashboard and use backend 403 as the authority |
 | Many Vue pages need product-specific APIs | Keep Phase 2 to foundation, login, dashboard and shell; use explicit Phase 3 placeholders |
-| Legacy `/api/*` routes exist | Never use them from React; only canonical `/api/v1` is consumed |
+| Legacy `/api/*` routes existed during the audit | They are now removed; React consumes only canonical `/api/v1` |
 | Browser Origin reaches Go directly through rewrite | Use a same-origin Next Route Handler proxy that strips upstream Origin while preserving cookies and CSRF |

@@ -1,10 +1,11 @@
 # Phase 3 Implementation Report
 
-> Historical Phase 3 record. The domains below marked EXCLUDED are not pending deliverables.
+> Historical Phase 3 record. The 13 routes below were a foundation/prototype slice, not completion
+> of the 35-page Java product. Domains marked EXCLUDED are not pending deliverables.
 
 ## Implementation
 
-- Migrated all 13 Go-supported business pages to React App Router routes.
+- Implemented 13 prototype business pages in React App Router routes.
 - Added typed API modules for Identity, Access, Organization, System, Notifications, Scheduler, Audit, Monitoring, and Codegen.
 - Added server-side page access guards with menu visibility and permission checks.
 - Added shared business UI primitives for page headers, filters, tables, bulk actions, drawers, dialogs, empty states, and status feedback.

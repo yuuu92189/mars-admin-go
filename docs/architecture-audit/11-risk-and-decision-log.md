@@ -189,7 +189,7 @@ Phase 1 的 OpenAPI 和 TypeScript 基线已可支撑 Phase 2 前端工程；未
 - 生产数据库、生产配置、生产密钥。
 - 旧数据导入结果和生产切换脚本。
 - 现有用户/业务数据。
-- 未确认归属的旧兼容路由。
+- 已删除的旧兼容路由不得恢复；如确有业务能力，必须在 canonical API 中重新设计。
 - 外部 Provider 的凭据和回调地址。
 
 ## 6. Residual Verification Gaps

@@ -1,10 +1,13 @@
 # Visual Regression Report
 
-Status: PASS WITH DOCUMENTED DATA DIFFERENCES
+> Historical Phase 3 visual record. The 13 routes below were a prototype matrix, not completion
+> of the 35-page Java product.
+
+Status: HISTORICAL PASS WITH DOCUMENTED DATA DIFFERENCES
 
 ## Scope
 
-The Phase 3 visual matrix covers all 13 Go-supported business pages:
+The Phase 3 visual matrix covered the then-supported 13 prototype business pages:
 
 - Dashboard
 - Users

@@ -7,11 +7,11 @@
 - 未发现 `utils`、`common`、`helpers`、`base` 泛化包。
 - 包名简洁：`domain`、`application`、`postgres`、`river`、`http`。
 - 未发现 `ServiceImpl`、`ManagerImpl` 等 Java 命名。
-- HTTP 兼容层存在 `legacy*` 命名，属于明确迁移边界，不是框架残留。
+- 在线 HTTP 兼容层及 `legacy*` 命名已删除；离线导入工具仍保留明确命名。
 
 ### 问题
 
-- `any` 在 legacy JSON 兼容层大量使用，原因是历史前端字段类型不稳定。应限制在 HTTP 边界，不能扩散到 domain。
+- Java 形状的 legacy JSON 兼容层已删除；新 HTTP 边界继续使用 typed request/response。
 - `bootstrapLogger()` 让 Handler 依赖全局 `slog.Default()`，不如显式注入 logger。
 
 ## 接口设计

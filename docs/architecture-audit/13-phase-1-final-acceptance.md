@@ -75,7 +75,7 @@ PASS
 
 `internal/platform/httpserver/permission_routes_test.go` 使用 Go AST 扫描真实 canonical handler 注册，处理 `RequirePermission`、`RequireAnyPermission`、`Use`、`Group` 和 `With`，并从 OpenAPI 反向查找未注册 operation。
 
-扫描范围是 `/api/v1/*` canonical 路由及明确列出的 `/metrics`、health、payment callback 运维端点。旧 `/api/*` 兼容路由不进入 canonical OpenAPI，仍由独立兼容测试覆盖。
+扫描范围是 `/api/v1/*` canonical 路由及明确列出的 `/metrics`、health、payment callback 运维端点。旧 `/api/*` 兼容路由已删除，并由集成测试断言返回 `404`。
 
 ### 对账结果
 

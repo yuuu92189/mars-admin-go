@@ -39,5 +39,5 @@ snapshots and viewport baselines were regenerated.
 
 - Vue/React screenshot fixtures intentionally differ from live database values.
 - Historical visual reports are evidence for their recorded commit and viewport only.
-- The legacy Vue/UniApp path remains a compatibility surface; new clients should use the React
-  cookie/CSRF flow.
+- The historical Vue/UniApp compatibility path has been removed. React is the supported frontend
+  and uses the canonical cookie/CSRF and `/api/v1` contract.

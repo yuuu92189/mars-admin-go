@@ -48,8 +48,9 @@ The prior "13 Go-supported pages" result is a foundation/prototype result, not a
    ledger, amount binding and callback replay tests pass.
 3. Production legacy-data cutover approval and production backup/restore execution remain
    external; the isolated local rehearsal passed.
-4. Legacy clients that have not yet adopted Bearer or Cookie authentication must be upgraded;
-   raw Authorization headers and WebSocket query tokens are rejected.
+4. Legacy Vue/UniApp HTTP callers must move to the canonical `/api/v1` contract and supported
+   Bearer/session-cookie authentication. Raw Authorization headers, WebSocket query tokens and
+   online `/api/*` compatibility routes are rejected.
 
 ## Remote CI
 

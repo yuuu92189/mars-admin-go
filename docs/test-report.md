@@ -25,14 +25,14 @@ Execution date: 2026-11-08 through 2026-11-09
 | Migrations | Goose through version 25 | pass |
 | Payment ledger and replay | PostgreSQL integration: amount binding, event dedupe, rejected mismatch | pass |
 | Scheduler concurrency | PostgreSQL advisory lock same-key exclusion and release | pass |
-| Legacy token migration | Raw Authorization and WebSocket query token rejection tests | pass |
+| Authentication boundary | Raw Authorization and WebSocket query token rejection tests | pass |
+| Online compatibility removal | `go test -tags=integration ./test/integration -count=1` with canonical flows and old-route `404` assertions | pass |
 | Cutover rehearsal | isolated PostgreSQL restore and row-count verification | pass |
 | Readiness | `/health/ready` | 200 |
 | Metrics/docs | `/metrics`, `/openapi.yaml`, `/docs` | served |
 | Full legacy import | MySQL 8.0.36 dump to isolated PostgreSQL 18.6 | 397 users, 0 failed rows |
 | Import idempotency | second full import run | 0 inserted, 0 failed, 2,605 skipped |
-| Vue build | `npm run build` | pass |
-| Vue compatibility | Vite app logged into Go API, primary pages exercised | pass |
+| Historical Vue reference | Pre-removal visual/reference exercise only | not online acceptance |
 | Phase 4 frontend checks | `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm check:api-types`, `pnpm build` | pass |
 | Phase 4 Go-backed E2E | Playwright against current API; visual suite included | see Phase 4 acceptance |
 
@@ -42,8 +42,10 @@ Execution date: 2026-11-08 through 2026-11-09
 - Login returned opaque access and refresh tokens; POST refresh rotated the credential.
 - Reusing the pre-rotation refresh token returned `401`.
 - Bearer-authenticated `/api/v1/auth/me` returned user, role, permission and menu data.
-- Legacy `/api/auth/login` returned `{code:200,message,data}`.
+- Canonical social login through `/api/v1/auth/login` returned a direct `token` and `user` payload.
+- Canonical `/api/v1/auth/info` returned menu objects with boolean `visible`.
 - User creation and self-scope list query worked against PostgreSQL.
+- `/api/v1/admin/users` returned canonical `items/total/page/pageSize` pagination.
 - Department creation produced an `ltree` path.
 - Image and slider captcha challenges were generated; image challenge length was non-empty.
 - TOTP MFA setup, enable, required-code response (`428`), MFA login and disable completed successfully.
@@ -54,10 +56,14 @@ Execution date: 2026-11-08 through 2026-11-09
 - Workflow definition publication, instance start and approval completed with `approved`.
 - Scheduler job execution persisted a River job and completed with `succeeded`.
 - Audit middleware recorded a role creation as `post/admin/success`.
-- Legacy direct chat loaded copied contacts, selected a contact and sent a `msgType=1` message through the compatibility route.
+- Canonical `/api/v1/messages` created a direct message with `messageType=text`.
 - Codegen imported `access_menus` into PostgreSQL, displayed it after reload and previewed four generated files.
+- Representative removed routes including `/api/auth/info`, `/api/sys/user/page`,
+  `/api/dashboard/stats`, `/api/sys/chat/users`, `/api/monitor/server/info`,
+  `/api/workflow/definition/list` and `/api/tool/gen/page` returned `404`.
 - Online sessions, bounded Redis cache inspection and API access statistics returned live data.
-- The full Vue menu tree rendered from the Go API and primary pages loaded with the existing Naive UI layout.
+- The canonical menu tree rendered in the React shell; the Vue tree remains a historical design
+  reference rather than an online client.
 
 ## Integration Test Coverage
 
@@ -72,10 +78,10 @@ Execution date: 2026-11-08 through 2026-11-09
 - direct-message idempotency
 - local file upload
 - audit event creation
-- legacy menu/user contract adaptation
-- legacy numeric unread counts
-- legacy direct-message send with `msgType`
+- canonical social login and current-user/menu responses
+- canonical users, dashboard and direct-message flows
 - codegen import, persisted list and preview
+- explicit `404` assertions for representative removed `/api/*` routes
 - payment order/callback idempotency and amount/currency mismatch
 - scheduler same-key advisory lock exclusion
 - raw Authorization and WebSocket query-token rejection
@@ -86,5 +92,6 @@ The full legacy dump validation is documented in `docs/database/import-validatio
 
 - The host lacks a Windows C compiler, so Race Detector was executed inside the official Go Linux image.
 - `gcr.io` is unreachable from this host. The Dockerfile default remains the required distroless image; the local Compose runtime fallback is `alpine:3.22`.
-- Backend CI was added locally; its remote run remains pending until an authorized push.
+- Backend CI, Frontend CI and Frontend E2E passed on the remote commits recorded in the status
+  and final reports.
 - Real social, SMS, payment, push, mail and object-storage credentials were unavailable. Their interfaces return explicit not-configured errors instead of fake success.

@@ -7,6 +7,8 @@ Updated: 2026-11-09
 The current state is **Go foundation + partial React prototype**, not Java product acceptance.
 Phase 4 records the completed engineering remediation; the corrected Java product traceability
 matrix is in [`architecture-audit/14-java-product-traceability.md`](architecture-audit/14-java-product-traceability.md).
+The online API is canonical-only: legacy `/api/*` route mounts, Java field adapters and the
+compatibility envelope have been removed while the offline legacy importer remains available.
 
 - Go module directories: 14 (`access`, `audit`, `codegen`, `identity`, `integrations`,
   `messaging`, `monitoring`, `notification`, `organization`, `outbox`, `scheduler`, `storage`,
@@ -18,7 +20,7 @@ matrix is in [`architecture-audit/14-java-product-traceability.md`](architecture
   profile, dashboard, users/roles/menus/departments/positions/dictionaries/settings, notices,
   direct chat, scheduler/logs, codegen and file upload/download. The remaining Java pages are explicitly
   tracked as missing or partial in the traceability matrix.
-- Go test functions: 93 across unit, domain, security, contract and integration tests.
+- Go test functions: 88 across unit, domain, security, contract and integration tests.
 - Frontend tests: 20 files / 60 Vitest tests after the P0 additions.
 - Full Go-backed Playwright regression: 36 passed, 18 conditional skips, 0 failed.
 - GitHub Actions: the P0/P1 code commit `20c81ea6bfb890bb3581995e79a5524106dea2dd` passed
@@ -44,8 +46,7 @@ matrix is in [`architecture-audit/14-java-product-traceability.md`](architecture
 - React file management slice with upload, pagination, authenticated download and deletion.
 - React direct-chat slice with real history, send/read state, same-origin WebSocket reconnect and
   polling fallback; group chat and blocklist UI remain tracked as gaps.
-- Direct/group messaging, read receipts, Redis fan-out, WebSocket heartbeat and compatibility
-  routes.
+- Direct/group messaging, read receipts, Redis fan-out and WebSocket heartbeat.
 - Notices, target resolution, recipient/read state and River delivery jobs.
 - Scheduler jobs, run history, cron scanning and transactional River enqueue.
 - Scheduler distributed concurrency keys use PostgreSQL advisory locks with bounded River snoozes.
@@ -55,9 +56,10 @@ matrix is in [`architecture-audit/14-java-product-traceability.md`](architecture
   download.
 - Payment orders, provider callback ledger, amount/currency binding and replay-safe callback
   processing.
-- Prometheus metrics, OpenTelemetry spans, structured `slog` logs, request IDs and compatibility
-  envelopes.
-- Docker multi-stage build, Compose development stack, Helm templates and legacy HTTP adapter.
+- Prometheus metrics, OpenTelemetry spans, structured `slog` logs and request IDs.
+- Docker multi-stage build, Compose development stack and Helm templates.
+- Canonical-only `/api/v1` HTTP boundary. Integration tests verify representative removed
+  `/api/*` paths return `404`.
 - Raw legacy Authorization headers and WebSocket query tokens are rejected; Bearer and session
   cookie authentication remain supported.
 
@@ -72,13 +74,14 @@ matrix is in [`architecture-audit/14-java-product-traceability.md`](architecture
   cutover plan.
 - Payment callbacks are signature-verified and locally ledger-tested, but real provider settlement
   credentials and production certification were unavailable.
-- Existing Vue/UniApp clients must migrate to Bearer or Cookie authentication; the backend no
-  longer accepts raw Authorization headers or WebSocket query tokens.
+- Legacy Vue/UniApp HTTP callers are not supported by the online runtime. Clients must use the
+  React implementation or the canonical `/api/v1` contract, Bearer/session-cookie authentication
+  and the supported WebSocket authentication modes.
 - Redis is treated as ephemeral coordination and fan-out, not a business source of truth.
 
 ## Production Gate
 
 Do not announce production readiness until provider credentials are rotated and live-tested, the
 validated import report and production cutover are approved, existing clients complete the
-authentication migration, and the required distroless image is built in an environment that can
+canonical API migration, and the required distroless image is built in an environment that can
 access the runtime registry.

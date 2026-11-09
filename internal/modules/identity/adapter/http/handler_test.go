@@ -13,21 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLegacyLoginInputMapsCaptchaAliases(t *testing.T) {
-	var input legacyLoginInput
-	require.NoError(t, json.Unmarshal([]byte(`{
-		"username": "legacy-user",
-		"password": "secret",
-		"captchaUuid": "019b0000-0000-7000-8000-000000000001",
-		"captcha": "1234",
-		"rememberMe": true
-	}`), &input))
-	mapped := input.toDomain()
-	require.Equal(t, "019b0000-0000-7000-8000-000000000001", mapped.CaptchaID)
-	require.Equal(t, "1234", mapped.CaptchaCode)
-	require.True(t, mapped.RememberMe)
-}
-
 func TestCanonicalLoginInputUsesCanonicalCaptchaFields(t *testing.T) {
 	var input identitydomain.LoginInput
 	require.NoError(t, json.Unmarshal([]byte(`{

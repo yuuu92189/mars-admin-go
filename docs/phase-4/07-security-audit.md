@@ -32,6 +32,6 @@
 
 - Real SMS, mail, push, social OAuth, S3/OSS and payment provider credentials.
 - Live payment provider credentials and production settlement certification.
-- Legacy clients that have not yet adopted Bearer or Cookie authentication; raw headers and
-  WebSocket query tokens are rejected by the backend.
+- Legacy Vue/UniApp HTTP clients have not moved to the canonical `/api/v1` contract; raw headers,
+  WebSocket query tokens and online `/api/*` compatibility routes are rejected by the backend.
 - Production cutover and secret rotation of imported legacy data.

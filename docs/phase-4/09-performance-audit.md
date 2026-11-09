@@ -22,5 +22,5 @@
 
 - External provider retries can duplicate delivery because provider-side idempotency is not
   universally available.
-- Some compatibility endpoints use bounded in-memory pagination rather than dedicated database
-  history-statistics APIs.
+- Historical compatibility endpoints were removed. Any future history-statistics page must use a
+  dedicated canonical query rather than reintroducing bounded in-memory compatibility pagination.

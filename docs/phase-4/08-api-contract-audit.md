@@ -30,6 +30,7 @@ normalized ledger event rather than being accepted as a generic `{status}` succe
 
 ## Compatibility Boundary
 
-Legacy `/api/*` routes remain wrapped by the compatibility envelope and retain old client field
-aliases. New clients use `/api/v1/*` with canonical JSON, RFC 9457 problems and
-`{items,total,page,pageSize}` pagination.
+The historical `/api/*` compatibility routes and envelope were removed after this audit. The
+online runtime now exposes `/api/v1/*` only, with canonical JSON, RFC 9457 problems and
+`{items,total,page,pageSize}` pagination. Integration tests assert representative old paths return
+`404`.
